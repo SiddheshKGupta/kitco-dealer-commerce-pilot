@@ -1,0 +1,9 @@
+{
+  "name": "kitco-management-suite",
+  "version": "5.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/contrast.mjs && node tests/logic.mjs"
+  }
+}
