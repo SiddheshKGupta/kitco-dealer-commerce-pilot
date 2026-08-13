@@ -5,7 +5,7 @@ import { summarizeFulfilment, type FulfilmentAllocation } from "../dispatch/fulf
 import { ControlNavigation } from "./ControlNavigation";
 import "./control.css";
 
-interface ControlOrder { id: string; status: string; allocations: FulfilmentAllocation[]; audit: Array<{ correlationId: string; action: string }>; }
+export interface ControlOrder { id: string; status: string; allocations: FulfilmentAllocation[]; audit: Array<{ correlationId: string; action: string }>; }
 type AdminApi = (path: string, body: object) => Promise<unknown>;
 const defaultApi: AdminApi = async (path, body) => {
 	const response = await fetch(path, { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-correlation-id": crypto.randomUUID() }, body: JSON.stringify(body) });
