@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import migrationSql from "../../supabase/migrations/20260813160000_kitco_core.sql?raw";
+import advisorFixSql from "../../supabase/migrations/20260813173000_app_users_dealer_fk_index.sql?raw";
 
 const requiredTables = [
   "organisations",
@@ -70,8 +71,10 @@ describe("KITCO core migration", () => {
   it("indexes organisation, dealer, and auth ownership predicates", () => {
     expect(migrationSql).toMatch(/create index app_users_auth_user_id_idx/i);
     expect(migrationSql).toMatch(/create index app_users_dealer_id_idx/i);
+    expect(advisorFixSql).toMatch(
+      /create index app_users_organisation_id_dealer_id_idx[\s\S]*\(organisation_id, dealer_id\)/i
+    );
     expect(migrationSql).toMatch(/create index orders_dealer_id_idx/i);
     expect(migrationSql).toMatch(/create index orders_organisation_id_idx/i);
   });
 });
-
