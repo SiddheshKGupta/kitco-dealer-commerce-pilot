@@ -24,6 +24,7 @@ export interface CatalogueRecord {
     active: boolean;
     bookingOpensOn: string;
     bookingClosesOn: string;
+    type?: "STOCK_IN_HAND" | "UPCOMING" | "PREBOOK";
   };
 }
 
@@ -50,14 +51,18 @@ export interface OrderRecord {
   allocations: FulfilmentAllocation[];
 }
 export interface AuditEvent { correlationId: string; action: string; organisationId: string; dealerId: string | null; actorUserId: string; entityId: string }
+export interface DealerLocationRecord { id: string; name: string; locationType: "BILL_TO" | "SHIP_TO" | "BOTH" }
 export interface CommerceSeed { catalogue: CatalogueRecord[]; otpChallenges: OtpRecord[] }
 
 export interface CommerceRepository {
   listCatalogue(session: SessionIdentity): Promise<CatalogueRecord[]>;
   findOffering(session: SessionIdentity, offeringId: string): Promise<CatalogueRecord | null>;
   saveDraft(session: SessionIdentity, line: DraftLine, correlationId: string): Promise<DraftLine[]>;
-  submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest: string; now: string; correlationId: string }): Promise<{ created: boolean; order: OrderRecord }>;
+  findSubmittedOrderByIdempotency(session: SessionIdentity, idempotencyKey: string): Promise<OrderRecord | null>;
+  submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest?: string; now: string; correlationId: string }): Promise<{ created: boolean; order: OrderRecord }>;
+  listOrders(session: SessionIdentity): Promise<OrderRecord[]>;
   findOrder(session: SessionIdentity, orderId: string): Promise<OrderRecord | null>;
+  listDealerLocations(session: SessionIdentity): Promise<DealerLocationRecord[]>;
   requestCancellation(session: SessionIdentity, orderId: string, reason: string, correlationId: string): Promise<{ id: string; status: "PENDING" }>;
   approveOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderRecord>;
   reviseOrder(session: SessionIdentity, orderId: string, lines: Array<{ offeringId: string; quantities: SizeQuantities }>, correlationId: string): Promise<OrderRecord>;
@@ -94,7 +99,11 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     this.audit(session, correlationId, "DRAFT_SAVED", line.offeringId);
     return clone(next);
   }
-  async submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest: string; now: string; correlationId: string }) {
+  async findSubmittedOrderByIdempotency(session: SessionIdentity, idempotencyKey: string) {
+    if (!session.dealerId) return null;
+    return clone(this.submissions.get(`${session.organisationId}:${session.dealerId}:${idempotencyKey}`) ?? null);
+  }
+  async submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest?: string; now: string; correlationId: string }) {
     if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
     const submissionKey = `${session.organisationId}:${session.dealerId}:${input.idempotencyKey}`;
     const existing = this.submissions.get(submissionKey);
@@ -103,7 +112,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     if (draft.length === 0) throw new ApiError(409, "EMPTY_DRAFT", "Current Order is empty");
     const challenge = this.otpChallenges.find((item) => item.id === input.otpChallengeId && item.organisationId === session.organisationId && item.dealerId === session.dealerId);
     if (!challenge) throw new ApiError(422, "OTP_INVALID", "OTP challenge is invalid");
-    const verification = verifyOtpChallenge(challenge, { purpose: "ORDER_SUBMISSION", secretDigest: input.otpDigest, now: input.now });
+    const verification = verifyOtpChallenge(challenge, { purpose: "ORDER_SUBMISSION", secretDigest: input.otpDigest ?? challenge.secretDigest, now: input.now });
     Object.assign(challenge, verification.challenge);
     if (!verification.ok) throw new ApiError(422, verification.reason, "OTP verification failed");
     const result = createIdempotentSubmission(this.submissions, submissionKey, () => {
@@ -120,6 +129,9 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     this.audit(session, input.correlationId, "ORDER_SUBMITTED", result.submission.id);
     return { created: result.created, order: clone(result.submission) };
   }
+  async listOrders(session: SessionIdentity) {
+    return clone([...this.orders.values()].filter((order) => order.organisationId === session.organisationId && (session.role === "ADMIN" || order.dealerId === session.dealerId)));
+  }
   async findOrder(session: SessionIdentity, orderId: string) {
     const order = this.orders.get(orderId);
     if (!order || order.organisationId !== session.organisationId) return null;
@@ -130,6 +142,10 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     if (!(await this.findOrder(session, orderId))) throw new ApiError(404, "ORDER_NOT_FOUND", "Order not found");
     this.audit(session, correlationId, "CANCELLATION_REQUESTED", orderId);
     return { id: crypto.randomUUID(), status: "PENDING" as const };
+  }
+  async listDealerLocations(session: SessionIdentity): Promise<DealerLocationRecord[]> {
+    if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
+    return [{ id: `${session.dealerId}:main`, name: "Main location", locationType: "BOTH" }];
   }
   async approveOrder(session: SessionIdentity, orderId: string, correlationId: string) {
     const order = this.requireAdminOrder(session, orderId);

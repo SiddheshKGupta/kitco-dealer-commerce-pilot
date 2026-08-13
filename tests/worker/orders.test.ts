@@ -57,4 +57,18 @@ describe("dealer order routes", () => {
     });
     expect(response.status).toBe(400);
   });
+
+  it("lists only the current dealer's orders and server-scoped locations", async () => {
+    const app = createCommerceApp({ repository: repository(), verifySession: verifier({ a: dealerA, b: dealerB }) });
+    await putValidDraft(app);
+    await app.request("/api/orders/submit", {
+      method: "POST", headers: { ...headers("a"), "idempotency-key": "idem-list" },
+      body: JSON.stringify({ otpChallengeId: "otp-order-a", otpDigest: "digest-ok" }),
+    });
+    const orders = await app.request("/api/orders", { headers: headers("a") });
+    expect(orders.status).toBe(200);
+    await expect(orders.json()).resolves.toMatchObject({ orders: [{ dealerId: "dealer-a", version: 1 }] });
+    const locations = await app.request("/api/dealer/locations", { headers: headers("a") });
+    await expect(locations.json()).resolves.toMatchObject({ locations: [{ name: "Main location", locationType: "BOTH" }] });
+  });
 });
