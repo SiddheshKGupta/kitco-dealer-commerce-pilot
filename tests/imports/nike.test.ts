@@ -49,5 +49,17 @@ describe("Nike item-master profile", () => {
 			offerings: [{ season: "FA2026" }, { season: "SU2026" }],
 		});
 	});
-});
 
+	it("recognizes repeated source headers whose Total cell is stored as the numeric value 17", () => {
+		const source = structuredClone(nikeSourceFixture);
+		for (const rowNumber of [306, 433]) {
+			const header = source.sheets[0].rows.find((row) => row.rowNumber === rowNumber);
+			if (header) header.cells[header.cells.length - 1] = 17;
+		}
+		const result = parseNikeItemMaster(source);
+		expect(result.sourceRowCount).toBe(480);
+		expect(result.articles).toHaveLength(463);
+		expect(result.headerRegions[1].sizes).toEqual(["5.5", "6.5", "7.5", "8.5", "9.5", "10.5", "11.5"]);
+		expect(result.headerRegions[2].sizes).toEqual(["S", "M", "L"]);
+	});
+});

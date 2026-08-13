@@ -40,7 +40,7 @@ function canonicalImport(evidence) {
 					{ code: "MASTER_VALUE_CONFLICT", articleNo: "SX7667-906", field: "uom", resolution: "REQUIRED" },
 				],
 			};
-		case "REEBOK_BUY_FORM": return { ...evidence, canonicalRecordCount: null, enrichmentStatus: "NEEDS_ENRICHMENT", conflicts: [] };
+		case "REEBOK_BUY_FORM": return { ...evidence, sourceRowCount: 85, canonicalRecordCount: 85, publishableRecordCount: 0, enrichmentStatus: "NEEDS_ENRICHMENT", conflicts: [] };
 		case "DOUBLEU_ITEM_MASTER": return { ...evidence, sourceRowCount: 159, canonicalRecordCount: 29, conflicts: [] };
 		case "LEE_COOPER_SOH": return { ...evidence, totalPairs: 1732, conflicts: [] };
 	}

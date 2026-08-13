@@ -38,6 +38,12 @@ describe("import-sources", () => {
 			expect.objectContaining({ articleNo: "IO2091-103", field: "category" }),
 			expect.objectContaining({ articleNo: "SX7667-906", field: "uom" }),
 		]));
+		expect(manifest.imports[2]).toMatchObject({
+			sourceRowCount: 85,
+			canonicalRecordCount: 85,
+			publishableRecordCount: 0,
+			enrichmentStatus: "NEEDS_ENRICHMENT",
+		});
 		expect(manifest.imports[3]).toMatchObject({ sourceRowCount: 159, canonicalRecordCount: 29 });
 		expect(manifest.imports[4]).toMatchObject({ totalPairs: 1732 });
 		expect(JSON.stringify(manifest)).not.toMatch(/@|GSTIN|MOBILE|ADDRESS/i);

@@ -57,7 +57,10 @@ interface ParsedNikeRow {
 
 function isNikeHeader(row: WorksheetRow): boolean {
 	const values = new Set(row.cells.map(normalizeHeader));
-	return values.has("ARTICLE NO") && values.has("MRP GROUP") && values.has("TOTAL");
+	// The supplied workbook stores the repeated headers' styled Total cell as
+	// numeric 17, while the first header stores the expected text label.
+	const terminalValue = normalizeHeader(row.cells.at(-1) ?? null);
+	return values.has("ARTICLE NO") && values.has("MRP GROUP") && (values.has("TOTAL") || terminalValue === "17");
 }
 
 export function parseNikeItemMaster(source: WorkbookSource): {
@@ -83,7 +86,7 @@ export function parseNikeItemMaster(source: WorkbookSource): {
 			activeHeader = row;
 			activeIndexes = headerIndexes(row.cells);
 			const sizeStart = (activeIndexes.get("MRP GROUP") ?? 16) + 1;
-			const totalIndex = activeIndexes.get("TOTAL") ?? row.cells.length;
+			const totalIndex = activeIndexes.get("TOTAL") ?? (normalizeHeader(row.cells.at(-1) ?? null) === "17" ? row.cells.length - 1 : row.cells.length);
 			activeSizes = row.cells
 				.slice(sizeStart, totalIndex)
 				.map(asString)
@@ -168,4 +171,3 @@ export function parseNikeItemMaster(source: WorkbookSource): {
 		conflicts,
 	};
 }
-

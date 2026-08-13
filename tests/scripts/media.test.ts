@@ -38,6 +38,7 @@ describe("prepare-media", () => {
 			expect(item.source).toMatchObject({ mimeType: "image/jpeg", width: 1600, height: 1600 });
 			expect(item.variants.map((variant: { width: number }) => variant.width)).toEqual([200, 600, 900, 1400]);
 			expect(item.source.key).toBe(`media/nike/${item.articleNo}/source.jpg`);
+			expect(item.variants.every((variant: { key: string }) => variant.key.startsWith(`media/nike/${item.articleNo}/`))).toBe(true);
 		}
 		expect(new Set(manifest.media.map((item: { articleNo: string }) => item.articleNo)).size).toBe(90);
 		expect(manifest.media.find((item: { articleNo: string }) => item.articleNo === "IH2380-300")?.source.fileName).toBe("IH2380-300.jpg");

@@ -50,7 +50,9 @@
       "fileName": "REEBOK BUY FORM.xlsx",
       "sha256": "a2b18250e64a440da4afbfa61310613aa5b3e429c911f0272df0a8d522094dcc",
       "byteSize": 13756,
-      "canonicalRecordCount": null,
+      "sourceRowCount": 85,
+      "canonicalRecordCount": 85,
+      "publishableRecordCount": 0,
       "enrichmentStatus": "NEEDS_ENRICHMENT",
       "conflicts": []
     },

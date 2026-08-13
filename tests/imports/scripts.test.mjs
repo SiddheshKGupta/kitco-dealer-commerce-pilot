@@ -64,7 +64,7 @@ describe("source fixture and seed scripts", () => {
 		expect(fixture.sha256).toMatch(/^[a-f0-9]{64}$/);
 	});
 
-	it("refuses unresolved conflicts and strips raw fields from prepared seed records", () => {
+	it("quarantines conflicted Nike articles while preparing the remaining canonical records", () => {
 		const directory = temporaryDirectory();
 		const input = join(directory, "parsed.json");
 		const output = join(directory, "seed.json");
@@ -72,21 +72,40 @@ describe("source fixture and seed scripts", () => {
 			input,
 			JSON.stringify({
 				profile: "NIKE_ITEM_MASTER",
-				conflicts: [{ code: "MASTER_VALUE_CONFLICT" }],
-				articles: [],
+				conflicts: [
+					{ code: "MASTER_VALUE_CONFLICT", articleNo: "NK-CONFLICT-1", field: "category" },
+					{ code: "MASTER_VALUE_CONFLICT", articleNo: "NK-CONFLICT-2", field: "uom" },
+				],
+				articles: [
+					{ articleNo: "NK-READY", raw: { private: "remove-me" } },
+					{ articleNo: "NK-CONFLICT-1", raw: { private: "remove-me" } },
+					{ articleNo: "NK-CONFLICT-2", raw: { private: "remove-me" } },
+				],
 			}),
 		);
+		execFileSync(process.execPath, [
+			"scripts/prepare-seed.mjs",
+			"--input",
+			input,
+			"--output",
+			output,
+		]);
+		const nikeSeed = JSON.parse(readFileSync(output, "utf8"));
+		expect(nikeSeed.records.map((record) => record.articleNo)).toEqual(["NK-READY"]);
+		expect(nikeSeed.quarantinedRecords.map((record) => record.articleNo)).toEqual([
+			"NK-CONFLICT-1",
+			"NK-CONFLICT-2",
+		]);
+		expect(nikeSeed.quarantinedRecords.every((record) => record.status === "CONFLICT")).toBe(true);
+		expect(nikeSeed.canonicalRecordCount).toBe(1);
+		expect(nikeSeed.quarantinedRecordCount).toBe(2);
+		expect(JSON.stringify(nikeSeed)).not.toContain("remove-me");
+	});
 
-		expect(() =>
-			execFileSync(process.execPath, [
-				"scripts/prepare-seed.mjs",
-				"--input",
-				input,
-				"--output",
-				output,
-			]),
-		).toThrow(/Unresolved conflicts/);
-
+	it("strips raw fields from prepared enrichment records", () => {
+		const directory = temporaryDirectory();
+		const input = join(directory, "parsed.json");
+		const output = join(directory, "seed.json");
 		writeFileSync(
 			input,
 			JSON.stringify({
