@@ -30,7 +30,7 @@ The initial delivery is a thin but real vertical slice on Cloudflare and Supabas
 - Cloudflare Worker with Static Assets for the frontend and privileged API routes.
 - Supabase Postgres for canonical state, Supabase Auth for identities, and Row Level Security for dealer isolation.
 - Private Cloudflare R2 buckets/prefixes for immutable raw imports and product media.
-- Replaceable `EmailOTPProvider`; the first deployment uses a test provider restricted to the pilot test dealer and non-production configuration.
+- Replaceable `EmailOTPProvider`; the first deployment uses real Resend delivery from the Cloudflare Worker for activation, login, order submission, and material revision OTPs.
 - Escapement is initialized against this repository and used for routing, checks, and evidence capture.
 
 ### 3.2 Trust Boundaries
@@ -80,12 +80,12 @@ The deployed seed adds one synthetic operational dealer without modifying the wo
 - Dealer name: `VLCO`
 - State: `Bihar`
 - City: `Patna`
-- Pilot email: `vlco.pilot@kitco.test`
+- Pilot email: supplied through required `VLCO_TEST_EMAIL` deployment configuration so it is a real deliverable inbox
 - Pilot email source: `SELF_DECLARED_PILOT`
 - Location: `VLCO Main`
 - Activation purpose: controlled end-to-end testing
 
-The password is supplied through deployment secret/configuration and is never committed. The test OTP code is `123456`, accepted only when the test provider is enabled and the challenge belongs to the VLCO test identity.
+The password is supplied through deployment secret/configuration and is never committed. Cloud environments have no fixed OTP or bypass code. Local automated tests use an in-memory/capture provider that records delivery without weakening runtime verification.
 
 ### 5.2 Nike
 
@@ -185,7 +185,9 @@ The activation state is:
 
 The dealer may use the masked master email or self-declare a pilot email. `master_email` is never overwritten. Successful activation locks the dealer to one Supabase Auth identity. Reset is privileged and audited.
 
-Normal login is Email + Password + application Email OTP. Final order submission and material revision acceptance require fresh purpose-specific OTP challenges. Challenges store secure hashes, expiry, attempts, consumption, and correlation IDs.
+Normal login is Email + Password + application Email OTP. The Worker holds the pending authentication result and does not release an application session until the login OTP succeeds. Final order submission and material revision acceptance require fresh purpose-specific OTP challenges. Challenges store secure hashes, expiry, attempts, consumption, and correlation IDs.
+
+All pilot OTPs are generated server-side and delivered through Resend using `RESEND_API_KEY`, `OTP_FROM_EMAIL`, and `VLCO_TEST_EMAIL` deployment configuration. Secrets are configured in Cloudflare and never committed. Provider responses are logged without storing the OTP or API key. Resend delivery IDs, challenge correlation IDs, resend throttling, expiry, maximum attempts, and single-use consumption are included in the audit evidence. Supabase custom SMTP is configured with the same sender before any Supabase-managed recovery or confirmation email is enabled.
 
 ## 9. Order and Fulfilment Flow
 
@@ -222,6 +224,7 @@ Initial smoke suite:
 - Lee Cooper continuation rows and 1,732-pair reconciliation
 - dealer activation lock and master-email preservation
 - OTP expiry, attempts, consumption, purpose, and replay
+- real email-provider delivery, provider-failure handling, resend throttling, and redacted logs
 - family/colourway/size grouping
 - offering, MOQ, and order-multiple validation
 - authoritative Retail Value calculation
@@ -238,4 +241,4 @@ Local ultra-review follows a passing connected flow and covers type safety, lint
 
 The first connected pilot does not promise live numerical inventory, reservation, ERP integration, dealer pricing, margin, GST estimation, invoicing, payment ledger, automated credit checks, multi-user dealers, broad admin RBAC, returns, claims, native mobile apps, a SaaS tenant-control plane, CRD, or scanned-PDF OCR.
 
-Production email-provider credentials, generic future Excel mapping UI, complete export styling, broad load testing, and secondary admin polish follow after the connected happy path and security checks are stable. The provider interface, profile model, export jobs, and load-test hooks are present so these additions do not require architectural replacement.
+Generic future Excel mapping UI, complete export styling, broad load testing, and secondary admin polish follow after the connected happy path and security checks are stable. The provider interface, profile model, export jobs, and load-test hooks are present so these additions do not require architectural replacement.
