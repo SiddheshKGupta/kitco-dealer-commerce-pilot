@@ -30,7 +30,8 @@ if (!execute) {
 	console.log(JSON.stringify({ mode: "DRY_RUN", bucket, uploads, importEndpoint: importEndpoint ?? null, mediaMappings: manifest.media.map((item) => ({ articleNo: item.articleNo, sourceKey: item.source.key, variantKeys: item.variants.map((variant) => variant.key) })) }, null, 2));
 	process.exit(0);
 }
-for (const upload of uploads) execFileSync("wrangler", ["r2", "object", "put", `${bucket}/${upload.key}`, "--file", upload.file, "--remote"], { stdio: "inherit" });
+const wrangler = resolve("node_modules/wrangler/bin/wrangler.js");
+for (const upload of uploads) execFileSync(process.execPath, [wrangler, "r2", "object", "put", `${bucket}/${upload.key}`, "--file", upload.file, "--remote"], { stdio: "inherit" });
 if (importManifest && importEndpoint) {
 	const response = await fetch(importEndpoint, { method: "POST", headers: { "content-type": "application/json", ...(bearerToken ? { authorization: `Bearer ${bearerToken}` } : {}) }, body: JSON.stringify({ imports: importManifest.imports, media: manifest.media }) });
 	if (!response.ok) throw new Error(`Audited import endpoint rejected seed: ${response.status} ${await response.text()}`);
