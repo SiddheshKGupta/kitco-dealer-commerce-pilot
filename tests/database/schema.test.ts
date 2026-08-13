@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import migrationSql from "../../supabase/migrations/20260813160000_kitco_core.sql?raw";
 import advisorFixSql from "../../supabase/migrations/20260813173000_app_users_dealer_fk_index.sql?raw";
+import colourwayIdentitySql from "../../supabase/migrations/20260813174500_colourway_identity.sql?raw";
 
 const requiredTables = [
   "organisations",
@@ -76,5 +77,11 @@ describe("KITCO core migration", () => {
     );
     expect(migrationSql).toMatch(/create index orders_dealer_id_idx/i);
     expect(migrationSql).toMatch(/create index orders_organisation_id_idx/i);
+  });
+
+  it("preserves multiple colours for a single source article", () => {
+    expect(colourwayIdentitySql).toMatch(
+      /unique nulls not distinct\s*\(organisation_id, article_no, colour\)/i
+    );
   });
 });
