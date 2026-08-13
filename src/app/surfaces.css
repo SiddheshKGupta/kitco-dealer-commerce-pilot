@@ -1,3 +1,13 @@
-.pilot-control-surface { flex: 1; background: #f5f5f5; }
-.pilot-preview-note { margin: 0; border-bottom: 1px solid #d8d8d8; background: #fff4cc; padding: 10px clamp(16px, 4vw, 56px); color: #493b00; font-size: 12px; font-weight: 700; }
-.pilot-orders-surface h1 { font-family: "Arial Narrow", Arial, sans-serif; text-transform: uppercase; }
+.pilot-control-surface { flex: 1; min-width: 0; max-width: 100%; overflow: hidden; background: #f5f5f5; }
+.pilot-control-loading h1, .pilot-orders-surface h1 { font-family: "Arial Narrow", Arial, sans-serif; text-transform: uppercase; }
+.pilot-surface-state, .pilot-orders-empty { display: grid; justify-items: start; gap: 16px; max-width: 520px; margin-top: 32px; }
+.pilot-surface-state .primary-action, .pilot-orders-empty .primary-action { width: fit-content; }
+.pilot-surface-state button { border: 0; cursor: pointer; }
+.pilot-order-list { display: grid; gap: 18px; margin-top: 36px; }
+.pilot-order-card { display: grid; gap: 14px; border: 1px solid #d8d8d8; background: #fff; padding: clamp(16px, 3vw, 28px); }
+.pilot-order-card > header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+.pilot-order-card > header div { display: grid; gap: 4px; min-width: 0; }
+.pilot-order-card > header span { color: #666; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.pilot-order-card > header strong { overflow-wrap: anywhere; }
+.pilot-order-card > header b { border: 1px solid #111; padding: 6px 8px; font-size: 11px; letter-spacing: .06em; }
+.pilot-order-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: #666; font-size: 13px; }

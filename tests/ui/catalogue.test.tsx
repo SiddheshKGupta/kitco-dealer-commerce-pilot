@@ -47,9 +47,23 @@ describe("dealer catalogue", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(catalogue), { status: 200 })));
     render(<CataloguePage onOpenProduct={() => undefined} />);
     await screen.findByText("NK-101");
-    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+    const trigger = screen.getByRole("button", { name: "Filters" });
+    trigger.focus();
+    fireEvent.click(trigger);
     expect(screen.getByRole("dialog", { name: "Product filters" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Close filters" }));
+    fireEvent.keyDown(document, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Product filters" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it("offers Stock in Hand and supports arrow-key tab navigation", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(catalogue), { status: 200 })));
+    render(<CataloguePage onOpenProduct={() => undefined} />);
+    await screen.findByText("NK-101");
+    const products = screen.getByRole("tab", { name: "Products" });
+    products.focus();
+    fireEvent.keyDown(products, { key: "ArrowRight" });
+    expect(screen.getByRole("tab", { name: "Stock in Hand" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("button", { name: "View NK-101" })).toBeInTheDocument();
   });
 });

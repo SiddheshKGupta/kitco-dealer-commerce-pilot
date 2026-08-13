@@ -1,4 +1,5 @@
 export interface DraftResponse { lines: Array<{ offeringId: string; quantities: Record<string, number>; retailValueMinor: number }>; retailValueMinor: number; currencyCode: string }
+export interface DealerLocation { id: string; name: string; locationType: "BILL_TO" | "SHIP_TO" | "BOTH" }
 
 async function jsonRequest<T>(url: string, init: RequestInit): Promise<T> {
   const response = await fetch(url, { ...init, credentials: "include", headers: { "content-type": "application/json", ...(init.headers ?? {}) } });
@@ -11,8 +12,12 @@ export function saveDraft(offeringId: string, quantities: Record<string, number>
   return jsonRequest<DraftResponse>("/api/drafts/current", { method: "PUT", body: JSON.stringify({ offeringId, quantities }) });
 }
 
-export function submitOrder(input: { otpChallengeId: string; otpDigest: string; idempotencyKey: string }) {
-  return jsonRequest<{ order: { id: string; version: number; retailValueMinor: number } }>("/api/orders/submit", { method: "POST", headers: { "idempotency-key": input.idempotencyKey }, body: JSON.stringify({ otpChallengeId: input.otpChallengeId, otpDigest: input.otpDigest }) });
+export function fetchDealerLocations() {
+  return jsonRequest<{ locations: DealerLocation[] }>("/api/dealer/locations", { method: "GET" }).then((body) => body.locations);
+}
+
+export function submitOrder(input: { otpChallengeId: string; otpCode: string; idempotencyKey: string }) {
+  return jsonRequest<{ order: { id: string; version: number; retailValueMinor: number } }>("/api/orders/submit", { method: "POST", headers: { "idempotency-key": input.idempotencyKey }, body: JSON.stringify({ otpChallengeId: input.otpChallengeId, otpCode: input.otpCode }) });
 }
 
 export async function requestOrderOtp(purpose: "ORDER_SUBMISSION"): Promise<string> {

@@ -44,7 +44,7 @@
 .commerce-filter-drawer header p { margin: 0; font-size: 22px; font-weight: 800; }
 .commerce-filter-drawer header button { border: 0; background: none; text-decoration: underline; }
 .commerce-filter-rail.is-mobile { position: static; }
-.commerce-primary { min-height: 50px; border: 0; border-radius: 999px; background: var(--commerce-ink); color: white; padding: 0 28px; font-weight: 800; cursor: pointer; transition: transform 180ms cubic-bezier(.2,.8,.2,1), background 180ms cubic-bezier(.2,.8,.2,1); }
+.commerce-primary { display: inline-flex; min-height: 50px; align-items: center; justify-content: center; border: 0; border-radius: 999px; background: var(--commerce-ink); color: white; padding: 0 28px; font-weight: 800; text-decoration: none; cursor: pointer; transition: transform 180ms cubic-bezier(.2,.8,.2,1), background 180ms cubic-bezier(.2,.8,.2,1); }
 .commerce-primary:hover:not(:disabled) { background: #303030; transform: translateY(-1px); }
 .commerce-primary:disabled { opacity: .42; cursor: not-allowed; }
 .commerce-back { margin-bottom: 28px; border: 0; background: none; padding: 0; font-weight: 700; cursor: pointer; }
