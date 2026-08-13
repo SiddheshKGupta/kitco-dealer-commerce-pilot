@@ -67,7 +67,7 @@ export interface CommerceRepository {
   approveOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderRecord>;
   reviseOrder(session: SessionIdentity, orderId: string, lines: Array<{ offeringId: string; quantities: SizeQuantities }>, correlationId: string): Promise<OrderRecord>;
   applyHold(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; reason: string }, correlationId: string): Promise<void>;
-  createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number }, correlationId: string): Promise<void>;
+  createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<void>;
   stageImport(session: SessionIdentity, input: { sourceFileId: string; profileId: string }, correlationId: string): Promise<{ id: string; status: "UPLOADED" }>;
 }
 
@@ -176,7 +176,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     order.allocations = result.allocations;
     this.audit(session, correlationId, "HOLD_APPLIED", input.orderId);
   }
-  async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number }, correlationId: string) {
+  async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string) {
     const order = this.requireAdminOrder(session, input.orderId);
     const result = recordDispatch(order.allocations, input);
     if (!result.ok) throw new ApiError(422, result.reason, "Dispatch cannot be recorded");

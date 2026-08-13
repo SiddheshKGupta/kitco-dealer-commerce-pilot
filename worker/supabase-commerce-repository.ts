@@ -230,10 +230,51 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     return { id: String(data.id), status: "PENDING" as const };
   }
 
-  async approveOrder(): Promise<OrderRecord> { throw new ApiError(409, "ADMIN_MUTATION_UNAVAILABLE", "Admin mutations are disabled until the audited database function is installed"); }
+  async approveOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderRecord> {
+    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("approve_kitco_order", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: orderId,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "ORDER_APPROVAL_FAILED");
+    const order = await this.findOrder(session, String((data as { order_id: string }).order_id));
+    if (!order) throw new ApiError(409, "ORDER_APPROVAL_FAILED", "The approved order could not be loaded");
+    return order;
+  }
   async reviseOrder(): Promise<OrderRecord> { throw new ApiError(409, "ADMIN_MUTATION_UNAVAILABLE", "Admin mutations are disabled until the audited database function is installed"); }
-  async applyHold(): Promise<void> { throw new ApiError(409, "ADMIN_MUTATION_UNAVAILABLE", "Admin mutations are disabled until the audited database function is installed"); }
-  async createDispatch(): Promise<void> { throw new ApiError(409, "ADMIN_MUTATION_UNAVAILABLE", "Admin mutations are disabled until the audited database function is installed"); }
+  async applyHold(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; reason: string }, correlationId: string): Promise<void> {
+    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("apply_kitco_credit_hold", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: input.orderId,
+      p_order_line_id: input.orderLineId,
+      p_size_label: input.size,
+      p_pairs: input.pairs,
+      p_reason: input.reason,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "HOLD_FAILED");
+  }
+  async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<void> {
+    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("create_kitco_dispatch", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: input.orderId,
+      p_order_line_id: input.orderLineId,
+      p_size_label: input.size,
+      p_pairs: input.pairs,
+      p_dealer_location_id: input.dealerLocationId ?? null,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "DISPATCH_FAILED");
+  }
   async stageImport(): Promise<{ id: string; status: "UPLOADED" }> { throw new ApiError(409, "IMPORT_COMMIT_UNAVAILABLE", "Import commit is disabled until a staged source file is ready"); }
 
   private async loadDraft(session: SessionIdentity, draftId: string): Promise<DraftLine[]> {
