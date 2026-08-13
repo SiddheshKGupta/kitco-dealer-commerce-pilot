@@ -22,6 +22,7 @@ export interface ApplicationSession {
   authUserId: string;
   dealerId: string;
   organisationId: string;
+  email: string;
   accessToken: string;
 }
 

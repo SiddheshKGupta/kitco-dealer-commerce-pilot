@@ -205,6 +205,20 @@ export class SupabaseOtpChallengeStore implements OtpChallengeStore {
     return data ? fromOtpRow(data as OtpRow) : null;
   }
 
+  async findLatest(organisationId: string, dealerId: string, purpose: StoredOtpChallenge["purpose"]): Promise<StoredOtpChallenge | null> {
+    const { data, error } = await this.client
+      .from("otp_challenges")
+      .select("*")
+      .eq("organisation_id", organisationId)
+      .eq("dealer_id", dealerId)
+      .eq("purpose", purpose)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new Error("OTP_STORAGE_FAILED");
+    return data ? fromOtpRow(data as OtpRow) : null;
+  }
+
   async update(challenge: StoredOtpChallenge, expectedAttempts?: number): Promise<boolean> {
     let query = this.client.from("otp_challenges").update(toOtpRow(challenge)).eq("id", challenge.id);
     if (expectedAttempts !== undefined) query = query.eq("attempts", expectedAttempts).is("consumed_at", null);

@@ -64,6 +64,7 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
           authUserId: pending.authUserId,
           dealerId: pending.dealerId,
           organisationId: pending.organisationId,
+          email: pending.email,
           accessToken: pending.accessToken,
         });
         dependencies.authenticator.noteReleased?.();
@@ -80,6 +81,7 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         authUserId: created.authUserId,
         dealerId: pending.dealerId,
         organisationId: pending.organisationId,
+        email: pending.email,
         accessToken: "",
       });
       context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));

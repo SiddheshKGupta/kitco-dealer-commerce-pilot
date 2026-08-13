@@ -21,6 +21,7 @@ export interface StoredOtpChallenge {
 export interface OtpChallengeStore {
   create(challenge: StoredOtpChallenge): Promise<void>;
   get(id: string): Promise<StoredOtpChallenge | null>;
+  findLatest(organisationId: string, dealerId: string, purpose: OtpPurpose): Promise<StoredOtpChallenge | null>;
   update(challenge: StoredOtpChallenge, expectedAttempts?: number): Promise<boolean>;
 }
 
@@ -33,6 +34,13 @@ export class InMemoryOtpChallengeStore implements OtpChallengeStore {
 
   async get(id: string) {
     const challenge = this.challenges.find((item) => item.id === id);
+    return challenge ? { ...challenge } : null;
+  }
+
+  async findLatest(organisationId: string, dealerId: string, purpose: OtpPurpose) {
+    const challenge = this.challenges
+      .filter((item) => item.organisationId === organisationId && item.dealerId === dealerId && item.purpose === purpose)
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0];
     return challenge ? { ...challenge } : null;
   }
 
@@ -53,6 +61,7 @@ export interface IssueOtpInput {
   to: string;
   purpose: OtpPurpose;
   correlationId?: string;
+  enforceCooldown?: boolean;
 }
 
 interface OtpOptions {
@@ -113,6 +122,12 @@ export class OtpService {
 
   async issue(input: IssueOtpInput): Promise<StoredOtpChallenge> {
     const now = this.now();
+    if (input.enforceCooldown) {
+      const latest = await this.store.findLatest(input.organisationId, input.dealerId, input.purpose);
+      if (latest && now.getTime() - Date.parse(latest.createdAt) < this.resendCooldownMs) {
+        throw new Error("OTP_RESEND_COOLDOWN");
+      }
+    }
     const id = this.id();
     const code = this.code();
     if (!/^\d{6}$/.test(code)) throw new Error("OTP_GENERATION_FAILED");
@@ -134,7 +149,13 @@ export class OtpService {
     };
     await this.store.create(challenge);
     try {
-      const delivery = await this.provider.sendOtp({ ...input, code, correlationId, challengeId: id });
+      const delivery = await this.provider.sendOtp({
+        to: input.to,
+        purpose: input.purpose,
+        code,
+        correlationId,
+        challengeId: id,
+      });
       challenge.providerDeliveryId = delivery.deliveryId;
       await this.store.update(challenge);
       return challenge;

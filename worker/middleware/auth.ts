@@ -8,6 +8,7 @@ export interface SessionIdentity {
   readonly organisationId: string;
   readonly dealerId: string | null;
   readonly role: AppRole;
+  readonly email?: string;
 }
 
 export type SessionVerifier = (request: Request) => Promise<SessionIdentity | null>;

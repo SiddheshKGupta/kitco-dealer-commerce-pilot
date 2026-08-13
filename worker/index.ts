@@ -14,5 +14,8 @@ app.all("/api/login/*", (context) =>
 app.all("/api/otp/*", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
+app.all("/api/orders/otp", (context) =>
+  createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
+);
 
 export default app;
