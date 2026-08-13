@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { Env } from "../env";
 import { createSupabaseAdminClient } from "../lib/supabase-admin";
-import { requireDealer, requireSession, type AuthVariables, type SessionVerifier } from "../middleware/auth";
+import { requireDealer, requireSession, type AuthVariables } from "../middleware/auth";
 import { handleApiError } from "../middleware/errors";
 import { registerActivationRoutes } from "../routes/activation";
 import { registerLoginRoutes } from "../routes/login";
@@ -11,6 +11,7 @@ import { OtpService } from "./otp-service";
 import { ResendEmailProvider } from "./resend-provider";
 import { SessionService } from "./session";
 import { SupabaseActivationStore, SupabaseOtpChallengeStore, SupabasePasswordAuthenticator } from "./supabase-auth";
+import { createVerifiedSessionVerifier } from "./verified-session";
 
 export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   const client = createSupabaseAdminClient(env);
@@ -20,23 +21,12 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
     pepper: env.SESSION_SECRET,
   });
   const sessions = new SessionService(env.SESSION_SECRET);
-  const verifyApplicationSession: SessionVerifier = async (request) => {
-    const token = sessions.readCookie(request.headers.get("cookie") ?? undefined, "kitco_session");
-    const session = token ? await sessions.openApplication(token) : null;
-    if (!session) return null;
-    return {
-      userId: session.authUserId,
-      organisationId: session.organisationId,
-      dealerId: session.dealerId,
-      role: "DEALER",
-      email: session.email,
-    };
-  };
+  const verifyApplicationSession = createVerifiedSessionVerifier(client, sessions);
   const app = new Hono<{ Variables: AuthVariables }>();
   app.onError(handleApiError);
   app.use("/api/orders/otp", requireSession(verifyApplicationSession));
   app.use("/api/orders/otp", requireDealer());
-  registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator });
+  registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator, activationAccessCode: env.ACTIVATION_ACCESS_CODE });
   registerLoginRoutes(app, { authenticator, otp, sessions });
   registerOtpRoutes(app, { otp, sessions, authenticator, activationStore });
   registerOrderOtpRoutes(app, otp);

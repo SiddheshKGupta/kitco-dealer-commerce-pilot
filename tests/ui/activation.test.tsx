@@ -16,7 +16,7 @@ describe("dealer activation", () => {
 		window.history.replaceState({}, "", "/activate");
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
 			if (input.startsWith("/api/activation/dealers")) return response({ dealers: [{ id: "d-1", name: "VLCO", city: "Patna" }, { id: "d-2", name: "VLCO", city: "Gaya" }] });
-			expect(init).toMatchObject({ method: "POST", credentials: "include", body: JSON.stringify({ dealerId: "d-1", email: "pilot@example.test" }) });
+			expect(init).toMatchObject({ method: "POST", credentials: "include", body: JSON.stringify({ dealerId: "d-1", email: "pilot@example.test", accessCode: "pilot-invite-2026" }) });
 			return response({ challengeId: "activation-1" }, 202);
 		});
 		vi.stubGlobal("fetch", fetchMock);
@@ -31,6 +31,7 @@ describe("dealer activation", () => {
 		fireEvent.click(screen.getByRole("button", { name: "VLCO · Patna" }));
 		expect(screen.getByText(/Registered email stays private/)).toBeInTheDocument();
 		fireEvent.change(screen.getByLabelText("Email for this activation"), { target: { value: "pilot@example.test" } });
+		fireEvent.change(screen.getByLabelText("Pilot access code"), { target: { value: "pilot-invite-2026" } });
 		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
 		await screen.findByText("Enter the 6-digit code");
 	});
@@ -46,6 +47,7 @@ describe("dealer activation", () => {
 		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
 		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
 		fireEvent.change(screen.getByLabelText("Email for this activation"), { target: { value: "pilot@example.test" } });
+		fireEvent.change(screen.getByLabelText("Pilot access code"), { target: { value: "pilot-invite-2026" } });
 		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
 		const otp = await screen.findByLabelText("Verification code");
 		expect(otp).toHaveFocus();

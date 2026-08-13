@@ -77,12 +77,19 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
       if (!(await dependencies.activationStore.activate(pending.dealerId, created.authUserId))) {
         return context.json({ error: "DEALER_ALREADY_ACTIVE" }, 409);
       }
+      const authenticated = await dependencies.authenticator.authenticate(pending.email, body.password as string);
+      if (
+        !authenticated?.accessToken ||
+        authenticated.authUserId !== created.authUserId ||
+        authenticated.dealerId !== pending.dealerId ||
+        authenticated.organisationId !== pending.organisationId
+      ) throw new Error("AUTH_SESSION_CREATION_FAILED");
       const token = await dependencies.sessions.sealApplication({
-        authUserId: created.authUserId,
-        dealerId: pending.dealerId,
-        organisationId: pending.organisationId,
-        email: pending.email,
-        accessToken: "",
+        authUserId: authenticated.authUserId,
+        dealerId: authenticated.dealerId,
+        organisationId: authenticated.organisationId,
+        email: authenticated.email,
+        accessToken: authenticated.accessToken,
       });
       context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
       context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });

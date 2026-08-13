@@ -61,14 +61,21 @@ class MemoryActivationStore implements ActivationStore {
 class MemoryAuthenticator implements PasswordAuthenticator {
   released = 0;
   created = 0;
+  createdEmail = "";
+  createdPassword = "";
 
   async authenticate(email: string, password: string) {
+    if (email === this.createdEmail && password === this.createdPassword) {
+      return { authUserId: "user-created", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "new-supabase-access" };
+    }
     if (email !== "owner@dealer.test" || password !== "correct horse") return null;
     return { authUserId: "user-1", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "supabase-access" };
   }
 
   async createUser(email: string, password: string) {
     this.created += 1;
+    this.createdEmail = email;
+    this.createdPassword = password;
     return { authUserId: "user-created", email, password };
   }
 
@@ -89,13 +96,27 @@ function buildHarness() {
     pepper: "test-otp-pepper-at-least-32-characters",
   });
   const app = new Hono();
-  registerActivationRoutes(app, { store, otp, sessions, authenticator });
+  registerActivationRoutes(app, { store, otp, sessions, authenticator, activationAccessCode: "pilot-invite-2026" });
   registerLoginRoutes(app, { authenticator, otp, sessions });
   registerOtpRoutes(app, { otp, sessions, authenticator, activationStore: store });
   return { app, store, challengeStore, provider, authenticator, sessions, otp };
 }
 
 describe("Worker activation and authentication", () => {
+  it("rejects activation without the independent pilot access code before claiming a dealer", async () => {
+    const { app, store, provider } = buildHarness();
+    const response = await app.request("/api/activation/request-otp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "wrong-code" }),
+    });
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: "ACTIVATION_NOT_AUTHORISED" });
+    expect(store.dealers[0]).toMatchObject({ activationStatus: "UNACTIVATED", pilotEmail: null });
+    expect(provider.deliveries).toHaveLength(0);
+  });
+
   it("requires a useful lookup prefix and returns only public autocomplete fields", async () => {
     const { app } = buildHarness();
     expect((await app.request("/api/activation/dealers?q=n")).status).toBe(400);
@@ -112,7 +133,7 @@ describe("Worker activation and authentication", () => {
     const first = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "pilot-invite-2026" }),
     });
     expect(first.status).toBe(202);
     expect(store.dealers[0]?.masterEmail).toBe("owner@dealer.test");
@@ -123,7 +144,7 @@ describe("Worker activation and authentication", () => {
     const second = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "another@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "another@dealer.test", accessCode: "pilot-invite-2026" }),
     });
     expect(second.status).toBe(409);
     expect(store.dealers[0]?.pilotEmail).toBe("pilot@dealer.test");
@@ -134,7 +155,7 @@ describe("Worker activation and authentication", () => {
     const response = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", emailChoice: "MASTER" }),
+      body: JSON.stringify({ dealerId: "dealer-1", emailChoice: "MASTER", accessCode: "pilot-invite-2026" }),
     });
     expect(response.status).toBe(202);
     expect(provider.deliveries[0]?.to).toBe("owner@dealer.test");
@@ -155,12 +176,13 @@ describe("Worker activation and authentication", () => {
       otp,
       sessions: new SessionService("test-secret-at-least-32-characters-long", () => NOW),
       authenticator: new MemoryAuthenticator(),
+      activationAccessCode: "pilot-invite-2026",
     });
 
     const response = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "pilot-invite-2026" }),
     });
     expect(response.status).toBe(502);
     expect(store.dealers[0]).toMatchObject({
@@ -263,11 +285,11 @@ describe("Worker activation and authentication", () => {
   });
 
   it("does not consume an activation OTP before password validation succeeds", async () => {
-    const { app, provider, store, authenticator } = buildHarness();
+    const { app, provider, store, authenticator, sessions } = buildHarness();
     const requested = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "pilot-invite-2026" }),
     });
     const pendingCookie = requested.headers.get("set-cookie")!.split(";")[0]!;
     const verify = (password: string) => app.request("/api/otp/verify", {
@@ -287,5 +309,8 @@ describe("Worker activation and authentication", () => {
     expect(store.dealers[0]?.masterEmail).toBe("owner@dealer.test");
     expect(store.dealers[0]?.authUserId).toBe("user-created");
     expect(authenticator.created).toBe(1);
+    const applicationCookie = completed.headers.get("set-cookie")?.match(/kitco_session=([^;]+)/u)?.[1];
+    expect(applicationCookie).toBeTruthy();
+    await expect(sessions.openApplication(applicationCookie!)).resolves.toMatchObject({ accessToken: "new-supabase-access" });
   });
 });
