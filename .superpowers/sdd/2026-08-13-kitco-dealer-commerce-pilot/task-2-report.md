@@ -37,3 +37,29 @@
 - No Escapement dependency or generated files were added.
 - `package.json` has no lint script, so a lint command was not available to run.
 - `tests/contrast.mjs` and `tests/harness.mjs` were deleted by the concurrently authorized Task 1 review fix; they are intentionally excluded from this Task 2 commit.
+
+## Review hardening
+
+Commit: `fix: harden commerce invariants`
+
+### Findings addressed
+
+- Hold state and requests now require valid allocation identities and non-negative safe-integer state; hold requests must be positive safe integers.
+- Holds and dispatches are enforced against an exact `(orderLineId, size)` allocation. A held size is blocked without affecting an unheld size on the same order line.
+- Dispatch state, aggregate dispatch history, purchase quantities, MOQ, and multiples reject negative, fractional, non-finite, unsafe, or internally inconsistent values.
+- Retail Value calculation checks both quantity addition and MRP multiplication for safe-integer overflow.
+- Order versions are deep-copied and frozen at the version, line-array, line, and nested quantity-map levels.
+- OTP instants are parsed before comparison, malformed timestamps are rejected, offset-equivalent instants compare correctly, and `now >= expiresAt` is expired.
+
+### Regression-first evidence
+
+- Initial review regression run: 17 expected behavioral failures and 9 passes across the order, hold, dispatch, and OTP tests.
+- Malformed allocation-identity follow-up: 2 expected failures caused by unsafe `.trim()` calls; both now return typed domain failures.
+- Focused green: `npm.cmd test -- --run tests/domain/orders.test.ts tests/domain/holds.test.ts tests/domain/dispatch.test.ts tests/domain/otp.test.ts tests/domain/catalogue.test.ts` — 5 files passed, 31 tests passed.
+- Full green: `npm.cmd test -- --run` — 17 files passed, 54 tests passed.
+- Task 2-only strict compile: explicit `npx.cmd tsc --noEmit --ignoreConfig ...` over all Task 2 sources/tests — passed.
+- Production build: `npm.cmd run build` — exited 0 and emitted Worker/client artifacts; Wrangler again emitted only the known sandbox log-directory warning.
+
+### Concurrent verification note
+
+The repository-wide `npm.cmd run typecheck` was rerun and was temporarily blocked by concurrent untracked Task 4 work in `src/lib/supabase.ts` (`TS2559`) and `tests/database/clients.test.ts` (`TS2445`). The controller approved treating those out-of-scope errors as concurrent state; no Task 3 or Task 4 file was modified for this fix.

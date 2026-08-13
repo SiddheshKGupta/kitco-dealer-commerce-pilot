@@ -20,6 +20,49 @@ describe("OTP domain rules", () => {
     ).toEqual({ ok: false, reason: "OTP_EXPIRED", challenge });
   });
 
+  it("rejects a challenge at its exact expiry boundary", () => {
+    expect(
+      verifyOtpChallenge(challenge, {
+        purpose: "ORDER_SUBMISSION",
+        secretDigest: "digest-for-123456",
+        now: "2026-08-13T12:05:00.000Z",
+      }),
+    ).toEqual({ ok: false, reason: "OTP_EXPIRED", challenge });
+  });
+
+  it("compares equivalent timestamp offsets as the same instant", () => {
+    const offsetChallenge = { ...challenge, expiresAt: "2026-08-13T17:35:00.000+05:30" };
+
+    expect(
+      verifyOtpChallenge(offsetChallenge, {
+        purpose: "ORDER_SUBMISSION",
+        secretDigest: "digest-for-123456",
+        now: "2026-08-13T12:05:00.000Z",
+      }),
+    ).toEqual({ ok: false, reason: "OTP_EXPIRED", challenge: offsetChallenge });
+  });
+
+  it("rejects malformed challenge and verification timestamps", () => {
+    expect(
+      verifyOtpChallenge({ ...challenge, expiresAt: "not-a-date" }, {
+        purpose: "ORDER_SUBMISSION",
+        secretDigest: "digest-for-123456",
+        now: "2026-08-13T12:00:00.000Z",
+      }),
+    ).toEqual({
+      ok: false,
+      reason: "OTP_INVALID_TIMESTAMP",
+      challenge: { ...challenge, expiresAt: "not-a-date" },
+    });
+    expect(
+      verifyOtpChallenge(challenge, {
+        purpose: "ORDER_SUBMISSION",
+        secretDigest: "digest-for-123456",
+        now: "invalid-now",
+      }),
+    ).toEqual({ ok: false, reason: "OTP_INVALID_TIMESTAMP", challenge });
+  });
+
   it("rejects a challenge used for another purpose", () => {
     expect(
       verifyOtpChallenge(challenge, {
