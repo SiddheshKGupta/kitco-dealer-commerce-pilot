@@ -1,0 +1,3427 @@
+{
+  "schemaVersion": 1,
+  "visibility": "PRIVATE_R2",
+  "sourceCount": 90,
+  "media": [
+    {
+      "articleNo": "432997-070",
+      "source": {
+        "fileName": "432997-070.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 93385,
+        "sha256": "1cc839074031ced0a676c555be15193272608198baf9b76a1a68b5a4acbf661c",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/432997-070/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-070/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-070/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-070/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-070/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "432997-107",
+      "source": {
+        "fileName": "432997-107.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 125736,
+        "sha256": "4d55ca145c40d0900f4f0ed7ed7e85d6439dbcf75942d0fd76aee46c36f491ed",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/432997-107/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-107/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-107/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-107/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/432997-107/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "749680-005",
+      "source": {
+        "fileName": "749680-005.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 71459,
+        "sha256": "4162d406a56bd33a94b887df2544b207d62c91a40338436ff153a2c0f5c73467",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/749680-005/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-005/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-005/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-005/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-005/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "749680-103",
+      "source": {
+        "fileName": "749680-103.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 141832,
+        "sha256": "c77dace8d223dd1fcc20a1db754d63e1c9127bf75f8d4735fd8f9dd03a335aaa",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/749680-103/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-103/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-103/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-103/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/749680-103/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "BQ4639-001",
+      "source": {
+        "fileName": "BQ4639-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 190434,
+        "sha256": "846d176da38de0f3fbcdf2be2a4da269e1ee36a6a53c765438e33967143d90de",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/BQ4639-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "BQ4639-003",
+      "source": {
+        "fileName": "BQ4639-003.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 36819,
+        "sha256": "a7ab61089624c93f7750ff79ae32319010495937a60abb2a1553f652107c5d8a",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/BQ4639-003/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-003/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-003/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-003/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-003/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "BQ4639-012",
+      "source": {
+        "fileName": "BQ4639-012.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 86276,
+        "sha256": "584962fef9cc4b4f6ab29cea393c69d84ee14b192944b5ff793297244390c142",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/BQ4639-012/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-012/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-012/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-012/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-012/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "BQ4639-410",
+      "source": {
+        "fileName": "BQ4639-410.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 89646,
+        "sha256": "dcedb0ad5356d169130f4d526aee1a1af3deca1fe1e23b79c885fd39e9995abf",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/BQ4639-410/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-410/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-410/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-410/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/BQ4639-410/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CD1515-004",
+      "source": {
+        "fileName": "CD1515-004.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 61929,
+        "sha256": "881f23e04be35db46bf7f79da70f031b2bf7b9eac215747ec20fde880cb6dbda",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CD1515-004/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD1515-004/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD1515-004/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD1515-004/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD1515-004/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CD6404-026",
+      "source": {
+        "fileName": "CD6404-026.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 74244,
+        "sha256": "4929867948042accc549b2e65191f343f718bf9a5e0a75bec2fe617ca812a924",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CD6404-026/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD6404-026/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD6404-026/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD6404-026/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CD6404-026/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CK0898-400",
+      "source": {
+        "fileName": "CK0898-400.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 177257,
+        "sha256": "6f6abccc5f7aac57647131d5c36a7ac5575dbd7e1a39e1a6499accd74c6d7db7",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CK0898-400/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CK0898-400/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CK0898-400/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CK0898-400/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CK0898-400/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CN8490-002",
+      "source": {
+        "fileName": "CN8490-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 136922,
+        "sha256": "1d1f47832449933a689e97c80481d4c67443245ebb573d8cb28a59f8215f9534",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CN8490-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CN8490-100",
+      "source": {
+        "fileName": "CN8490-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 150936,
+        "sha256": "f26574127fbbc0445992eb58ad6a08ff5ff30d4c6fe77d36fe491a39bf87cfab",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CN8490-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN8490-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CN9675-002",
+      "source": {
+        "fileName": "CN9675-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 29046,
+        "sha256": "d6358a618db3ecd591167510b942c5d00a4b47491108971ca4aaf8380109a6fd",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CN9675-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CN9675-005",
+      "source": {
+        "fileName": "CN9675-005.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 58635,
+        "sha256": "181d8233d286d2c160c665163be741e52cd845bdebb1e4f176598be719c1d1c3",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CN9675-005/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-005/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-005/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-005/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-005/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CN9675-401",
+      "source": {
+        "fileName": "CN9675-401.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 106791,
+        "sha256": "0dc725d7ff5d930c86acf5568821c5a8ec685ba7671d350af3e9694c7210843f",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CN9675-401/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-401/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-401/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-401/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CN9675-401/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CW2288-001",
+      "source": {
+        "fileName": "CW2288-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 187859,
+        "sha256": "f9f60ecb7aeab04de3e78d619e1e4d329b3e2969290370b0b5151c59383e7186",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CW2288-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CW2288-111",
+      "source": {
+        "fileName": "CW2288-111.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 52281,
+        "sha256": "83cf8da362d2d9f84fccd1478c705b0774e820916938ca0802120b332ab0f159",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CW2288-111/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-111/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-111/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-111/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW2288-111/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CW4555-002",
+      "source": {
+        "fileName": "CW4555-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 43526,
+        "sha256": "22423166273c13330e2a999f26c40dc41cc59667513eb2566e0c874f59106af1",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CW4555-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CW4555-003",
+      "source": {
+        "fileName": "CW4555-003.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 92802,
+        "sha256": "d271d736d48331797f0af333594dee073037636e8aa44575ad7790c6c8917563",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CW4555-003/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-003/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-003/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-003/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-003/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CW4555-123",
+      "source": {
+        "fileName": "CW4555-123.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 112128,
+        "sha256": "043f938fa06dff6007c3828720e3f2e5b4e41c4a2939344d839f21de85f22f4e",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CW4555-123/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-123/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-123/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-123/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-123/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "CW4555-402",
+      "source": {
+        "fileName": "CW4555-402.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 141157,
+        "sha256": "8b91fb10a377b34e0a2d176165e5dfc1178866c6fc84b8402b8ef8fdf508f7a8",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/CW4555-402/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-402/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-402/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-402/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/CW4555-402/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DH2987-002",
+      "source": {
+        "fileName": "DH2987-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 63609,
+        "sha256": "3165f6f215c9ef95b441c2b3ece2c1dd4bb63efb45a684a48653dcc80a1cfa1e",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DH2987-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DH2987-100",
+      "source": {
+        "fileName": "DH2987-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 105825,
+        "sha256": "a27df4c572a4d05c7f05585cd2a522e48b722430b9ebd198e709de0b7e8a7812",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DH2987-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DH2987-101",
+      "source": {
+        "fileName": "DH2987-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 120579,
+        "sha256": "b3b2e342164b4e74ae5cdf95f4b6982698e35424cf6dfdedeb94386d1d27b22c",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DH2987-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DH2987-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DJ2739-100",
+      "source": {
+        "fileName": "DJ2739-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 28934,
+        "sha256": "27f12970610dcad71f3cdc1dc55196e385bc66bc29968b5f3ad3fe5e5a49a615",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DJ2739-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DJ2739-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DJ2739-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DJ2739-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DJ2739-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DM0029-020",
+      "source": {
+        "fileName": "DM0029-020.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 47256,
+        "sha256": "58cc1ef8945f511eb8e3e3df4625f0688164d6d2193b86af8370d3ff8af4b6a6",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DM0029-020/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DM0029-020/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DM0029-020/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DM0029-020/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DM0029-020/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DN3577-700",
+      "source": {
+        "fileName": "DN3577-700.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 49042,
+        "sha256": "7ee448d174fe0a50800ac17c2a78b70ca35f0111aa9eea3abe1d0c112e659164",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DN3577-700/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DN3577-700/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DN3577-700/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DN3577-700/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DN3577-700/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DQ9624-001",
+      "source": {
+        "fileName": "DQ9624-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 39194,
+        "sha256": "c0d352999ff7993e407b22fdd3cbe277ad9503354196181b5a76881ade936205",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DQ9624-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DQ9624-008",
+      "source": {
+        "fileName": "DQ9624-008.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 142294,
+        "sha256": "bcbac6a014f0b63087375146548f5c45955d25e6899e1efd3bd97a1f917b4929",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DQ9624-008/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-008/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-008/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-008/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-008/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DQ9624-100",
+      "source": {
+        "fileName": "DQ9624-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 51929,
+        "sha256": "4db3d5caa988058b7568fc72117b1c3477179b2cf2f068e7d69aca095b12e119",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DQ9624-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DQ9624-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "DR2695-002",
+      "source": {
+        "fileName": "DR2695-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 162194,
+        "sha256": "e3d21a2c956ab0b2daaa2933e006e136f4d06406270c521af189cf13c061a15d",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/DR2695-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DR2695-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DR2695-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DR2695-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/DR2695-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FB9149-007",
+      "source": {
+        "fileName": "FB9149-007.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 148783,
+        "sha256": "b903c48f84f7e8534c1db6bd3b829c806bda074326453f7a1bc0536d3a9e78f4",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FB9149-007/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FB9149-007/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FB9149-007/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FB9149-007/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FB9149-007/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FN7304-001",
+      "source": {
+        "fileName": "FN7304-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 115650,
+        "sha256": "bb32ac26aa9e839ebbf4ca7f5e418e28f0023a43ccb3d3bd7bf1846604a6659a",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FN7304-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FN7304-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FN7304-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FN7304-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FN7304-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8146-001",
+      "source": {
+        "fileName": "FQ8146-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 54437,
+        "sha256": "7670271e9ab79dfb7c6aed02a794dd01d27bffed1b61e117eae914db6e2eb162",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8146-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8146-003",
+      "source": {
+        "fileName": "FQ8146-003.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 76536,
+        "sha256": "8607ffd11452f65dd51375a73f5d8e9c8708e7ffc4ae3df07a1f466bd47a8c25",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8146-003/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-003/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-003/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-003/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-003/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8146-109",
+      "source": {
+        "fileName": "FQ8146-109.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 38933,
+        "sha256": "56790a626bb54afa2f03d701787c1c11d36008e3e7e701ffdd3b5ddd3ac75d49",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8146-109/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-109/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-109/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-109/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-109/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8146-112",
+      "source": {
+        "fileName": "FQ8146-112.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 84479,
+        "sha256": "65d0c4064327a5b39cea83e9314b2afd9845e7f52cce77c63176ac6153c5b1c0",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8146-112/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-112/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-112/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-112/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8146-112/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8903-101",
+      "source": {
+        "fileName": "FQ8903-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 110233,
+        "sha256": "ea28240e29efc7a476214abf27f5a24e220f5255a121625eac6ba93029333461",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8903-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8903-403",
+      "source": {
+        "fileName": "FQ8903-403.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 115105,
+        "sha256": "fb3765e1c04d32e0c9bc41a275ceac15cd7f5fa2099e10e8d9406bfec78cd8fe",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8903-403/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-403/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-403/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-403/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-403/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FQ8903-600",
+      "source": {
+        "fileName": "FQ8903-600.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 48932,
+        "sha256": "bbedc9d7e3852e7133c2fc6f8b13491b9deafbace2ef1006514d85ddffc722a4",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FQ8903-600/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-600/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-600/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-600/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FQ8903-600/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FZ3863-006",
+      "source": {
+        "fileName": "FZ3863-006.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 137500,
+        "sha256": "32fdc09abd546e0c59b7b458e5c8b96b3014ef46a1c0a0d1e0c5b3dae3c4789c",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FZ3863-006/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-006/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-006/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-006/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-006/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FZ3863-101",
+      "source": {
+        "fileName": "FZ3863-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 131448,
+        "sha256": "e66e48afcc05f632bfb9ff4ddf3147a839a7e8df03eafcd2025ab93fb4f5b67d",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FZ3863-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FZ3863-106",
+      "source": {
+        "fileName": "FZ3863-106.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 133989,
+        "sha256": "ffa3e4b80ada4cf76c72682cd52c958a01e0ec6f692c0249186741594ed81902",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FZ3863-106/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-106/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-106/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-106/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-106/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "FZ3863-602",
+      "source": {
+        "fileName": "FZ3863-602.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 99223,
+        "sha256": "5878c07d2b8b9e8203b48ff1ec42e7e5a0259d75e789e3bb5d5eb8ee0fb3f5c0",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/FZ3863-602/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-602/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-602/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-602/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/FZ3863-602/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HF0015-002",
+      "source": {
+        "fileName": "HF0015-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 98588,
+        "sha256": "faf0eed47b462ef33dafb0ed3125e2cc88f4648334f8bc968ba85b7987ef49e5",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HF0015-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF0015-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF0015-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF0015-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF0015-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HF1068-133",
+      "source": {
+        "fileName": "HF1068-133.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 157589,
+        "sha256": "ea26d9778693b7fa9c77d2603595b7da9515ead52abecee2aa758c91d0b23212",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HF1068-133/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF1068-133/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF1068-133/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF1068-133/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF1068-133/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HF3255-010",
+      "source": {
+        "fileName": "HF3255-010.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 76809,
+        "sha256": "1cef4056b13a1e537c2cdc57a55541180518a1f4d4f146443e67d0d3f420ff0d",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HF3255-010/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-010/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-010/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-010/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-010/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HF3255-016",
+      "source": {
+        "fileName": "HF3255-016.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 197582,
+        "sha256": "a48516335211b505542d37506dcf3958de93410e26b02ef3bbd4e1f4cacbf077",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HF3255-016/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-016/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-016/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-016/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HF3255-016/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HJ5228-104",
+      "source": {
+        "fileName": "HJ5228-104.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 38734,
+        "sha256": "af2febf2f16a822f52553de4cb4996e7b9d537087f494403b30e25d38da84119",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HJ5228-104/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ5228-104/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ5228-104/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ5228-104/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ5228-104/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HJ7683-072",
+      "source": {
+        "fileName": "HJ7683-072.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 191497,
+        "sha256": "2e17a9a1953c9ef75ebe41cf98f0eecafb9faebf16586036f1ecdd250d6c22bd",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HJ7683-072/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ7683-072/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ7683-072/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ7683-072/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HJ7683-072/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HM6803-005",
+      "source": {
+        "fileName": "HM6803-005.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 81227,
+        "sha256": "f5955047d5618473735c9199aa53a1bee54763d9dbee5f8ef7ec75b196222862",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HM6803-005/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-005/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-005/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-005/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-005/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HM6803-017",
+      "source": {
+        "fileName": "HM6803-017.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 215242,
+        "sha256": "2a37e9d0fec368bfff1f3a0543214dd771aef76fb71d7ce5a940a8a923bdb623",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HM6803-017/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-017/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-017/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-017/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-017/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HM6803-115",
+      "source": {
+        "fileName": "HM6803-115.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 41227,
+        "sha256": "31bb152f98089b61aa049bde3f123ba1731410a1fba3a1922ce90bc63de62484",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HM6803-115/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-115/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-115/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-115/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM6803-115/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HM9862-002",
+      "source": {
+        "fileName": "HM9862-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 57972,
+        "sha256": "3eb197a2fcda00ce7921554613010d344f4707a4f9068aaf8782050b542cf7c7",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HM9862-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM9862-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM9862-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM9862-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HM9862-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HQ3818-200",
+      "source": {
+        "fileName": "HQ3818-200.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 151452,
+        "sha256": "b49bf9bd27c5d3a838557d9b75cf8f7fb77597ba6e0c7ce15134a9a2f10fbe0f",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HQ3818-200/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HQ3818-200/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HQ3818-200/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HQ3818-200/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HQ3818-200/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HV2530-100",
+      "source": {
+        "fileName": "HV2530-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 128885,
+        "sha256": "418067898284a507198d3af4ab944ed5dfa824e34b6cd8f1286f3ee43dedc098",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HV2530-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "HV2530-101",
+      "source": {
+        "fileName": "HV2530-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 49192,
+        "sha256": "4079c1f50b2156559f9442be928ee7a152c685a87b162f3a94c032c5cbbe3a71",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/HV2530-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/HV2530-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IB0183-001",
+      "source": {
+        "fileName": "IB0183-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 93716,
+        "sha256": "00b16a9ece349e600d86a0928251a706da3e1aa4685979badd96960937b39723",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IB0183-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IB0183-002",
+      "source": {
+        "fileName": "IB0183-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 74302,
+        "sha256": "e1a4fbf800e9a33986e001849d78fd2957fb78647e84294a31d1e20812850903",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IB0183-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IB0183-101",
+      "source": {
+        "fileName": "IB0183-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 90296,
+        "sha256": "f84b5a00103192c59fd2c80a66088f5b1ed1f75f49628536cbc17f2e6faa35d1",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IB0183-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IB0183-200",
+      "source": {
+        "fileName": "IB0183-200.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 61054,
+        "sha256": "f6c0eb1870d54828456c98ebf11b15735fea53dc086ccaf5802d6e7a4827fb3e",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IB0183-200/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-200/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-200/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-200/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB0183-200/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IB1873-101",
+      "source": {
+        "fileName": "IB1873-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 42362,
+        "sha256": "98f8b38ffc0916cd9a0ca4f92bd9ea0391bb011ece0f3adf06943dd324f97432",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IB1873-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB1873-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB1873-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB1873-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IB1873-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1104-001",
+      "source": {
+        "fileName": "IH1104-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 76734,
+        "sha256": "51d2ea917d24775e9602c3a1637fa38c0ef1b1b437ff83e0b0a806a3778ac807",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1104-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1104-002",
+      "source": {
+        "fileName": "IH1104-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 123257,
+        "sha256": "d2c0ce7a7b22ab4258c7c38feb0fcf046db3c7d60e1fc04d54a8ef1460d631e6",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1104-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1104-006",
+      "source": {
+        "fileName": "IH1104-006.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 168704,
+        "sha256": "657c0a19989268239fda715a48488954252d08091040581560437f4aae56b530",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1104-006/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-006/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-006/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-006/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-006/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1104-100",
+      "source": {
+        "fileName": "IH1104-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 63892,
+        "sha256": "0f6383b82185db5dc07198cb11a3a3111164af2c26be8042e74723cea76b338c",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1104-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1104-101",
+      "source": {
+        "fileName": "IH1104-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 74633,
+        "sha256": "a6f9a99572b07f00febdbf0b8232066b09ede7ed1d70448d3a6806aea2047e60",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1104-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1104-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1105-001",
+      "source": {
+        "fileName": "IH1105-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 202194,
+        "sha256": "16efa0e42ffb62d26040743235ecf8390ede05cafb907ad19d479d2ae16be0a7",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1105-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1105-002",
+      "source": {
+        "fileName": "IH1105-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 57396,
+        "sha256": "be358cfeb6bf3936bf3463590642624a12ba1cb37fa1e8dbd29c30a04df882a2",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1105-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1105-005",
+      "source": {
+        "fileName": "IH1105-005.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 102424,
+        "sha256": "0ffa89f6416b0cc1712e774eedc0542922fb19ec26d4d616a4a20e9c49aa8256",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1105-005/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-005/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-005/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-005/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-005/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1105-006",
+      "source": {
+        "fileName": "IH1105-006.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 160724,
+        "sha256": "2c35e50123d14c761c220cbc104d545fcd6a71fae3435920370542e9c9ac9c0c",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1105-006/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-006/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-006/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-006/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-006/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH1105-110",
+      "source": {
+        "fileName": "IH1105-110.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 191972,
+        "sha256": "a646ed1728c4f31a9993dd3f43b6edb13b55cb0f2964c454f2ed6d1f63b1c7bc",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH1105-110/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-110/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-110/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-110/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH1105-110/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH2380-002",
+      "source": {
+        "fileName": "IH2380-002.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 113507,
+        "sha256": "2b8debeb342fb625b0c86c74d89413fde74c2e38ba4f88236d7ac3360c849588",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH2380-002/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-002/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-002/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-002/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-002/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH2380-300",
+      "source": {
+        "fileName": "IH2380-300.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 90861,
+        "sha256": "9e0b640155a677381976d12c889d5906e7877257057ea669120fc90e93c2072e",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH2380-300/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-300/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-300/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-300/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-300/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IH2380-400",
+      "source": {
+        "fileName": "IH2380-400.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 188596,
+        "sha256": "b0e68b571a19b013bfc18045ea8c41ae2e73fbc1c43e53e64e0dbc2b2e3dbe15",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IH2380-400/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-400/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-400/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-400/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IH2380-400/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "II7403-001",
+      "source": {
+        "fileName": "II7403-001.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 55218,
+        "sha256": "59611af8d4d386f62e35707bda367f80056701b02c7a702b49b8fae56dde4305",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/II7403-001/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/II7403-001/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/II7403-001/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/II7403-001/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/II7403-001/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM0459-104",
+      "source": {
+        "fileName": "IM0459-104.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 150161,
+        "sha256": "e8d2eab9a61f0982d6a6fe1a4226bb610cf73243f6e89cf5099d3892dec2e04d",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM0459-104/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-104/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-104/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-104/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-104/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM0459-400",
+      "source": {
+        "fileName": "IM0459-400.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 28154,
+        "sha256": "44a16d4015bb6748ae68cc1b8edbb02b0470999f980d05b2143faf4083b197ba",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM0459-400/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-400/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-400/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-400/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM0459-400/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM2055-100",
+      "source": {
+        "fileName": "IM2055-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 167424,
+        "sha256": "3e54afb0bf18dbeac065e001fb72350df433849a04e9c4dfd07e85448f3c6a9d",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM2055-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM2055-101",
+      "source": {
+        "fileName": "IM2055-101.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 95226,
+        "sha256": "bf1aa9f64da12a87c75960f621e1e7aa43081dad3a9f267e5a40ebf3f9ad7ecd",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM2055-101/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-101/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-101/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-101/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM2055-101/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM4006-003",
+      "source": {
+        "fileName": "IM4006-003.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 118502,
+        "sha256": "0eae95c8717fa0c457424f5b15275c4c98db64939f051e196e4526a1a6657930",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM4006-003/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-003/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-003/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-003/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-003/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM4006-102",
+      "source": {
+        "fileName": "IM4006-102.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 106198,
+        "sha256": "48d65f495a8beb6e66161a3e397534b4dc1a13ca331837f494d02bedc9ff7fcc",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM4006-102/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-102/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-102/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-102/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM4006-102/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM5697-700",
+      "source": {
+        "fileName": "IM5697-700.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 163412,
+        "sha256": "d7b62f626f430355c11829e232620ec257c8e06d81d231f3fa4a8558800bcd29",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM5697-700/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM5697-700/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM5697-700/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM5697-700/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM5697-700/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IM9616-100",
+      "source": {
+        "fileName": "IM9616-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 71141,
+        "sha256": "e7fc21e4966a19e20e438809132780ae363a256c387653ad5f4355f1793b3418",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IM9616-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM9616-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM9616-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM9616-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IM9616-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IO8711-100",
+      "source": {
+        "fileName": "IO8711-100.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 94635,
+        "sha256": "9c62d10392ba760a63e9854c97a027835a08ba3c42565fcfd05183381032c350",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IO8711-100/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO8711-100/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO8711-100/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO8711-100/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO8711-100/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IO9416-003",
+      "source": {
+        "fileName": "IO9416-003.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 198306,
+        "sha256": "dbc73374590638481b6027be426c9bb2b992ae8ed31da03eb4624e16f05f8806",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IO9416-003/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-003/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-003/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-003/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-003/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IO9416-102",
+      "source": {
+        "fileName": "IO9416-102.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 144958,
+        "sha256": "c386494e7160df275140a881ad506880dbcaed076acaad1beb5e9cfb1e6d0f2b",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IO9416-102/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-102/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-102/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-102/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-102/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IO9416-400",
+      "source": {
+        "fileName": "IO9416-400.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 185039,
+        "sha256": "0cca2944effe00380d11e9ec712d8c6c1b5aa0bf5edaa83197b990c328a9a537",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IO9416-400/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-400/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-400/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-400/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IO9416-400/1400.webp"
+        }
+      ]
+    },
+    {
+      "articleNo": "IQ5698-003",
+      "source": {
+        "fileName": "IQ5698-003.jpg",
+        "mimeType": "image/jpeg",
+        "byteSize": 57941,
+        "sha256": "198aa8ccfdf2d0fd61735055c1f574727ad82e8fddc520ce75bc4c72c60bd826",
+        "width": 1600,
+        "height": 1600,
+        "key": "media/nike/IQ5698-003/source.jpg"
+      },
+      "variants": [
+        {
+          "width": 200,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IQ5698-003/200.webp"
+        },
+        {
+          "width": 600,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IQ5698-003/600.webp"
+        },
+        {
+          "width": 900,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IQ5698-003/900.webp"
+        },
+        {
+          "width": 1400,
+          "mimeType": "image/webp",
+          "fit": "contain",
+          "key": "media/nike/IQ5698-003/1400.webp"
+        }
+      ]
+    }
+  ]
+}
