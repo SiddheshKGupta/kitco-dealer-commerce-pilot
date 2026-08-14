@@ -21,10 +21,8 @@
 .control-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
 .control-actions > section { padding: 18px; border: 1px solid var(--hairline); background: var(--canvas); }
 .control-actions h2 { margin: 0 0 14px; font-size: 14px; font-weight: 500; }
-.control-actions button { min-height: 40px; width: 100%; margin-top: 8px; border-radius: var(--radius-lg); border: 1px solid var(--ink); background: var(--canvas); color: var(--ink); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 180ms cubic-bezier(.2,.8,.2,1), transform 180ms cubic-bezier(.2,.8,.2,1); }
-.control-actions button:active:not(:disabled) { transform: scale(0.98); }
-.control-actions button:focus-visible, .control-nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.control-primary { background: var(--ink) !important; color: var(--canvas) !important; }
+.control-actions .ui-btn { width: 100%; margin-top: 8px; }
+.control-nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .control-action { display: grid; gap: 5px; margin-top: 12px; }
 .control-action label { font-size: 11px; font-weight: 500; }
 .control-action input { min-width: 0; min-height: 36px; border-radius: var(--radius-md); border: 1px solid var(--hairline); padding: 0 10px; font: inherit; font-size: 12px; }

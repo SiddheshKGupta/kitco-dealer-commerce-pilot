@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/app/App";
 
@@ -10,7 +10,7 @@ describe("pilot surface routing", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Products" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Products" })).toHaveClass("is-current");
+    expect(within(screen.getByRole("navigation", { name: "Dealer navigation" })).getByRole("link", { name: "Products" })).toHaveClass("is-current");
     expect(screen.queryByRole("navigation", { name: "KITCO Control navigation" })).not.toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { DealerCommercePage } from "../../src/features/catalogue/DealerCommercePage";
 import { App } from "../../src/app/App";
@@ -24,5 +24,5 @@ it("mounts the connected catalogue at the dealer Products route", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
   render(<App />);
   expect(await screen.findByRole("heading", { name: "Products" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Products" })).toHaveClass("is-current");
+  expect(within(screen.getByRole("navigation", { name: "Dealer navigation" })).getByRole("link", { name: "Products" })).toHaveClass("is-current");
 });

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/app/App";
 
@@ -18,8 +18,9 @@ describe("KITCO dealer application shell", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
     render(<App />);
 
-    expect(screen.getByRole("link", { name: "Products" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Orders" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Reports" })).toBeInTheDocument();
+    const nav = within(screen.getByRole("navigation", { name: "Dealer navigation" }));
+    expect(nav.getByRole("link", { name: "Products" })).toBeInTheDocument();
+    expect(nav.getByRole("link", { name: "Orders" })).toBeInTheDocument();
+    expect(nav.getByRole("link", { name: "Reports" })).toBeInTheDocument();
   });
 });

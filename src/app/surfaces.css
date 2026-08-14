@@ -1,7 +1,5 @@
 .pilot-control-surface { flex: 1; min-width: 0; max-width: 100%; overflow: hidden; background: var(--soft-cloud); }
 .pilot-surface-state, .pilot-orders-empty { display: grid; justify-items: start; gap: 16px; max-width: 520px; margin-top: 32px; }
-.pilot-surface-state .primary-action, .pilot-orders-empty .primary-action { width: fit-content; }
-.pilot-surface-state button { border: 0; cursor: pointer; }
 .pilot-order-list { display: grid; gap: 18px; margin-top: 36px; }
 .pilot-order-card { display: grid; gap: 14px; border: 1px solid var(--hairline); background: var(--canvas); padding: clamp(16px, 3vw, 28px); }
 .pilot-order-card > header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }

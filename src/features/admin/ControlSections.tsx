@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Button, SearchField } from "../../components/ui";
 import { formatRetailValue } from "../catalogue/types";
 import { useAdminSection, type SectionStatus } from "./useAdminSection";
 
@@ -20,8 +21,8 @@ export function PageHead({ eyebrow, title, lead, actions }: { eyebrow: string; t
 /** One honest state machine for every section: loading, denied, failed, or empty. */
 export function SectionState({ status, retry, empty }: { status: SectionStatus; retry: () => void; empty?: string }) {
 	if (status === "loading") return <div className="empty" role="status">Loading…</div>;
-	if (status === "forbidden") return <div className="empty" role="alert"><h3>Administrator access required</h3><p>Sign in with a KITCO Control account to view this section.</p><a className="btn" href="/login">Sign in</a></div>;
-	if (status === "error") return <div className="empty" role="alert"><h3>This section could not be loaded</h3><p>The request did not complete.</p><button className="btn" type="button" onClick={retry}>Try again</button></div>;
+	if (status === "forbidden") return <div className="empty" role="alert"><h3>Administrator access required</h3><p>Sign in with a KITCO Control account to view this section.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/login">Sign in</a></div>;
+	if (status === "error") return <div className="empty" role="alert"><h3>This section could not be loaded</h3><p>The request did not complete.</p><Button onClick={retry}>Try again</Button></div>;
 	return <div className="empty"><h3>Nothing here yet</h3><p>{empty ?? "No records exist for this organisation yet."}</p></div>;
 }
 
@@ -98,7 +99,7 @@ export function DealersSection() {
 		<PageHead eyebrow="Dealer master" title="Dealers" lead="Identity, activation state, GST registrations and delivery locations." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : <Panel
 			title={`${number(data?.dealers.length ?? 0)} dealers`}
-			meta={<input className="chip" style={{ minWidth: 220 }} placeholder="Search dealer, city or state" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search dealers" />}
+			meta={<SearchField label="Search dealers" style={{ minWidth: 220 }} placeholder="Search dealer, city or state" value={query} onChange={(event) => setQuery(event.target.value)} />}
 		>
 			{rows.length === 0 ? <div className="empty"><h3>No matching dealers</h3><p>Adjust the search to see more of the master.</p></div> : <Table head={["Dealer", "Location", "Activation", "GSTs", "Locations", "Orders"]}>
 				{rows.map((row) => <tr key={row.id}>
@@ -125,7 +126,7 @@ export function CatalogueSection() {
 		<PageHead eyebrow="Catalogue master" title="Catalogue" lead="Colourways, publication state and media readiness across every brand." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : <Panel
 			title={`${number(all.length)} colourways`}
-			meta={<input className="chip" style={{ minWidth: 220 }} placeholder="Search article, brand or colour" value={query} onChange={(event) => setQuery(event.target.value)} aria-label="Search catalogue" />}
+			meta={<SearchField label="Search catalogue" style={{ minWidth: 220 }} placeholder="Search article, brand or colour" value={query} onChange={(event) => setQuery(event.target.value)} />}
 		>
 			{rows.length === 0 ? <div className="empty"><h3>No matching products</h3><p>Adjust the search to see more of the catalogue.</p></div> : <>
 				<Table head={["Article", "Brand / Family", "Colour", "MRP", "Media", "Published"]}>

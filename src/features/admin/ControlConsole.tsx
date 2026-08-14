@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Button, Select } from "../../components/ui";
 import { formatRetailValue } from "../catalogue/types";
 import { AdminOrderPanel, type ControlOrder } from "./AdminOrderPanel";
 import {
@@ -21,7 +22,7 @@ function OrdersSection() {
 	const open = orders.find((order) => order.id === openOrderId);
 
 	if (open) return <>
-		<PageHead eyebrow="Order governance" title="Order review" actions={<button className="btn secondary" type="button" onClick={() => setOpenOrderId(null)}>Back to all orders</button>} />
+		<PageHead eyebrow="Order governance" title="Order review" actions={<Button variant="secondary" onClick={() => setOpenOrderId(null)}>Back to all orders</Button>} />
 		<AdminOrderPanel order={open} />
 	</>;
 
@@ -39,7 +40,7 @@ function OrdersSection() {
 						<td>{number(order.allocations.length)}</td>
 						<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
 						<td><StatusPill value={order.status} /></td>
-						<td className="right"><button className="btn small secondary" type="button" onClick={() => setOpenOrderId(order.id)}>Review</button></td>
+						<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenOrderId(order.id)}>Review</Button></td>
 					</tr>)}</tbody>
 				</table></div>
 			</section>}
@@ -70,10 +71,10 @@ function ReportsSection() {
 				<section className="panel">
 					<div className="panel-head">
 						<h3>Order register</h3>
-						<select className="chip" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
+						<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
 							<option value="">All statuses</option>
 							{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
-						</select>
+						</Select>
 					</div>
 					<div className="table-wrap"><table className="data-table">
 						<thead><tr><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th></tr></thead>

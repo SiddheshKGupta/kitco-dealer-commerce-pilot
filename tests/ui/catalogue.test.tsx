@@ -50,9 +50,9 @@ describe("dealer catalogue", () => {
     const trigger = screen.getByRole("button", { name: "Filters" });
     trigger.focus();
     fireEvent.click(trigger);
-    expect(screen.getByRole("dialog", { name: "Product filters" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Refine products" })).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Product filters" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Refine products" })).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
   });
 

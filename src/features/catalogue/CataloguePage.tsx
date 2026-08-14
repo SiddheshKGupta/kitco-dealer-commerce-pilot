@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { SearchField, Select, Tabs } from "../../components/ui";
 import { FilterRail, type MrpRange, type MrpSelection } from "../../components/FilterRail";
 import { MobileFilterDrawer } from "../../components/MobileFilterDrawer";
 import { ProductGrid } from "../../components/ProductGrid";
@@ -32,7 +33,6 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
   const [mrpSelected, setMrpSelected] = useState<MrpSelection>({ min: null, max: null });
   const [sort, setSort] = useState("featured");
   const [drawer, setDrawer] = useState(false);
-  const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const load = useCallback(() => {
     setStatus("loading");
     void fetchCatalogue().then((items) => { setProducts(items); setStatus("ready"); }, (error: unknown) => setStatus(error instanceof CatalogueRequestError && error.status === 401 ? "unauthenticated" : "error"));
@@ -80,22 +80,15 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
   });
   const clearFilters = () => { setSelected(emptySelection); setMrpSelected({ min: null, max: null }); };
   const clearAll = () => { setSearch(""); clearFilters(); };
-  const handleTabKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    const target = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length : -1;
-    if (target < 0) return;
-    event.preventDefault();
-    setTab(tabs[target].id);
-    tabRefs.current[target]?.focus();
-  };
   return <main className="commerce-page" aria-busy={status === "loading"}>
     <h1 className="sr-only">Products</h1>
-    <nav className="commerce-tabs" role="tablist" aria-label="Catalogue sections">{tabs.map((item, index) => <button key={item.id} ref={(node) => { tabRefs.current[index] = node; }} role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} type="button" onKeyDown={(event) => handleTabKey(event, index)} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>
+    <Tabs items={tabs.map(({ id, label }) => ({ id, label }))} activeId={tab} onChange={(id) => setTab(id as Tab)} label="Catalogue sections" />
     <div className="commerce-toolbar">
-      <label className="commerce-search"><span>Search</span><input type="search" aria-label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Product, article, brand or colour" /></label>
+      <SearchField label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Product, article, brand or colour" />
       <button className="commerce-filter-trigger" type="button" onClick={() => setDrawer(true)}>Filters{totalSelected > 0 ? ` (${totalSelected})` : ""}</button>
-      <label className="commerce-sort"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Featured</option><option value="price-low">MRP: Low to high</option><option value="price-high">MRP: High to low</option></select></label>
+      <label className="commerce-sort"><span>Sort</span><Select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Featured</option><option value="price-low">MRP: Low to high</option><option value="price-high">MRP: High to low</option></Select></label>
     </div>
-    {status === "loading" ? <p className="commerce-status" role="status">Loading products…</p> : status === "unauthenticated" ? <div className="commerce-status" role="alert"><strong>Your session has ended.</strong><a className="commerce-primary" href="/login?returnTo=/products">Sign in again</a></div> : status === "error" ? <div className="commerce-status" role="alert"><strong>Products could not be loaded.</strong><button className="commerce-primary" type="button" onClick={load}>Try again</button></div> : <div className="commerce-results"><FilterRail groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} /><section aria-label="Products"><div className="commerce-result-count">{visible.length} colourways</div><ProductGrid products={visible} onOpenProduct={onOpenProduct} onClearFilters={hasActiveQuery ? clearAll : undefined} /></section></div>}
+    {status === "loading" ? <p className="commerce-status" role="status">Loading products…</p> : status === "unauthenticated" ? <div className="commerce-status" role="alert"><strong>Your session has ended.</strong><a className="ui-btn ui-btn-primary ui-btn-md" href="/login?returnTo=/products">Sign in again</a></div> : status === "error" ? <div className="commerce-status" role="alert"><strong>Products could not be loaded.</strong><button className="ui-btn ui-btn-primary ui-btn-md" type="button" onClick={load}>Try again</button></div> : <div className="commerce-results"><FilterRail groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} /><section aria-label="Products"><div className="commerce-result-count">{visible.length} colourways</div><ProductGrid products={visible} onOpenProduct={onOpenProduct} onClearFilters={hasActiveQuery ? clearAll : undefined} /></section></div>}
     <MobileFilterDrawer open={drawer} groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} onClose={() => setDrawer(false)} />
   </main>;
 }
