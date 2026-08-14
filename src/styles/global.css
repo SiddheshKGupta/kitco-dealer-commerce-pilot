@@ -28,9 +28,7 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 
 .mobile-pilot { display: none; border: 1px solid var(--text); border-radius: var(--radius-control); padding: 6px 9px; }
 
-.sign-out-action { min-height: 40px; margin-left: auto; padding: 0 var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--canvas); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: background var(--motion-standard) var(--ease-standard); }
-.sign-out-action:hover:not(:disabled) { background: var(--surface-subtle); }
-.sign-out-action:disabled { cursor: not-allowed; opacity: .6; }
+.site-header .ui-btn { margin-left: auto; }
 
 .dealer-nav { display: flex; justify-content: center; gap: clamp(var(--space-5), 6vw, var(--space-8)); border-bottom: 1px solid var(--border); padding: 0 clamp(var(--space-4), 4vw, var(--space-7)); }
 
@@ -52,13 +50,13 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .auth-shell .route-transition { display: flex; justify-content: center; }
 .route-transition { width: 100%; animation: route-enter var(--motion-standard) var(--ease-standard) both; }
 .auth-page { width: min(100%, 520px); padding: clamp(28px, 5vw, 48px); border: 1px solid var(--border); background: var(--canvas); box-shadow: none; }
-.auth-page h1 { max-width: 470px; font-size: 32px; }
+.auth-page h1 { max-width: 470px; font-size: 32px; font-weight: 700; letter-spacing: -0.04em; }
 .auth-page h2 { margin: var(--space-6) 0 var(--space-2); font-size: 24px; letter-spacing: -0.04em; }
 .auth-kicker { display: flex; justify-content: space-between; margin: 0 0 var(--space-4); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .auth-kicker span { color: var(--text); }
 .auth-intro { max-width: 410px; margin: var(--space-4) 0 var(--space-6); color: var(--text-muted); font-size: 16px; line-height: 1.5; }
 .auth-page label { display: block; margin: var(--space-5) 0 var(--space-2); font-size: 13px; font-weight: 700; }
-.auth-page .ui-btn-full { margin-top: var(--space-5); }
+.auth-page .ui-btn-full { margin-top: var(--space-6); }
 .auth-page-wide { width: min(100%, 720px); }
 .auth-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-5); margin: var(--space-5) 0; }
 .auth-form-grid .ui-field label { margin: 0; }
@@ -72,13 +70,14 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .text-action { display: block; width: 100%; margin-top: var(--space-3); border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .form-error { margin: var(--space-4) 0 0; border-left: 3px solid var(--text); background: var(--surface-subtle); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
 .success-state { margin-top: var(--space-5); }
+.success-state .ui-btn { margin-top: var(--space-6); }
 @keyframes route-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
 .auth-landing { display: grid; gap: var(--space-5); width: min(100%, 520px); }
 .auth-landing .ui-tabs { justify-content: center; }
 .auth-landing-split { display: grid; gap: var(--space-5); }
 .auth-landing-promo { padding: clamp(24px, 4vw, 32px); border: 1px solid var(--border); background: var(--canvas); }
-.auth-landing-promo h2 { margin: var(--space-2) 0 0; font-size: 22px; }
+.auth-landing-promo h2 { margin: var(--space-2) 0 0; font-size: 24px; letter-spacing: -0.04em; }
 .auth-landing-promo .ui-btn { margin-top: var(--space-5); }
 
 @media (min-width: 860px) {

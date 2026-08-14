@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "./ui";
 
 export function KitcoHeader({ showSignOut = false }: { showSignOut?: boolean }) {
 	const [signingOut, setSigningOut] = useState(false);
@@ -18,7 +19,7 @@ export function KitcoHeader({ showSignOut = false }: { showSignOut?: boolean }) 
 			</a>
 			<p className="desktop-attribution">PILOT</p>
 			<span className="mobile-pilot" aria-label="Pilot environment">PILOT</span>
-			{showSignOut && <button type="button" className="sign-out-action" onClick={signOut} disabled={signingOut}>{signingOut ? "Signing out…" : "Sign out"}</button>}
+			{showSignOut && <Button variant="secondary" size="md" onClick={signOut} loading={signingOut}>Sign out</Button>}
 		</header>
 	);
 }
