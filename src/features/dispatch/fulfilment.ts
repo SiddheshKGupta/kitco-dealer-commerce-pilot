@@ -4,6 +4,10 @@ export interface FulfilmentAllocation {
 	approvedPairs: number;
 	dispatchedPairs: number;
 	heldPairs: number;
+	articleNo?: string;
+	colour?: string;
+	familyName?: string;
+	brand?: string;
 }
 
 export function summarizeFulfilment(allocations: FulfilmentAllocation[]) {

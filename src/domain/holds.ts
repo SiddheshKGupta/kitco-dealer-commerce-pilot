@@ -4,6 +4,10 @@ export interface FulfilmentAllocation {
   readonly approvedPairs: number;
   readonly dispatchedPairs: number;
   readonly heldPairs: number;
+  readonly articleNo?: string;
+  readonly colour?: string;
+  readonly familyName?: string;
+  readonly brand?: string;
 }
 
 export interface AllocationQuantityRequest {

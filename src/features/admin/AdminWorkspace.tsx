@@ -6,5 +6,5 @@ import { DealerFulfilmentStatus } from "../reports/DealerFulfilmentStatus";
  * scoped order from its loader; this module owns no routing or data fetching.
  */
 export function AdminWorkspace({ order }: { order: ControlOrder }) {
-	return <div data-workspace="kitco-control"><AdminOrderPanel order={order} /><DealerFulfilmentStatus order={order} /></div>;
+	return <div data-workspace="kitco-control"><main className="control-main"><AdminOrderPanel order={order} /></main><DealerFulfilmentStatus order={order} /></div>;
 }

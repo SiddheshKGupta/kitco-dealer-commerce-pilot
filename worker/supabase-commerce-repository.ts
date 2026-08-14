@@ -95,8 +95,11 @@ function versionFromRow(row: Row): OrderVersionRecord {
 function orderFromRow(row: Row): OrderRecord {
   const versions = (Array.isArray(row.order_versions) ? row.order_versions : []).sort((a: Row, b: Row) => Number(a.version_no) - Number(b.version_no)).map(versionFromRow);
   const latest = (Array.isArray(row.order_versions) ? row.order_versions : []).sort((a: Row, b: Row) => Number(b.version_no) - Number(a.version_no))[0] as Row | undefined;
-  const allocations = latest ? (Array.isArray(latest.order_lines) ? latest.order_lines : []).flatMap((line: Row) =>
-    (Array.isArray(line.order_line_sizes) ? line.order_line_sizes : []).map((size: Row) => {
+  const allocations = latest ? (Array.isArray(latest.order_lines) ? latest.order_lines : []).flatMap((line: Row) => {
+    const colourway = one(line.product_colourways);
+    const family = colourway ? one(colourway.product_families) : null;
+    const brand = family ? one(family.brands) : null;
+    return (Array.isArray(line.order_line_sizes) ? line.order_line_sizes : []).map((size: Row) => {
       const dispatchedPairs = (Array.isArray(size.dispatch_lines) ? size.dispatch_lines : [])
         .filter((dispatch: Row) => one(dispatch.dispatches)?.status === "FINALISED")
         .reduce((sum: number, dispatch: Row) => sum + Number(dispatch.quantity_pairs), 0);
@@ -109,8 +112,13 @@ function orderFromRow(row: Row): OrderRecord {
         approvedPairs: Number(size.approved_quantity_pairs),
         dispatchedPairs,
         heldPairs,
+        articleNo: colourway?.article_no ? String(colourway.article_no) : undefined,
+        colour: colourway?.colour ? String(colourway.colour) : undefined,
+        familyName: family?.name ? String(family.name) : undefined,
+        brand: brand?.name ? String(brand.name) : undefined,
       };
-    })) : [];
+    });
+  }) : [];
   return {
     id: String(row.id), organisationId: String(row.organisation_id), dealerId: String(row.dealer_id),
     status: row.status, versions, allocations,
@@ -131,6 +139,7 @@ const ORDER_SELECT = `
   id,organisation_id,dealer_id,status,current_version_no,order_number,idempotency_key,
   order_versions(version_no,version_status,retail_value_minor,
     order_lines(id,commercial_offering_id,mrp_minor,approved_quantity_pairs,
+      product_colourways!inner(article_no,colour,product_families(name,brands(name))),
       order_line_sizes(ordered_quantity_pairs,approved_quantity_pairs,size_values(label),
         dispatch_lines(quantity_pairs,dispatches(status)),hold_allocations(quantity_pairs,holds(status)))))`;
 

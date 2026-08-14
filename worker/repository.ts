@@ -125,7 +125,13 @@ export class InMemoryCommerceRepository implements CommerceRepository {
       const order: OrderRecord = {
         id, organisationId: session.organisationId, dealerId: session.dealerId!, status: "SUBMITTED",
         versions: [{ version: 1, status: "SUBMITTED", retailValueMinor: retailValue, lines: clone(draft) }],
-        allocations: draft.flatMap((line) => Object.entries(line.quantities).map(([size, pairs]) => ({ orderLineId: `${id}:${line.offeringId}`, size, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0 }))),
+        allocations: draft.flatMap((line) => {
+          const product = this.catalogue.find((item) => item.organisationId === session.organisationId && item.offering.id === line.offeringId);
+          return Object.entries(line.quantities).map(([size, pairs]) => ({
+            orderLineId: `${id}:${line.offeringId}`, size, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0,
+            articleNo: product?.articleNo, colour: product?.colour, familyName: product?.familyName ?? undefined, brand: product?.brand,
+          }));
+        }),
       };
       this.orders.set(id, order);
       return order;
@@ -169,7 +175,13 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     const previous = order.versions.at(-1)!;
     const version = createOrderVersion({ orderId, version: previous.version, lines: previous.lines.map((line) => ({ articleNo: line.offeringId, quantities: line.quantities })) }, canonicalLines.map((line) => ({ articleNo: line.offeringId, quantities: line.quantities })));
     order.versions.push({ version: version.version, status: "PROPOSED", retailValueMinor: canonicalLines.reduce((sum, line) => sum + line.retailValueMinor, 0), lines: canonicalLines });
-    order.allocations = canonicalLines.flatMap((line) => Object.entries(line.quantities).map(([size, pairs]) => ({ orderLineId: `${orderId}:${line.offeringId}`, size, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0 })));
+    order.allocations = canonicalLines.flatMap((line) => {
+      const product = this.catalogue.find((item) => item.organisationId === session.organisationId && item.offering.id === line.offeringId);
+      return Object.entries(line.quantities).map(([size, pairs]) => ({
+        orderLineId: `${orderId}:${line.offeringId}`, size, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0,
+        articleNo: product?.articleNo, colour: product?.colour, familyName: product?.familyName ?? undefined, brand: product?.brand,
+      }));
+    });
     this.audit(session, correlationId, "ORDER_REVISION_PROPOSED", orderId);
     return clone(order);
   }
