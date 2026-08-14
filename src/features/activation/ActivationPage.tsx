@@ -7,7 +7,7 @@ type Stage = "lookup" | "email" | "verify" | "complete";
 
 export function ActivationPage() {
 	const [query, setQuery] = useState(""); const [dealers, setDealers] = useState<Dealer[]>([]); const [dealer, setDealer] = useState<Dealer | null>(null);
-	const [email, setEmail] = useState(""); const [accessCode, setAccessCode] = useState(""); const [code, setCode] = useState(""); const [password, setPassword] = useState(""); const [challengeId, setChallengeId] = useState("");
+	const [email, setEmail] = useState(""); const [code, setCode] = useState(""); const [password, setPassword] = useState(""); const [challengeId, setChallengeId] = useState("");
 	const [stage, setStage] = useState<Stage>("lookup"); const [error, setError] = useState(""); const [resendIn, setResendIn] = useState(30);
 	useEffect(() => {
 		if (query.trim().length < 3) { setDealers([]); return; }
@@ -20,7 +20,7 @@ export function ActivationPage() {
 	useEffect(() => { if (stage !== "verify" || resendIn <= 0) return; const timer = window.setTimeout(() => setResendIn((value) => value - 1), 1000); return () => window.clearTimeout(timer); }, [stage, resendIn]);
 	async function requestCode() {
 		if (!dealer) return; setError("");
-		try { const response = await postJson<{ challengeId: string }>("/api/activation/request-otp", { dealerId: dealer.id, email, accessCode }); setChallengeId(response.challengeId); setResendIn(30); setStage("verify"); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
+		try { const response = await postJson<{ challengeId: string }>("/api/activation/request-otp", { dealerId: dealer.id, email }); setChallengeId(response.challengeId); setResendIn(30); setStage("verify"); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 	async function verify() {
 		if (password.length < 12) { setError(errorMessage("PASSWORD_TOO_SHORT")); return; }
@@ -31,7 +31,7 @@ export function ActivationPage() {
 	}
 	return <section className="auth-page"><div className="auth-kicker">Dealer activation <span>01 / 03</span></div><h1>Start with your dealership.</h1><p className="auth-intro">Confirm your dealer record, then create a secure account for the pilot.</p>
 		{stage === "lookup" && <><label htmlFor="dealer-lookup">Find your dealership</label><Input id="dealer-lookup" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type at least 3 characters" autoComplete="off" />{query.length > 0 && query.length < 3 && <p className="field-note">Enter at least 3 characters to search.</p>}<div className="dealer-results">{dealers.map((item) => <button className="dealer-result" type="button" key={item.id} onClick={() => { setDealer(item); setStage("email"); setError(""); }}>{item.name} · {item.city ?? "City unavailable"}</button>)}</div></>}
-		{stage === "email" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Choose an email</h2><p className="field-note">Registered email stays private. Enter the email you want to use for this controlled pilot.</p><label htmlFor="activation-email">Email for this activation</label><Input id="activation-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /><label htmlFor="activation-access-code">Pilot access code</label><PasswordInput id="activation-access-code" value={accessCode} onChange={(event) => setAccessCode(event.target.value)} autoComplete="off" /><p className="field-note">Use the private invite code supplied by KITCO for this pilot.</p><Button full disabled={!email || !accessCode} onClick={requestCode}>Send code</Button></>}
+		{stage === "email" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Choose an email</h2><p className="field-note">Registered email stays private. Enter the email you want to use for this controlled pilot.</p><label htmlFor="activation-email">Email for this activation</label><Input id="activation-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /><Button full disabled={!email} onClick={requestCode}>Send code</Button></>}
 		{stage === "verify" && <><h2>Enter the 6-digit code</h2><p className="field-note">We sent a verification code to your selected email.</p><OTPInput value={code} onChange={setCode} /><label htmlFor="activation-password">Create password</label><PasswordInput id="activation-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /><Button full disabled={code.length !== 6} onClick={verify}>Verify and activate</Button><button className="text-action" type="button" disabled={resendIn > 0} onClick={resend}>{resendIn > 0 ? `Resend available in ${resendIn}s` : "Resend code"}</button></>}
 		{stage === "complete" && <div className="success-state"><p className="auth-kicker">Ready</p><h2>Activation complete</h2><p>Your dealer account is ready. Continue to the catalogue.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/products">View products</a></div>}
 		{error && <p className="form-error" role="alert">{error}</p>}</section>;

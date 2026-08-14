@@ -96,27 +96,13 @@ function buildHarness() {
     pepper: "test-otp-pepper-at-least-32-characters",
   });
   const app = new Hono();
-  registerActivationRoutes(app, { store, otp, sessions, authenticator, activationAccessCode: "pilot-invite-2026" });
+  registerActivationRoutes(app, { store, otp, sessions, authenticator });
   registerLoginRoutes(app, { authenticator, otp, sessions });
   registerOtpRoutes(app, { otp, sessions, authenticator, activationStore: store });
   return { app, store, challengeStore, provider, authenticator, sessions, otp };
 }
 
 describe("Worker activation and authentication", () => {
-  it("rejects activation without the independent pilot access code before claiming a dealer", async () => {
-    const { app, store, provider } = buildHarness();
-    const response = await app.request("/api/activation/request-otp", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "wrong-code" }),
-    });
-
-    expect(response.status).toBe(403);
-    expect(await response.json()).toEqual({ error: "ACTIVATION_NOT_AUTHORISED" });
-    expect(store.dealers[0]).toMatchObject({ activationStatus: "UNACTIVATED", pilotEmail: null });
-    expect(provider.deliveries).toHaveLength(0);
-  });
-
   it("requires a useful lookup prefix and returns only public autocomplete fields", async () => {
     const { app } = buildHarness();
     expect((await app.request("/api/activation/dealers?q=n")).status).toBe(400);
@@ -133,7 +119,7 @@ describe("Worker activation and authentication", () => {
     const first = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "pilot-invite-2026" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
     });
     expect(first.status).toBe(202);
     expect(store.dealers[0]?.masterEmail).toBe("owner@dealer.test");
@@ -144,7 +130,7 @@ describe("Worker activation and authentication", () => {
     const second = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "another@dealer.test", accessCode: "pilot-invite-2026" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "another@dealer.test" }),
     });
     expect(second.status).toBe(409);
     expect(store.dealers[0]?.pilotEmail).toBe("pilot@dealer.test");
@@ -155,7 +141,7 @@ describe("Worker activation and authentication", () => {
     const response = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", emailChoice: "MASTER", accessCode: "pilot-invite-2026" }),
+      body: JSON.stringify({ dealerId: "dealer-1", emailChoice: "MASTER" }),
     });
     expect(response.status).toBe(202);
     expect(provider.deliveries[0]?.to).toBe("owner@dealer.test");
@@ -176,13 +162,12 @@ describe("Worker activation and authentication", () => {
       otp,
       sessions: new SessionService("test-secret-at-least-32-characters-long", () => NOW),
       authenticator: new MemoryAuthenticator(),
-      activationAccessCode: "pilot-invite-2026",
     });
 
     const response = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "pilot-invite-2026" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
     });
     expect(response.status).toBe(502);
     expect(store.dealers[0]).toMatchObject({
@@ -289,7 +274,7 @@ describe("Worker activation and authentication", () => {
     const requested = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", accessCode: "pilot-invite-2026" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
     });
     const pendingCookie = requested.headers.get("set-cookie")!.split(";")[0]!;
     const verify = (password: string) => app.request("/api/otp/verify", {

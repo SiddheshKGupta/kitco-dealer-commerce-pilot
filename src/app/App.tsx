@@ -2,8 +2,7 @@ import { useEffect, useState } from "react";
 import { KitcoHeader } from "../components/KitcoHeader";
 import { SUPPORT_EMAIL, SUPPORT_PHONE } from "../config/support";
 import { RouteTransition } from "../components/RouteTransition";
-import { ActivationPage } from "../features/activation/ActivationPage";
-import { LoginPage } from "../features/auth/LoginPage";
+import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import { DealerCommercePage } from "../features/catalogue/DealerCommercePage";
 import { requestOrderOtp } from "../features/orders/api";
 import { ControlSurface, OrdersSurface } from "./PilotSurfaces";
@@ -12,7 +11,7 @@ import { dealerNavigation, routeHref } from "./router";
 export function App() {
 	const [pathname, setPathname] = useState(() => window.location.pathname);
 	useEffect(() => { const update = () => setPathname(window.location.pathname); window.addEventListener("popstate", update); return () => window.removeEventListener("popstate", update); }, []);
-	const authPage = pathname === "/activate" ? <ActivationPage /> : pathname === "/" || pathname === "/login" ? <LoginPage /> : null;
+	const authPage = pathname === "/" || pathname === "/login" || pathname === "/activate" ? <AuthLandingPage pathname={pathname} /> : null;
 	const isControl = pathname.startsWith("/control");
 	const dealerPage = pathname.startsWith("/products") ? <DealerCommercePage requestOrderOtp={requestOrderOtp} /> : pathname.startsWith("/orders") ? <OrdersSurface /> : <OrdersSurface reports />;
 	return <div className="app-shell"><KitcoHeader showSignOut={!authPage} />

@@ -28,24 +28,10 @@ interface ActivationDependencies {
   otp: OtpService;
   sessions: SessionService;
   authenticator: PasswordAuthenticator;
-  activationAccessCode: string;
 }
 
 function isEmail(value: unknown): value is string {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value) && value.length <= 254;
-}
-
-async function validAccessCode(candidate: unknown, expected: string): Promise<boolean> {
-  const encoder = new TextEncoder();
-  const [candidateDigest, expectedDigest] = await Promise.all([
-    crypto.subtle.digest("SHA-256", encoder.encode(typeof candidate === "string" ? candidate : "")),
-    crypto.subtle.digest("SHA-256", encoder.encode(typeof expected === "string" ? expected : "")),
-  ]);
-  const left = new Uint8Array(candidateDigest);
-  const right = new Uint8Array(expectedDigest);
-  let difference = 0;
-  for (let index = 0; index < left.length; index += 1) difference |= left[index]! ^ right[index]!;
-  return difference === 0 && typeof candidate === "string" && candidate.length > 0 && expected.length > 0;
 }
 
 export function registerActivationRoutes(app: Hono<any>, dependencies: ActivationDependencies): void {
@@ -61,11 +47,7 @@ export function registerActivationRoutes(app: Hono<any>, dependencies: Activatio
       dealerId?: unknown;
       email?: unknown;
       emailChoice?: unknown;
-      accessCode?: unknown;
     } | null;
-    if (!(await validAccessCode(body?.accessCode, dependencies.activationAccessCode))) {
-      return context.json({ error: "ACTIVATION_NOT_AUTHORISED" }, 403);
-    }
     if (!body || typeof body.dealerId !== "string") {
       return context.json({ error: "INVALID_ACTIVATION_REQUEST" }, 400);
     }

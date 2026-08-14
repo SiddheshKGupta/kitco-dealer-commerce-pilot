@@ -4,4 +4,3 @@ SESSION_SECRET=replace-with-at-least-32-random-characters
 RESEND_API_KEY=re_replace-with-your-key
 OTP_FROM_EMAIL=KITCO <otp@your-verified-domain.example>
 VLCO_TEST_EMAIL=pilot-inbox@example.com
-ACTIVATION_ACCESS_CODE=replace-with-a-private-pilot-invite-code

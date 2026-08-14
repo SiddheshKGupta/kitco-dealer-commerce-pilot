@@ -28,7 +28,7 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   app.onError(handleApiError);
   app.use("/api/orders/otp", requireSession(verifyApplicationSession));
   app.use("/api/orders/otp", requireDealer());
-  registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator, activationAccessCode: env.ACTIVATION_ACCESS_CODE });
+  registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator });
   registerLoginRoutes(app, { authenticator, otp, sessions });
   registerLogoutRoutes(app, sessions);
   registerOtpRoutes(app, { otp, sessions, authenticator, activationStore });

@@ -6,6 +6,5 @@ export interface Env {
   RESEND_API_KEY: string;
   OTP_FROM_EMAIL: string;
   VLCO_TEST_EMAIL: string;
-  ACTIVATION_ACCESS_CODE: string;
   PILOT_STATIC_OTP?: string;
 }

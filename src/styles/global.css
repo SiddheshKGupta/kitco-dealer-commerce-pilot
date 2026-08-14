@@ -70,6 +70,18 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .success-state { margin-top: var(--space-5); }
 @keyframes route-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+.auth-landing { display: grid; gap: var(--space-5); width: min(100%, 520px); }
+.auth-landing .ui-tabs { justify-content: center; }
+.auth-landing-split { display: grid; gap: var(--space-5); }
+.auth-landing-promo { padding: clamp(24px, 4vw, 32px); border: 1px solid var(--border); background: var(--canvas); }
+.auth-landing-promo h2 { margin: var(--space-2) 0 0; font-size: 22px; }
+.auth-landing-promo .ui-btn { margin-top: var(--space-5); }
+
+@media (min-width: 860px) {
+  .auth-landing { width: min(100%, 960px); }
+  .auth-landing-split { grid-template-columns: 3fr 2fr; align-items: start; }
+}
+
 footer { margin-top: auto; padding: var(--space-5) clamp(var(--space-4), 4vw, var(--space-7)); border-top: 1px solid var(--border); font-size: 12px; }
 footer p { margin: 0 0 var(--space-1); }
 footer p:last-child { margin-bottom: 0; }
