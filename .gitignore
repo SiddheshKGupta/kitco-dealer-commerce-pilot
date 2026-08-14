@@ -13,3 +13,4 @@ dist/
 .impeccable/
 tmp/
 NUL
+.playwright-mcp/

@@ -29,6 +29,32 @@ npm.cmd exec -- wrangler deploy
 
 ---
 
+## 0B. Verification tooling
+
+**Use Playwright MCP, not the built-in Browser pane.** The pane blocks the
+`kitco-dealer-commerce.siddeshgup.workers.dev` origin by policy; Playwright reaches it fine
+(verified 2026-08-14).
+
+```text
+mcp__plugin_playwright_playwright__browser_navigate / _snapshot / _take_screenshot
+                                  / _resize / _click / _type / _console_messages
+```
+
+Gotcha that cost a debugging cycle: **do not mix `browser_fill_form` and `browser_type`** on the
+same field — `fill()` sets the value and `pressSequentially()` *appends*, producing
+`vlco@123vlco@123` and a misleading 401. Use one or the other.
+
+Test accounts (passwords are **not** recorded here — ask the user):
+- Dealer: `siddheshkgupta@gmail.com` → lands on `/products`
+- Admin:  `siddheshgupta7@gmail.com` → lands on `/control`
+- OTP: the pilot bypass code, while `PILOT_STATIC_OTP` is set.
+
+**Outstanding evidence gap:** no mobile screenshots were captured. Before starting Phase 4,
+run `browser_resize` to 375×812 and snapshot Products, PDP, Current Order, and at least three
+Control sections. Phase 4's defect list is currently derived from CSS audit alone.
+
+---
+
 ## 1. Authority order (resolve all conflicts this way)
 
 ```text
