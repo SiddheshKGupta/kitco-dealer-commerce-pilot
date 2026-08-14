@@ -135,7 +135,7 @@ function DealerApplicationsSection() {
 	</>;
 
 	return <>
-		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="Review applications from dealers KITCO doesn't have on file yet." />
+		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="Dealers KITCO didn't have on file self-activate on registration for this pilot. This is a record of who registered." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : applications.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer applications yet." />
 			: <section className="panel">

@@ -23,12 +23,14 @@ export interface DealerApplicationRecord {
 	status: string;
 }
 
-/** A submitted application grants no dealer access (v4.0 §45) -- create() only
- *  ever produces a DRAFT row; access begins after KITCO approval + normal activation. */
+/** Pilot only: a submitted application self-activates on OTP verification --
+ *  no admin approval gate. approveAndActivate() creates the canonical dealer
+ *  row ACTIVE and links the given auth user, so the applicant can order immediately. */
 export interface DealerApplicationStore {
 	create(input: DealerApplicationInput): Promise<{ id: string; organisationId: string }>;
 	get(applicationId: string): Promise<DealerApplicationRecord | null>;
 	submit(applicationId: string): Promise<boolean>;
+	approveAndActivate(applicationId: string, authUserId: string): Promise<{ dealerId: string; organisationId: string } | null>;
 }
 
 interface RegisterDependencies {

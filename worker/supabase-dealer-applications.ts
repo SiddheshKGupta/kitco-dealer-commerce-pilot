@@ -5,7 +5,7 @@ import type { DealerApplicationRow, DealerApplicationsAdmin } from "./routes/adm
 
 type Row = Record<string, any>;
 
-function slugCode(businessName: string): string {
+export function slugCode(businessName: string): string {
 	const letters = businessName.toUpperCase().replaceAll(/[^A-Z0-9]/g, "");
 	return (letters.slice(0, 6) || "DEALER") + Math.floor(1000 + Math.random() * 9000);
 }

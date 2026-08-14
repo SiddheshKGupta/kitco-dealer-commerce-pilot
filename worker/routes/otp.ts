@@ -69,11 +69,19 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         return context.json({ authenticated: true, role: pending.role });
       }
       if (pending.kind === "registration") {
-        if (!dependencies.applicationStore || !(await dependencies.applicationStore.submit(pending.applicationId))) {
-          return context.json({ error: "APPLICATION_NOT_FOUND" }, 404);
-        }
-        context.header("Set-Cookie", dependencies.sessions.clearPendingCookie());
-        return context.json({ submitted: true });
+        if (!dependencies.applicationStore) return context.json({ error: "APPLICATION_NOT_FOUND" }, 404);
+        const created = await dependencies.identity.createUser(pending.email);
+        const activated = await dependencies.applicationStore.approveAndActivate(pending.applicationId, created.authUserId);
+        if (!activated) return context.json({ error: "APPLICATION_NOT_FOUND" }, 404);
+        const token = await dependencies.sessions.sealApplication({
+          authUserId: created.authUserId,
+          dealerId: activated.dealerId,
+          organisationId: activated.organisationId,
+          email: pending.email,
+        });
+        context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
+        context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
+        return context.json({ authenticated: true, role: "DEALER" });
       }
 
       const created = await dependencies.identity.createUser(pending.email);
