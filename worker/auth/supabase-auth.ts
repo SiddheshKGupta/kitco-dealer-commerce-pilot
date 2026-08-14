@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AppRole } from "../middleware/auth";
 import type { ActivationStore, DealerRecord } from "../routes/activation";
 import type { AuthenticatedPasswordResult, PasswordAuthenticator } from "../routes/login";
 import type { OtpChallengeStore, StoredOtpChallenge } from "./otp-service";
@@ -126,13 +127,14 @@ export class SupabasePasswordAuthenticator implements PasswordAuthenticator {
       .maybeSingle();
     if (mappingError || !mapping) return null;
     if (mapping.app_role === "DEALER" && !mapping.dealer_id) return null;
-    if (mapping.app_role !== "DEALER" && mapping.app_role !== "ADMIN") return null;
+    if (mapping.app_role !== "DEALER" && mapping.app_role !== "ADMIN" && mapping.app_role !== "SUPERADMIN") return null;
     return {
       authUserId: data.user.id,
       dealerId: mapping.app_role === "DEALER" ? (mapping.dealer_id as string) : null,
       organisationId: mapping.organisation_id as string,
       email,
       accessToken: data.session.access_token,
+      role: mapping.app_role as AppRole,
     };
   }
 

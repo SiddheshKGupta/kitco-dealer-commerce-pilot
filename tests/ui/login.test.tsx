@@ -20,7 +20,7 @@ describe("dealer login", () => {
 				return response({ challengeId: "login-1" }, 202);
 			}
 			if (input === "/api/otp/resend") return response({ challengeId: "login-2" }, 202);
-			return response({ authenticated: true });
+			return response({ authenticated: true, role: "DEALER" });
 		});
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);

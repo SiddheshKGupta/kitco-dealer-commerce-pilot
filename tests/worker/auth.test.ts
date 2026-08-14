@@ -66,10 +66,10 @@ class MemoryAuthenticator implements PasswordAuthenticator {
 
   async authenticate(email: string, password: string) {
     if (email === this.createdEmail && password === this.createdPassword) {
-      return { authUserId: "user-created", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "new-supabase-access" };
+      return { authUserId: "user-created", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "new-supabase-access", role: "DEALER" as const };
     }
     if (email !== "owner@dealer.test" || password !== "correct horse") return null;
-    return { authUserId: "user-1", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "supabase-access" };
+    return { authUserId: "user-1", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "supabase-access", role: "DEALER" as const };
   }
 
   async createUser(email: string, password: string) {

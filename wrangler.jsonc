@@ -4,6 +4,10 @@
   "main": "./worker/index.ts",
   "compatibility_date": "2026-08-13",
   "keep_vars": true,
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "partners.kitco.co.in", "custom_domain": true }
+  ],
   "vars": {
     "OTP_FROM_EMAIL": "KITCO <onboarding@resend.dev>"
   },

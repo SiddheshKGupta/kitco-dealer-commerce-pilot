@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import type { OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
+import type { AppRole } from "../middleware/auth";
 
 export interface AuthenticatedPasswordResult {
   authUserId: string;
@@ -8,6 +9,7 @@ export interface AuthenticatedPasswordResult {
   organisationId: string;
   email: string;
   accessToken: string;
+  role: AppRole;
 }
 
 export interface PasswordAuthenticator {

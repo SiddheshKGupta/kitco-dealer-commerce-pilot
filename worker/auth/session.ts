@@ -1,3 +1,5 @@
+import type { AppRole } from "../middleware/auth";
+
 export interface PendingLoginSession {
   kind: "login";
   challengeId: string;
@@ -6,6 +8,7 @@ export interface PendingLoginSession {
   organisationId: string;
   email: string;
   accessToken: string;
+  role: AppRole;
 }
 
 export interface PendingActivationSession {

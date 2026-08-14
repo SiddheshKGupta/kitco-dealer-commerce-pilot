@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canOrderOffering } from "../src/domain/catalogue";
 import { retailValueMinor, validatePurchaseQuantities, type SizeQuantities } from "../src/domain/orders";
-import type { SessionIdentity } from "./middleware/auth";
+import { isAdminRole, type SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 import type {
   CatalogueRecord,
@@ -245,7 +245,7 @@ export class SupabaseCommerceRepository implements CommerceRepository {
   }
 
   async approveOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderRecord> {
-    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
     const { data, error } = await this.client.rpc("approve_kitco_order", {
       p_organisation_id: session.organisationId,
       p_actor_auth_user_id: session.userId,
@@ -260,7 +260,7 @@ export class SupabaseCommerceRepository implements CommerceRepository {
   }
   async reviseOrder(): Promise<OrderRecord> { throw new ApiError(409, "ADMIN_MUTATION_UNAVAILABLE", "Admin mutations are disabled until the audited database function is installed"); }
   async applyHold(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; reason: string }, correlationId: string): Promise<void> {
-    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
     const { data, error } = await this.client.rpc("apply_kitco_credit_hold", {
       p_organisation_id: session.organisationId,
       p_actor_auth_user_id: session.userId,
@@ -275,7 +275,7 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     if (error || !data) fail(error, "HOLD_FAILED");
   }
   async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<void> {
-    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
     const { data, error } = await this.client.rpc("create_kitco_dispatch", {
       p_organisation_id: session.organisationId,
       p_actor_auth_user_id: session.userId,

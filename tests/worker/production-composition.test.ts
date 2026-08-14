@@ -46,6 +46,32 @@ describe("production commerce composition", () => {
     expect(client.auth.getUser).toHaveBeenCalledWith("live-access-token");
   });
 
+  it("revalidates a SUPERADMIN session without being rejected by the ADMIN-only branch", async () => {
+    const sessions = new SessionService("production-session-secret-that-is-long-enough");
+    const token = await sessions.sealApplication({
+      authUserId: "user-super",
+      organisationId: "org-1",
+      dealerId: null,
+      email: "superadmin@example.test",
+      accessToken: "live-access-token",
+    });
+    const from = vi.fn((table: string) => {
+      if (table === "app_users") return chain({ data: { auth_user_id: "user-super", organisation_id: "org-1", dealer_id: null, app_role: "SUPERADMIN" }, error: null });
+      throw new Error(`unexpected table ${table}`);
+    });
+    const client = {
+      auth: { getUser: vi.fn(async () => ({ data: { user: { id: "user-super" } }, error: null })) },
+      from,
+    } as unknown as SupabaseClient;
+
+    const verify = createVerifiedSessionVerifier(client, sessions);
+    const identity = await verify(new Request("https://kitco.test/api/admin/orders", {
+      headers: { cookie: `kitco_session=${token}` },
+    }));
+
+    expect(identity).toMatchObject({ userId: "user-super", organisationId: "org-1", dealerId: null, role: "SUPERADMIN" });
+  });
+
   it("maps only published canonical catalogue rows and emits organisation-scoped media keys", async () => {
     const rows = [{
       id: "offer-1", organisation_id: "org-1", offering_type: "STOCK_IN_HAND", mrp_minor: 10000, currency_code: "INR", moq_pairs: 4,

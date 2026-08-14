@@ -1,7 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import { ApiError } from "./errors";
 
-export type AppRole = "DEALER" | "ADMIN";
+export type AppRole = "DEALER" | "ADMIN" | "SUPERADMIN";
 
 export interface SessionIdentity {
   readonly userId: string;
@@ -16,6 +16,12 @@ export type SessionVerifier = (request: Request) => Promise<SessionIdentity | nu
 export interface AuthVariables {
   session: SessionIdentity;
   correlationId: string;
+}
+
+/** ADMIN and SUPERADMIN both operate KITCO Control; SUPERADMIN additionally holds
+ *  permissions ADMIN does not (see requireSuperAdmin). */
+export function isAdminRole(role: AppRole): boolean {
+  return role === "ADMIN" || role === "SUPERADMIN";
 }
 
 export function requireSession(verifySession: SessionVerifier) {
@@ -37,11 +43,19 @@ export function requireDealer() {
   });
 }
 
-export function requireAdmin() {
+export function requireRole(...roles: AppRole[]) {
   return createMiddleware<{ Variables: AuthVariables }>(async (context, next) => {
-    if (context.get("session").role !== "ADMIN") {
-      throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    if (!roles.includes(context.get("session").role)) {
+      throw new ApiError(403, "FORBIDDEN", "You do not have access to this resource");
     }
     await next();
   });
+}
+
+export function requireAdmin() {
+  return requireRole("SUPERADMIN", "ADMIN");
+}
+
+export function requireSuperAdmin() {
+  return requireRole("SUPERADMIN");
 }

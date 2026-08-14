@@ -3,7 +3,7 @@ import { recordDispatch } from "../src/domain/dispatch";
 import { createIdempotentSubmission, createOrderVersion, retailValueMinor, validatePurchaseQuantities, type SizeQuantities } from "../src/domain/orders";
 import { canOrderOffering } from "../src/domain/catalogue";
 import { verifyOtpChallenge } from "../src/domain/otp";
-import type { SessionIdentity } from "./middleware/auth";
+import { isAdminRole, type SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 
 export interface CatalogueRecord {
@@ -134,7 +134,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     return { created: result.created, order: clone(result.submission) };
   }
   async listOrders(session: SessionIdentity) {
-    return clone([...this.orders.values()].filter((order) => order.organisationId === session.organisationId && (session.role === "ADMIN" || order.dealerId === session.dealerId)));
+    return clone([...this.orders.values()].filter((order) => order.organisationId === session.organisationId && (isAdminRole(session.role) || order.dealerId === session.dealerId)));
   }
   async findOrder(session: SessionIdentity, orderId: string) {
     const order = this.orders.get(orderId);
@@ -188,7 +188,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     this.audit(session, correlationId, "DISPATCH_FINALISED", input.orderId);
   }
   async stageImport(session: SessionIdentity, _input: { sourceFileId: string; profileId: string }, correlationId: string) {
-    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
     const id = crypto.randomUUID();
     this.audit(session, correlationId, "IMPORT_UPLOADED", id);
     return { id, status: "UPLOADED" as const };
@@ -198,7 +198,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     return validatePurchaseQuantities({ enabledSizes: product.offering.enabledSizes, moqPairs: product.offering.moqPairs, orderMultiplePairs: product.offering.orderMultiplePairs }, quantities);
   }
   private requireAdminOrder(session: SessionIdentity, orderId: string) {
-    if (session.role !== "ADMIN") throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
     const order = this.orders.get(orderId);
     if (!order || order.organisationId !== session.organisationId) throw new ApiError(404, "ORDER_NOT_FOUND", "Order not found");
     return order;

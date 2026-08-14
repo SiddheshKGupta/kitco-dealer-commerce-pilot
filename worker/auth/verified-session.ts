@@ -1,12 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { SessionVerifier } from "../middleware/auth";
+import { isAdminRole, type AppRole, type SessionVerifier } from "../middleware/auth";
 import type { SessionService } from "./session";
 
 interface AppUserRow {
   auth_user_id: string;
   organisation_id: string;
   dealer_id: string | null;
-  app_role: "DEALER" | "ADMIN";
+  app_role: AppRole;
 }
 
 interface DealerRow {
@@ -35,9 +35,9 @@ export function createVerifiedSessionVerifier(client: SupabaseClient, sessions: 
     const appUser = mapping as AppUserRow;
     if (appUser.organisation_id !== session.organisationId || appUser.dealer_id !== session.dealerId) return null;
 
-    if (appUser.app_role === "ADMIN") {
+    if (isAdminRole(appUser.app_role)) {
       return appUser.dealer_id === null
-        ? { userId: appUser.auth_user_id, organisationId: appUser.organisation_id, dealerId: null, role: "ADMIN", email: session.email }
+        ? { userId: appUser.auth_user_id, organisationId: appUser.organisation_id, dealerId: null, role: appUser.app_role, email: session.email }
         : null;
     }
     if (!appUser.dealer_id) return null;
