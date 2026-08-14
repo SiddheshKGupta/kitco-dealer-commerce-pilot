@@ -12,7 +12,7 @@ it("connects catalogue selection to a server-persisted Current Order", async () 
     }
     return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 2 }, retailValueMinor: 20000 }], retailValueMinor: 20000, currencyCode: "INR" }), { status: 200 });
   }));
-  render(<DealerCommercePage requestOrderOtp={async () => "otp"} />);
+  render(<DealerCommercePage />);
   fireEvent.click(await screen.findByRole("button", { name: "View NK-101" }));
   fireEvent.change(screen.getByLabelText("Pairs for size 7"), { target: { value: "2" } });
   fireEvent.click(screen.getByRole("button", { name: "Add to Current Order" }));

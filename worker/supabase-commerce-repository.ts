@@ -300,15 +300,56 @@ export class SupabaseCommerceRepository implements CommerceRepository {
   }
   async stageImport(): Promise<{ id: string; status: "UPLOADED" }> { throw new ApiError(409, "IMPORT_COMMIT_UNAVAILABLE", "Import commit is disabled until a staged source file is ready"); }
 
+  async getDraft(session: SessionIdentity): Promise<DraftLine[]> {
+    if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
+    const draftId = await this.currentDraftId(session);
+    if (!draftId) return [];
+    return this.loadDraft(session, draftId);
+  }
+
+  async removeDraftLine(session: SessionIdentity, offeringId: string, _correlationId: string): Promise<DraftLine[]> {
+    if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
+    const draftId = await this.currentDraftId(session);
+    if (!draftId) return [];
+    const { error } = await this.client.from("draft_order_lines").delete()
+      .eq("organisation_id", session.organisationId).eq("draft_order_id", draftId).eq("commercial_offering_id", offeringId);
+    if (error) fail(error, "DRAFT_LINE_REMOVE_FAILED");
+    return this.loadDraft(session, draftId);
+  }
+
+  private async currentDraftId(session: SessionIdentity): Promise<string | null> {
+    const { data, error } = await this.client.from("draft_orders").select("id")
+      .eq("organisation_id", session.organisationId).eq("dealer_id", session.dealerId).maybeSingle();
+    if (error) fail(error, "DRAFT_LOAD_FAILED");
+    return data ? String(data.id) : null;
+  }
+
   private async loadDraft(session: SessionIdentity, draftId: string): Promise<DraftLine[]> {
     const { data, error } = await this.client.from("draft_order_lines").select(`commercial_offering_id,
-      commercial_offerings(mrp_minor),draft_order_line_sizes(quantity_pairs,size_values(label))`)
+      commercial_offerings(mrp_minor,currency_code,
+        product_colourways!inner(article_no,colour,product_media(object_key,media_kind,published_at),product_families(name,brands!inner(name)))),
+      draft_order_line_sizes(quantity_pairs,size_values(label))`)
       .eq("organisation_id", session.organisationId).eq("draft_order_id", draftId);
     if (error) fail(error, "DRAFT_LOAD_FAILED");
     return (data as Row[]).map((row) => {
       const quantities: SizeQuantities = Object.fromEntries((row.draft_order_line_sizes as Row[]).map((size) => [String(one(size.size_values)?.label), Number(size.quantity_pairs)]));
-      const mrp = Number(one(row.commercial_offerings)?.mrp_minor);
-      return { offeringId: String(row.commercial_offering_id), quantities, retailValueMinor: retailValueMinor(mrp, quantities) };
+      const offering = one(row.commercial_offerings);
+      const colourway = offering ? one(offering.product_colourways) : null;
+      const family = colourway ? one(colourway.product_families) : null;
+      const brand = family ? one(family.brands) : null;
+      const mrp = Number(offering?.mrp_minor);
+      const media = (Array.isArray(colourway?.product_media) ? colourway.product_media : [])
+        .find((item: Row) => item.published_at && item.media_kind === "WEBP_600") as Row | undefined;
+      return {
+        offeringId: String(row.commercial_offering_id), quantities, retailValueMinor: retailValueMinor(mrp, quantities),
+        articleNo: colourway?.article_no ? String(colourway.article_no) : undefined,
+        colour: colourway?.colour ? String(colourway.colour) : undefined,
+        familyName: family?.name ? String(family.name) : undefined,
+        brand: brand?.name ? String(brand.name) : undefined,
+        mrpMinor: Number.isFinite(mrp) ? mrp : undefined,
+        currencyCode: offering?.currency_code ? String(offering.currency_code) : undefined,
+        mediaKey: media?.object_key ? `${session.organisationId}/${media.object_key}` : null,
+      };
     });
   }
 }

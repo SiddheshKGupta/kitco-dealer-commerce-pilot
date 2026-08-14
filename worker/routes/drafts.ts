@@ -9,7 +9,20 @@ import { parseBody } from "./shared";
 
 const draftSchema = z.object({ offeringId: z.string().min(1), quantities: z.record(z.string(), z.number().int().nonnegative()) }).strict();
 
+function draftResponse(lines: Awaited<ReturnType<CommerceRepository["getDraft"]>>) {
+  return {
+    lines,
+    retailValueMinor: lines.reduce((sum, item) => sum + item.retailValueMinor, 0),
+    currencyCode: lines[0]?.currencyCode ?? "INR",
+  };
+}
+
 export function registerDraftRoutes(app: Hono<{ Variables: AuthVariables }>, repository: CommerceRepository) {
+  app.get("/api/drafts/current", async (context) => {
+    const lines = await repository.getDraft(context.get("session"));
+    return context.json(draftResponse(lines));
+  });
+
   app.put("/api/drafts/current", async (context) => {
     const input = await parseBody(context, draftSchema);
     const session = context.get("session");
@@ -21,6 +34,11 @@ export function registerDraftRoutes(app: Hono<{ Variables: AuthVariables }>, rep
     if (!validation.ok) throw new ApiError(422, validation.reason, "Purchase quantities are invalid");
     const line = { offeringId: input.offeringId, quantities: input.quantities, retailValueMinor: retailValueMinor(product.mrpMinor, input.quantities) };
     const lines = await repository.saveDraft(session, line, context.get("correlationId"));
-    return context.json({ lines, retailValueMinor: lines.reduce((sum, item) => sum + item.retailValueMinor, 0), currencyCode: product.currencyCode });
+    return context.json(draftResponse(lines));
+  });
+
+  app.delete("/api/drafts/current/lines/:offeringId", async (context) => {
+    const lines = await repository.removeDraftLine(context.get("session"), context.req.param("offeringId"), context.get("correlationId"));
+    return context.json(draftResponse(lines));
   });
 }

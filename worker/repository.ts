@@ -44,7 +44,11 @@ export interface OtpRecord {
   consumedAt: string | null;
 }
 
-export interface DraftLine { offeringId: string; quantities: SizeQuantities; retailValueMinor: number }
+export interface DraftLine {
+  offeringId: string; quantities: SizeQuantities; retailValueMinor: number;
+  articleNo?: string; brand?: string; familyName?: string; colour?: string;
+  mrpMinor?: number; currencyCode?: string; mediaKey?: string | null;
+}
 export interface OrderVersionRecord { version: number; status: "SUBMITTED" | "PROPOSED" | "ACCEPTED"; retailValueMinor: number; lines: DraftLine[] }
 export interface OrderRecord {
   id: string;
@@ -62,6 +66,8 @@ export interface CommerceRepository {
   listCatalogue(session: SessionIdentity): Promise<CatalogueRecord[]>;
   findOffering(session: SessionIdentity, offeringId: string): Promise<CatalogueRecord | null>;
   saveDraft(session: SessionIdentity, line: DraftLine, correlationId: string): Promise<DraftLine[]>;
+  getDraft(session: SessionIdentity): Promise<DraftLine[]>;
+  removeDraftLine(session: SessionIdentity, offeringId: string, correlationId: string): Promise<DraftLine[]>;
   findSubmittedOrderByIdempotency(session: SessionIdentity, idempotencyKey: string): Promise<OrderRecord | null>;
   submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest?: string; now: string; correlationId: string }): Promise<{ created: boolean; order: OrderRecord }>;
   listOrders(session: SessionIdentity): Promise<OrderRecord[]>;
@@ -98,9 +104,27 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
     const key = `${session.organisationId}:${session.dealerId}`;
     const current = this.drafts.get(key) ?? [];
-    const next = [...current.filter((item) => item.offeringId !== line.offeringId), clone(line)];
+    const product = this.catalogue.find((item) => item.organisationId === session.organisationId && item.offering.id === line.offeringId);
+    const enriched: DraftLine = {
+      ...line,
+      articleNo: product?.articleNo, brand: product?.brand, familyName: product?.familyName ?? undefined,
+      colour: product?.colour, mrpMinor: product?.mrpMinor, currencyCode: product?.currencyCode, mediaKey: product?.mediaKey,
+    };
+    const next = [...current.filter((item) => item.offeringId !== line.offeringId), clone(enriched)];
     this.drafts.set(key, next);
     this.audit(session, correlationId, "DRAFT_SAVED", line.offeringId);
+    return clone(next);
+  }
+  async getDraft(session: SessionIdentity) {
+    if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
+    return clone(this.drafts.get(`${session.organisationId}:${session.dealerId}`) ?? []);
+  }
+  async removeDraftLine(session: SessionIdentity, offeringId: string, correlationId: string) {
+    if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
+    const key = `${session.organisationId}:${session.dealerId}`;
+    const next = (this.drafts.get(key) ?? []).filter((item) => item.offeringId !== offeringId);
+    this.drafts.set(key, next);
+    this.audit(session, correlationId, "DRAFT_LINE_REMOVED", offeringId);
     return clone(next);
   }
   async findSubmittedOrderByIdempotency(session: SessionIdentity, idempotencyKey: string) {
