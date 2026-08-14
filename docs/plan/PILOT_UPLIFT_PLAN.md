@@ -66,6 +66,48 @@ This needs *photography*, not code.
 
 ---
 
+## 2B. Visual defect register — from live screenshots, 2026-08-14
+
+This is the "all over the place / nothing like Nike" list, itemised. Every entry is a
+**specific cause**, not a taste note. Fix these in Phase 1 (chrome/shell) and Phase 3
+(catalogue) — they are the difference between "styled" and "designed".
+
+### Layout structure
+
+| # | Symptom | Root cause | Fix |
+|---|---|---|---|
+| **V1** | Login/activation card sits top-left in a huge grey void; ~65% of the screen empty | `.auth-shell` centres its grid child, but that child is `.route-transition{width:100%}` which fills the row — `.auth-page` inside has no auto margin | `global.css:55` add `display:grid;justify-items:center` to `.route-transition`, **or** `margin-inline:auto` on `.auth-page`. Then build the prototype's split hero (dark `#0c0c0c` panel left, form right) so the space is *used*, not just centred. |
+| **V2** | Products page: title far left, lead copy far right, enormous gap between them | `.commerce-page-heading` is `grid-template-columns:minmax(0,1fr) minmax(260px,400px)` with `align-items:end` — pushes the two apart at 1900px | Cap the header to a readable measure; put eyebrow + h1 + lead in one left-aligned stack, actions right. Kill the two-column split. |
+| **V3** | ~700px of dead space before the first product | `.commerce-page{padding:clamp(42px,6vw,88px)}` + `.commerce-page-heading{padding-bottom:clamp(40px,7vw,92px)}` compound | Reduce to `32px` top and `24px` header gap. Products must be visible above the fold — this is the single biggest "not like Nike" signal. |
+| **V4** | PDP: below the image the left ~55% of the viewport is empty white for a full screen height | `.commerce-pdp-grid` gives the image column `1.45fr` with a fixed aspect ratio; once the image ends nothing occupies the column | Make the right column sticky (`position:sticky;top:96px;align-self:start`) so ordering controls stay beside the image, or move Current Order summary under the image. |
+| **V5** | PDP size entry is a 2-column list of 13 rows — very tall, pushes the CTA off-screen | `.commerce-size-grid{grid-template-columns:repeat(2,1fr)}` with one row per size | Use a compact wholesale size matrix: sizes as a header row, quantity inputs beneath (Handover §40 shows exactly this). Falls back to stacked rows under 560px. |
+
+### Product identity and content
+
+| # | Symptom | Root cause | Fix |
+|---|---|---|---|
+| **V6** | Cards and PDP are titled by **article number** (`343851-007`), never a product name | D2 — catalogue API never returns `product_families.name` | Phase 2. Then card title = family name, article no becomes secondary metadata. This is *the* reason it reads as a spreadsheet rather than Nike. |
+| **V7** | Colour renders as raw uppercase `PURE PLATINUM/BLACK-COOL GREY-WOLF GREY` | Source string passed through untouched | Title-case for display, keep the raw value in the data layer. Truncate to one line with `title` attr for the full string. |
+| **V8** | Orders list shows raw UUIDs (`0c42d5f0-c3dc-436a-…`) | `order_number` **is** selected at `supabase-commerce-repository.ts:117` but never mapped into `OrderRecord`, so the UI falls back to `order.id` | Map `order_number` through the repository → `OrderRecord` → API → UI. Handover §95 wants `KIT-ORD-000281` form. Pure plumbing, high visible payoff. |
+| **V9** | No offering badge on product cards | Card markup has no badge slot | Add the prototype's `.badge` (top-left on the image) carrying Stock in Hand / Upcoming / Prebook. Currently the tabs are the *only* way to tell them apart. |
+| **V10** | "Minimum **1 pairs**" | Unpluralised string | Pluralise: `1 pair` / `12 pairs`. Same for "0 pairs selected". |
+| **V11** | Orders page headed **"Current Order"** but lists *submitted* orders | `OrdersSurface` hardcodes the heading | Heading should be "Orders"; "Current Order" is the draft, which belongs in its own tab/section (Handover §42 — one active Current Order). |
+
+### Controls and affordance
+
+| # | Symptom | Root cause | Fix |
+|---|---|---|---|
+| **V12** | Search is a bare underline spanning ~1600px; doesn't read as a search field | `.commerce-search input{border:0;border-bottom:1px solid}` with no width cap | Prototype `search-pill`: `background:var(--soft)`, `radius:24px`, `height:40px`, magnifier icon, `max-width:420px`. |
+| **V13** | Auth text inputs are full pill (999px) | `--radius-control` applied to inputs | Inputs use `--radius-sm` (12px) per prototype; pills are for **buttons and chips only**. |
+| **V14** | Disabled primary CTA is mid-grey and reads as enabled-but-broken | `.primary-action:disabled{opacity:.5}` on a black fill → muddy grey | Disabled = `background:var(--soft)`, `color:var(--muted)`, `cursor:not-allowed`. Never a half-opacity black. |
+| **V15** | Stray scrollbar artifact beside the catalogue tabs | `.commerce-tabs{overflow-x:auto}` shows a vertical scrollbar track on Windows | `overflow-x:auto;overflow-y:hidden` + `scrollbar-width:none` with a fade affordance. |
+
+**Sequencing note:** V6 depends on Phase 2. V1–V5, V7, V9–V15 are pure frontend and can all
+land in one pass. V8 is a small backend map. Do V1–V5 first — layout structure is what makes
+it read as "all over the place"; the rest is finish.
+
+---
+
 ## 3. Design direction — **decide before writing UI code**
 
 Escapement's `design-system` skill forbids silently picking a visual direction. KITCO has two
@@ -97,9 +139,8 @@ requires an approved `DESIGN.md` to exist before implementing UI.
 
 **Fixes D1.**
 
-Handover §4 does ask for pilot branding in three places, so this is a *taste vs spec* call —
-see Decision Q1 in §11. Recommended resolution (satisfies §4's intent without printing the
-same sentence twice in one 80px strip):
+Handover §4 asks for pilot branding in three places; Decision Q1 resolved this as follows
+(satisfies §4's intent without printing the same sentence twice in one 80px strip):
 
 - `KitcoHeader.tsx` — keep the logo lockup line `Dealer Commerce Platform` + `Pilot Run`, but
   **drop `· Developed by V L & CO` from the lockup**.
@@ -254,11 +295,16 @@ Never overwrite `master_email` (Handover §13) — pilot values live in `pilot_e
 - `POST /api/activation/profile` — writes profile + creates the auth user + flips to ACTIVE,
   transactionally, idempotently (Handover §123). Audit event per §108.
 
-### Unknown dealer ("not listed") path
-Handover §8 removes the approval gate for *known* dealers only. A dealer absent from the master
-is a genuinely new record and must **not** self-approve into ACTIVE. Register them as
-`PENDING_KITCO_REVIEW`, surface them in KITCO Control → Dealers with an Approve action.
-See Decision Q2.
+### Unknown dealer ("not listed") path — decided: self-activate
+A dealer absent from the master completes the same flow and reaches ACTIVE directly (Decision Q2).
+Required safeguards:
+
+- `alter table dealers add column if not exists source text default 'KITCO_MASTER';`
+  self-created rows get `'SELF_REGISTERED'`.
+- Fuzzy-match the entered name against the master before creating; on a near match, return the
+  candidates and push the user back to autocomplete rather than creating a shadow dealership.
+- Audit event on creation; one dealer ↔ one auth user (§15).
+- Control → Dealers must show the `source` column so KITCO can review self-created records.
 
 **Files:** `ActivationPage.tsx` (→ multi-step), `worker/routes/activation.ts`,
 `worker/auth/supabase-auth.ts`, new migration, `ControlSections.tsx` (Dealers approve queue)
@@ -315,7 +361,7 @@ visible busy state on the control (CLAUDE.md live-honest-UI rule).
 |---|---|
 | `PILOT_STATIC_OTP=123456` is live on a public URL | Delete the secret once Resend delivers. Anyone who knows it can pass OTP for **any** account. |
 | Resend sandbox | Only delivers to `siddheshgupta7@gmail.com`. Verify a domain or add verified recipients. |
-| `ACTIVATION_ACCESS_CODE` | Currently `KITCO-IXOI-X5FH-H4NU`. Rotate before distribution. |
+| `ACTIVATION_ACCESS_CODE` | **Rotate before distribution — treat the current value as burned.** Per Decision Q2 this code is now the sole gate on dealership creation, so it is load-bearing. |
 | Prefill endpoint | Must be gated on a verified OTP session (Phase 5). |
 
 ---
@@ -349,15 +395,25 @@ data       136 dealers · 641 colourways · 90 with display media · 641 offerin
 
 ---
 
-## 11. Decisions needed before execution
+## 11. Decisions — RESOLVED 2026-08-14
 
-**Q1 — Pilot attribution.** Handover §4 mandates the VLCO credit in the logo lockup, the
-top-right pill *and* the footer. You've said it reads as duplicated. Confirm: drop it from the
-logo lockup and keep top-right + footer (recommended), or keep all three as specified?
+**Q1 — Pilot attribution. → Drop from the logo lockup.**
+Lockup keeps `Dealer Commerce Platform` / `Pilot Run`. The VLCO credit appears exactly twice:
+the §4.2 desktop top-right pill and the §4.4 footer. Implement as written in Phase 1.
 
-**Q2 — Unknown dealers self-registering.** A dealer not on the 135-record master: hold them as
-`PENDING_KITCO_REVIEW` for admin approval (recommended, safer), or let them self-activate
-straight to ACTIVE like known dealers?
+**Q2 — Unknown dealers. → Self-activate, same as known dealers.**
+No `PENDING_KITCO_REVIEW` queue. A dealer not on the master completes the same registration and
+reaches ACTIVE directly. Consequences that MUST be handled in Phase 5:
 
-**Q3 — Phase order.** Recommended: 1 → 2 → 3 → 4 (visible dealer-facing wins first), then 5
-(registration), then 6 (admin depth). If the client demo leads with registration, swap 5 ahead of 3.
+- The pilot access code becomes the **only** gate on dealership creation. Rotate
+  `ACTIVATION_ACCESS_CODE` before distribution — the current value was generated in-session and
+  has been discussed in plaintext, so treat it as burned.
+- Mark self-created dealers so KITCO can tell them apart from the 135 imported records:
+  set `dealers.source = 'SELF_REGISTERED'` (add the column in the Phase 5 migration) and keep
+  `dealer_source_records` empty for them. Surface the distinction in Control → Dealers.
+- Still write an audit event on creation (§108) and enforce one-dealer-one-auth-user (§15).
+- Duplicate guard: block a self-registration whose name fuzzy-matches an existing master dealer,
+  and steer the user back to the autocomplete instead of creating a shadow record.
+
+**Q3 — Phase order. → Dealer-facing first.**
+Execute 1 → 2 → 3 → 4, then 5 (registration), then 6 (admin depth), then 7 (gate + polish).
