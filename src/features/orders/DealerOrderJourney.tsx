@@ -32,7 +32,7 @@ export function DealerOrderJourney({ product, onBack }: { product: CatalogueProd
 		finally { setPending(false); }
 	};
 	return <main className="commerce-page commerce-pdp">
-		{onBack && <button type="button" className="commerce-back" onClick={onBack}>← All products</button>}
+		{onBack && <Button variant="secondary" className="commerce-back" onClick={onBack}>← All products</Button>}
 		<div className="commerce-pdp-grid"><div className="commerce-pdp-media">{product.mediaUrl ? <img src={product.mediaUrl} alt={`${product.articleNo} · ${product.colour}`} /> : <div className="commerce-placeholder" role="img" aria-label={`Image unavailable for ${product.articleNo}`}><b>{product.articleNo}</b><small>Image arriving soon</small></div>}</div>
 			<section className="commerce-pdp-copy"><p className="commerce-eyebrow">{product.brand} · Exact colourway</p><h1>{product.familyName ?? product.articleNo}</h1><p className="commerce-colour">{product.colour}{product.familyName ? ` · Article ${product.articleNo}` : ""}</p><p className="commerce-mrp">MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</p><div className="commerce-policy"><span>Minimum {product.offering.moqPairs} pairs</span><span>Multiple of {product.offering.orderMultiplePairs}</span></div>
 				<SizeGrid sizes={product.offering.enabledSizes} quantities={quantities} onChange={(size, pairs) => { setQuantities((current) => ({ ...current, [size]: pairs })); setSaved(false); }} />
