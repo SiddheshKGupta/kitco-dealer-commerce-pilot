@@ -4,6 +4,7 @@ import { correlation } from "./middleware/correlation";
 import { handleApiError } from "./middleware/errors";
 import type { CommerceRepository } from "./repository";
 import { registerAdminConsoleRoutes, type AdminConsoleReader } from "./routes/admin-console";
+import { registerAdminExportRoutes, type OrdersExporter } from "./routes/admin-export";
 import { registerAdminOrderRoutes } from "./routes/admin-orders";
 import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerDispatchRoutes } from "./routes/dispatch";
@@ -20,6 +21,7 @@ export interface CommerceAppDependencies {
   verifyOrderOtp?: (session: import("./middleware/auth").SessionIdentity, challengeId: string, code: string) => Promise<void>;
   mediaStore?: MediaStore;
   adminConsole?: AdminConsoleReader;
+  ordersExporter?: OrdersExporter;
 }
 
 export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, dependencies: CommerceAppDependencies) {
@@ -37,6 +39,7 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   registerDealerRoutes(app, dependencies.repository);
   registerAdminOrderRoutes(app, dependencies.repository);
   registerAdminConsoleRoutes(app, dependencies.adminConsole);
+  registerAdminExportRoutes(app, dependencies.ordersExporter);
   registerDispatchRoutes(app, dependencies.repository);
   registerHoldRoutes(app, dependencies.repository);
   registerImportRoutes(app, dependencies.repository);

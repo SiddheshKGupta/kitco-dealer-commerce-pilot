@@ -58,7 +58,7 @@ function ReportsSection() {
 	const totalPairs = rows.reduce((sum, order) => sum + (order.allocations ?? []).reduce((lines, item) => lines + item.approvedPairs, 0), 0);
 
 	return <>
-		<PageHead eyebrow="Flexible reporting" title="Reports" lead="Filter the live order book. Retail Value only — dealer terms sit outside the platform." />
+		<PageHead eyebrow="Flexible reporting" title="Reports" lead="Filter the live order book. Retail Value only — dealer terms sit outside the platform." actions={<a className="ui-btn ui-btn-primary ui-btn-md" href="/api/admin/orders/export.csv">Export CSV</a>} />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : orders.length === 0
 			? <SectionState status="ready" retry={reload} empty="No orders exist to report on yet." />
 			: <>

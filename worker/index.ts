@@ -11,6 +11,7 @@ import { createSupabaseAdminClient } from "./lib/supabase-admin";
 import { ApiError } from "./middleware/errors";
 import { SupabaseAdminConsoleReader } from "./supabase-admin-console";
 import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-commerce-repository";
+import { SupabaseOrdersExporter } from "./supabase-orders-export";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
@@ -34,6 +35,7 @@ export function createProductionCommerceApp(env: Env) {
     },
     mediaStore: new R2CatalogueMediaStore(env.CATALOGUE_MEDIA),
     adminConsole: new SupabaseAdminConsoleReader(client),
+    ordersExporter: new SupabaseOrdersExporter(client),
   });
 }
 
