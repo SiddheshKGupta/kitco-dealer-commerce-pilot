@@ -10,7 +10,8 @@ dist/
 .dev.vars.*
 !.dev.vars.example
 .kitco-ingestion/
-.impeccable/
+.impeccable/*
+!.impeccable/config.json
 tmp/
 NUL
 .playwright-mcp/

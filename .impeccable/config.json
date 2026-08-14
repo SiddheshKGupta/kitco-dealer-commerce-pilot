@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/features/catalogue/commerce.css"
+        ],
+        "createdAt": "2026-08-14T10:56:56.972Z",
+        "reason": "Inline validation/error callout (role=alert) for MOQ and order-multiple warnings, not card decoration; user confirmed intentional"
+      }
+    ]
+  }
+}
