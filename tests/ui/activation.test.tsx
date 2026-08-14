@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../../src/app/App";
 
@@ -35,7 +35,7 @@ describe("dealer activation", () => {
 		await screen.findByText("Enter the 6-digit code");
 	});
 
-	it("surfaces provider errors, verifies activation with a password, and keeps keyboard focus in the OTP field", async () => {
+	it("verifies activation on OTP alone -- no password -- and keeps keyboard focus in the OTP field", async () => {
 		window.history.replaceState({}, "", "/activate");
 		vi.stubGlobal("fetch", vi.fn(async (input: string) => {
 			if (input.startsWith("/api/activation/dealers")) return response({ dealers: [{ id: "d-1", name: "VLCO", city: "Patna" }] });
@@ -49,11 +49,8 @@ describe("dealer activation", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
 		const otp = await screen.findByLabelText("Verification code");
 		expect(otp).toHaveFocus();
+		expect(screen.queryByLabelText("Create password")).not.toBeInTheDocument();
 		fireEvent.change(otp, { target: { value: "123456" } });
-		fireEvent.change(screen.getByLabelText("Create password"), { target: { value: "short-pass" } });
-		fireEvent.click(screen.getByRole("button", { name: "Verify and activate" }));
-		await waitFor(() => expect(screen.getByText("Your password must be at least 12 characters.")).toBeInTheDocument());
-		fireEvent.change(screen.getByLabelText("Create password"), { target: { value: "a-safe-long-password" } });
 		fireEvent.click(screen.getByRole("button", { name: "Verify and activate" }));
 		await screen.findByText("Activation complete");
 	});

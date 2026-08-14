@@ -7,7 +7,6 @@ export interface PendingLoginSession {
   dealerId: string | null;
   organisationId: string;
   email: string;
-  accessToken: string;
   role: AppRole;
 }
 
@@ -34,7 +33,6 @@ export interface ApplicationSession {
   dealerId: string | null;
   organisationId: string;
   email: string;
-  accessToken: string;
 }
 
 interface Sealed<T> {

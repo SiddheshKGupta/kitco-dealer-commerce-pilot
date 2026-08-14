@@ -7,6 +7,7 @@ interface AppUserRow {
   organisation_id: string;
   dealer_id: string | null;
   app_role: AppRole;
+  status: string;
 }
 
 interface DealerRow {
@@ -16,24 +17,25 @@ interface DealerRow {
   pilot_email: string | null;
 }
 
-/** Revalidates every encrypted application session against current Auth and app membership state. */
+/** Revalidates every encrypted application session against current app membership state.
+ *  There is no Supabase Auth session/password involved -- OTP is the only factor, so the
+ *  encrypted cookie itself (8h expiry) plus a fresh app_users/dealers status check on every
+ *  request is the full trust boundary. */
 export function createVerifiedSessionVerifier(client: SupabaseClient, sessions: SessionService): SessionVerifier {
   return async (request) => {
     const sealed = sessions.readCookie(request.headers.get("cookie") ?? undefined, "kitco_session");
     const session = sealed ? await sessions.openApplication(sealed) : null;
-    if (!session || !session.accessToken) return null;
-
-    const { data: authData, error: authError } = await client.auth.getUser(session.accessToken);
-    if (authError || !authData.user || authData.user.id !== session.authUserId) return null;
+    if (!session) return null;
 
     const { data: mapping, error: mappingError } = await client
       .from("app_users")
-      .select("auth_user_id,organisation_id,dealer_id,app_role")
-      .eq("auth_user_id", authData.user.id)
+      .select("auth_user_id,organisation_id,dealer_id,app_role,status")
+      .eq("auth_user_id", session.authUserId)
       .maybeSingle();
     if (mappingError || !mapping) return null;
     const appUser = mapping as AppUserRow;
     if (appUser.organisation_id !== session.organisationId || appUser.dealer_id !== session.dealerId) return null;
+    if (appUser.status !== "ACTIVE") return null;
 
     if (isAdminRole(appUser.app_role)) {
       return appUser.dealer_id === null

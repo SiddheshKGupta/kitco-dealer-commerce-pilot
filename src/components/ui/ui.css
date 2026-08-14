@@ -53,11 +53,6 @@
 .ui-input:focus-visible, .ui-select:focus-visible { outline: none; }
 .ui-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) center, calc(100% - 15px) center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: var(--space-7); }
 
-.ui-password { position: relative; }
-.ui-password-input { padding-right: 64px; }
-.ui-password-toggle { position: absolute; top: 0; right: 0; height: 48px; padding: 0 var(--space-3); border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
-.ui-password-toggle:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; border-radius: var(--radius-sm); }
-
 .ui-otp-input {
   width: 100%; height: 68px; border: 1px solid var(--line); border-radius: var(--radius-sm);
   padding: 0 14px; font: inherit; font-size: 32px; font-weight: 500; letter-spacing: .48em; text-align: center;

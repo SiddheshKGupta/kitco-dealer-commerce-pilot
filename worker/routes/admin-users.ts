@@ -7,15 +7,15 @@ export interface AdminUserRow {
 	id: string;
 	email: string;
 	status: string;
-	mustChangePassword: boolean;
 	createdAt: string;
 }
 
 /** Every admin is a named, individually-authenticated account -- no shared
- *  credentials. Creating/deactivating one is itself an audited action. */
+ *  credentials, no password (OTP is the only login factor). Creating/deactivating
+ *  one is itself an audited action. */
 export interface AdminUsersStore {
 	list(session: SessionIdentity): Promise<AdminUserRow[]>;
-	create(session: SessionIdentity, email: string, correlationId: string): Promise<{ email: string; tempPassword: string }>;
+	create(session: SessionIdentity, email: string, correlationId: string): Promise<{ email: string }>;
 	setStatus(session: SessionIdentity, userId: string, status: "ACTIVE" | "INACTIVE", correlationId: string): Promise<void>;
 }
 

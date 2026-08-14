@@ -2,13 +2,13 @@ import type { Hono } from "hono";
 import type { OtpPurpose, OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
 import type { ActivationStore } from "./activation";
-import type { PasswordAuthenticator } from "./login";
+import type { LoginIdentityResolver } from "./login";
 import type { DealerApplicationStore } from "./register";
 
 interface OtpDependencies {
   otp: OtpService;
   sessions: SessionService;
-  authenticator: PasswordAuthenticator;
+  identity: LoginIdentityResolver;
   activationStore: ActivationStore;
   applicationStore?: DealerApplicationStore;
 }
@@ -40,7 +40,6 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
       challengeId?: unknown;
       code?: unknown;
       purpose?: unknown;
-      password?: unknown;
     } | null;
     if (
       !body ||
@@ -55,9 +54,6 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
     if (!pending || pending.challengeId !== body.challengeId || pending.kind.toUpperCase() !== body.purpose) {
       return context.json({ error: "PENDING_SESSION_REQUIRED" }, 401);
     }
-    if (pending.kind === "activation" && (typeof body.password !== "string" || body.password.length < 12)) {
-      return context.json({ error: "PASSWORD_TOO_SHORT" }, 400);
-    }
 
     try {
       await dependencies.otp.verify(body.challengeId, body.code, body.purpose as OtpPurpose);
@@ -67,9 +63,7 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
           dealerId: pending.dealerId,
           organisationId: pending.organisationId,
           email: pending.email,
-          accessToken: pending.accessToken,
         });
-        dependencies.authenticator.noteReleased?.();
         context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
         context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
         return context.json({ authenticated: true, role: pending.role });
@@ -82,27 +76,19 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         return context.json({ submitted: true });
       }
 
-      const created = await dependencies.authenticator.createUser(pending.email, body.password as string);
+      const created = await dependencies.identity.createUser(pending.email);
       if (!(await dependencies.activationStore.activate(pending.dealerId, created.authUserId))) {
         return context.json({ error: "DEALER_ALREADY_ACTIVE" }, 409);
       }
-      const authenticated = await dependencies.authenticator.authenticate(pending.email, body.password as string);
-      if (
-        !authenticated?.accessToken ||
-        authenticated.authUserId !== created.authUserId ||
-        authenticated.dealerId !== pending.dealerId ||
-        authenticated.organisationId !== pending.organisationId
-      ) throw new Error("AUTH_SESSION_CREATION_FAILED");
       const token = await dependencies.sessions.sealApplication({
-        authUserId: authenticated.authUserId,
-        dealerId: authenticated.dealerId,
-        organisationId: authenticated.organisationId,
-        email: authenticated.email,
-        accessToken: authenticated.accessToken,
+        authUserId: created.authUserId,
+        dealerId: pending.dealerId,
+        organisationId: pending.organisationId,
+        email: pending.email,
       });
       context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
       context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
-      return context.json({ authenticated: true });
+      return context.json({ authenticated: true, role: "DEALER" });
     } catch (error) {
       const message = error instanceof Error ? error.message : "OTP_INVALID";
       const status = message === "OTP_NOT_FOUND" ? 404 : 400;

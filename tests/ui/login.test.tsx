@@ -12,11 +12,11 @@ afterEach(() => {
 });
 
 describe("dealer login", () => {
-	it("uses password then a fresh login OTP and makes resend countdown visible", async () => {
+	it("sends an email-only login OTP and makes resend countdown visible", async () => {
 		window.history.replaceState({}, "", "/login");
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
-			if (input === "/api/login/password") {
-				expect(init).toMatchObject({ method: "POST", credentials: "include" });
+			if (input === "/api/login/otp") {
+				expect(init).toMatchObject({ method: "POST", credentials: "include", body: JSON.stringify({ email: "dealer@example.test" }) });
 				return response({ challengeId: "login-1" }, 202);
 			}
 			if (input === "/api/otp/resend") return response({ challengeId: "login-2" }, 202);
@@ -25,8 +25,8 @@ describe("dealer login", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);
 		fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dealer@example.test" } });
-		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "a-safe-password" } });
-		fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+		expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
 		await screen.findByText("Confirm your sign-in");
 		expect(screen.getByText(/Resend available in/)).toBeInTheDocument();
 		fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
@@ -34,13 +34,12 @@ describe("dealer login", () => {
 		await screen.findByRole("tablist", { name: "Catalogue sections" });
 	});
 
-	it("shows a precise delivery failure without suggesting that credentials were accepted", async () => {
+	it("shows a precise delivery failure without suggesting the account was found", async () => {
 		window.history.replaceState({}, "", "/login");
 		vi.stubGlobal("fetch", vi.fn(async () => response({ error: "EMAIL_DELIVERY_FAILED" }, 502)));
 		render(<App />);
 		fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dealer@example.test" } });
-		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "a-safe-password" } });
-		fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
 		await screen.findByText("We could not send your verification code. Try again shortly.");
 	});
 });

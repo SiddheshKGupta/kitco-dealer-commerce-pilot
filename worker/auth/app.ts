@@ -12,7 +12,7 @@ import { registerRegistrationRoutes } from "../routes/register";
 import { OtpService } from "./otp-service";
 import { ResendEmailProvider } from "./resend-provider";
 import { SessionService } from "./session";
-import { SupabaseActivationStore, SupabaseOtpChallengeStore, SupabasePasswordAuthenticator } from "./supabase-auth";
+import { SupabaseActivationStore, SupabaseLoginIdentityResolver, SupabaseOtpChallengeStore } from "./supabase-auth";
 import { SupabaseDealerApplicationStore } from "../supabase-registration";
 import { createVerifiedSessionVerifier } from "./verified-session";
 
@@ -20,7 +20,7 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   const client = createSupabaseAdminClient(env);
   const activationStore = new SupabaseActivationStore(client);
   const applicationStore = new SupabaseDealerApplicationStore(client);
-  const authenticator = new SupabasePasswordAuthenticator(client, () => createSupabaseAdminClient(env));
+  const identity = new SupabaseLoginIdentityResolver(client);
   const otp = new OtpService(new SupabaseOtpChallengeStore(client), new ResendEmailProvider(env), {
     pepper: env.SESSION_SECRET,
     pilotBypassCode: env.PILOT_STATIC_OTP,
@@ -31,10 +31,10 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   app.onError(handleApiError);
   app.use("/api/orders/otp", requireSession(verifyApplicationSession));
   app.use("/api/orders/otp", requireDealer());
-  registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator });
-  registerLoginRoutes(app, { authenticator, otp, sessions });
+  registerActivationRoutes(app, { store: activationStore, otp, sessions });
+  registerLoginRoutes(app, { identity, otp, sessions });
   registerLogoutRoutes(app, sessions);
-  registerOtpRoutes(app, { otp, sessions, authenticator, activationStore, applicationStore });
+  registerOtpRoutes(app, { otp, sessions, identity, activationStore, applicationStore });
   registerOrderOtpRoutes(app, otp);
   registerRegistrationRoutes(app, { store: applicationStore, otp, sessions });
   return app;

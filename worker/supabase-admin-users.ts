@@ -3,10 +3,11 @@ import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 import type { AdminUserRow, AdminUsersStore } from "./routes/admin-users";
 
-function generateTempPassword(): string {
-	const bytes = crypto.getRandomValues(new Uint8Array(12));
-	const base64 = btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
-	return `Kv-${base64}`;
+/** Internal only -- Supabase's admin.createUser requires a password field, but every
+ *  admin account signs in with email + OTP. Nothing ever checks this value. */
+function unusedInternalPassword(): string {
+	const bytes = crypto.getRandomValues(new Uint8Array(24));
+	return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
 }
 
 export class SupabaseAdminUsersStore implements AdminUsersStore {
@@ -28,7 +29,7 @@ export class SupabaseAdminUsersStore implements AdminUsersStore {
 	async list(session: SessionIdentity): Promise<AdminUserRow[]> {
 		const { data, error } = await this.client
 			.from("app_users")
-			.select("id,auth_user_id,status,must_change_password,created_at")
+			.select("id,auth_user_id,status,created_at")
 			.eq("organisation_id", session.organisationId)
 			.eq("app_role", "ADMIN")
 			.order("created_at", { ascending: true });
@@ -39,14 +40,12 @@ export class SupabaseAdminUsersStore implements AdminUsersStore {
 			id: String(row.id),
 			email: emails[index]?.data.user?.email ?? "(unknown)",
 			status: String(row.status),
-			mustChangePassword: Boolean(row.must_change_password),
 			createdAt: String(row.created_at),
 		}));
 	}
 
-	async create(session: SessionIdentity, email: string, correlationId: string): Promise<{ email: string; tempPassword: string }> {
-		const tempPassword = generateTempPassword();
-		const { data: created, error: createError } = await this.client.auth.admin.createUser({ email, password: tempPassword, email_confirm: true });
+	async create(session: SessionIdentity, email: string, correlationId: string): Promise<{ email: string }> {
+		const { data: created, error: createError } = await this.client.auth.admin.createUser({ email, password: unusedInternalPassword(), email_confirm: true });
 		if (createError || !created.user) {
 			throw new ApiError(409, "ADMIN_USER_CREATE_FAILED", createError?.message?.includes("already been registered") ? "An account with this email already exists" : "Admin account could not be created");
 		}
@@ -55,12 +54,11 @@ export class SupabaseAdminUsersStore implements AdminUsersStore {
 			dealer_id: null,
 			auth_user_id: created.user.id,
 			app_role: "ADMIN",
-			must_change_password: true,
 			status: "ACTIVE",
 		});
 		if (insertError) throw new ApiError(502, "ADMIN_USER_CREATE_FAILED", "Admin account could not be created");
 		await this.audit(session, correlationId, "ADMIN_USER_CREATED", created.user.id, { email });
-		return { email, tempPassword };
+		return { email };
 	}
 
 	async setStatus(session: SessionIdentity, userId: string, status: "ACTIVE" | "INACTIVE", correlationId: string): Promise<void> {

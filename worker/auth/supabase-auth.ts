@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppRole } from "../middleware/auth";
 import type { ActivationStore, DealerRecord } from "../routes/activation";
-import type { AuthenticatedPasswordResult, PasswordAuthenticator } from "../routes/login";
+import type { LoginIdentity, LoginIdentityResolver } from "../routes/login";
 import type { OtpChallengeStore, StoredOtpChallenge } from "./otp-service";
 
 interface DealerRow {
@@ -111,37 +111,57 @@ export class SupabaseActivationStore implements ActivationStore {
   }
 }
 
-export class SupabasePasswordAuthenticator implements PasswordAuthenticator {
-  constructor(
-    private readonly client: SupabaseClient,
-    private readonly createCredentialCheckClient: () => SupabaseClient,
-  ) {}
+/** Internal only -- Supabase's admin.createUser requires a password field, but no
+ *  login path ever checks it. OTP is the sole factor for every account. */
+function unusedInternalPassword(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(24));
+  return btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/u, "");
+}
 
-  async authenticate(email: string, password: string): Promise<AuthenticatedPasswordResult | null> {
-    const { data, error } = await this.createCredentialCheckClient().auth.signInWithPassword({ email, password });
-    if (error || !data.user || !data.session) return null;
-    const { data: mapping, error: mappingError } = await this.client
-      .from("app_users")
-      .select("dealer_id,organisation_id,app_role")
-      .eq("auth_user_id", data.user.id)
-      .maybeSingle();
-    if (mappingError || !mapping) return null;
-    if (mapping.app_role === "DEALER" && !mapping.dealer_id) return null;
-    if (mapping.app_role !== "DEALER" && mapping.app_role !== "ADMIN" && mapping.app_role !== "SUPERADMIN") return null;
-    return {
-      authUserId: data.user.id,
-      dealerId: mapping.app_role === "DEALER" ? (mapping.dealer_id as string) : null,
-      organisationId: mapping.organisation_id as string,
-      email,
-      accessToken: data.session.access_token,
-      role: mapping.app_role as AppRole,
-    };
+export class SupabaseLoginIdentityResolver implements LoginIdentityResolver {
+  constructor(private readonly client: SupabaseClient) {}
+
+  async resolve(email: string): Promise<LoginIdentity | null> {
+    const dealer = await this.activeDealerByEmail(email);
+    if (dealer) {
+      const { data: mapping } = await this.client.from("app_users").select("auth_user_id").eq("dealer_id", dealer.id).eq("app_role", "DEALER").eq("status", "ACTIVE").maybeSingle();
+      if (mapping?.auth_user_id) {
+        return { authUserId: mapping.auth_user_id as string, dealerId: dealer.id, organisationId: dealer.organisation_id, email, role: "DEALER" };
+      }
+    }
+    const authUserId = await this.findAuthUserIdByEmail(email);
+    if (!authUserId) return null;
+    const { data: mapping } = await this.client.from("app_users").select("organisation_id,app_role,status").eq("auth_user_id", authUserId).maybeSingle();
+    if (!mapping || mapping.status !== "ACTIVE") return null;
+    if (mapping.app_role !== "ADMIN" && mapping.app_role !== "SUPERADMIN") return null;
+    return { authUserId, dealerId: null, organisationId: mapping.organisation_id as string, email, role: mapping.app_role as AppRole };
   }
 
-  async createUser(email: string, password: string): Promise<{ authUserId: string }> {
-    const { data, error } = await this.client.auth.admin.createUser({ email, password, email_confirm: true });
+  async createUser(email: string): Promise<{ authUserId: string }> {
+    const { data, error } = await this.client.auth.admin.createUser({ email, password: unusedInternalPassword(), email_confirm: true });
     if (error || !data.user) throw new Error("AUTH_USER_CREATION_FAILED");
     return { authUserId: data.user.id };
+  }
+
+  private async activeDealerByEmail(email: string): Promise<{ id: string; organisation_id: string } | null> {
+    const { data } = await this.client
+      .from("dealers")
+      .select("id,organisation_id")
+      .eq("activation_status", "ACTIVE")
+      .or(`pilot_email.ilike.${email},master_email.ilike.${email}`)
+      .limit(1)
+      .maybeSingle();
+    return data ?? null;
+  }
+
+  private async findAuthUserIdByEmail(email: string): Promise<string | null> {
+    for (let page = 1; ; page += 1) {
+      const { data, error } = await this.client.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) return null;
+      const match = data.users.find((user) => user.email?.toLowerCase() === email);
+      if (match) return match.id;
+      if (data.users.length < 200) return null;
+    }
   }
 }
 

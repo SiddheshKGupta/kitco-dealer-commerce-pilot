@@ -7,7 +7,7 @@ import {
 } from "../../worker/auth/otp-service";
 import { SessionService } from "../../worker/auth/session";
 import { registerActivationRoutes, type ActivationStore, type DealerRecord } from "../../worker/routes/activation";
-import { registerLoginRoutes, type PasswordAuthenticator } from "../../worker/routes/login";
+import { registerLoginRoutes, type LoginIdentityResolver } from "../../worker/routes/login";
 import { registerOtpRoutes } from "../../worker/routes/otp";
 
 const NOW = new Date("2026-08-13T12:00:00.000Z");
@@ -58,29 +58,22 @@ class MemoryActivationStore implements ActivationStore {
   }
 }
 
-class MemoryAuthenticator implements PasswordAuthenticator {
-  released = 0;
+/** OTP is the only login factor -- resolve() just maps an email to an existing
+ *  account (matching what SupabaseLoginIdentityResolver does against real dealer/
+ *  app_users rows); createUser() is used only by activation. */
+class MemoryIdentityResolver implements LoginIdentityResolver {
   created = 0;
   createdEmail = "";
-  createdPassword = "";
 
-  async authenticate(email: string, password: string) {
-    if (email === this.createdEmail && password === this.createdPassword) {
-      return { authUserId: "user-created", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "new-supabase-access", role: "DEALER" as const };
-    }
-    if (email !== "owner@dealer.test" || password !== "correct horse") return null;
-    return { authUserId: "user-1", dealerId: "dealer-1", organisationId: "org-1", email, accessToken: "supabase-access", role: "DEALER" as const };
+  async resolve(email: string) {
+    if (email !== "owner@dealer.test") return null;
+    return { authUserId: "user-1", dealerId: "dealer-1", organisationId: "org-1", email, role: "DEALER" as const };
   }
 
-  async createUser(email: string, password: string) {
+  async createUser(email: string) {
     this.created += 1;
     this.createdEmail = email;
-    this.createdPassword = password;
-    return { authUserId: "user-created", email, password };
-  }
-
-  noteReleased() {
-    this.released += 1;
+    return { authUserId: "user-created" };
   }
 }
 
@@ -88,7 +81,7 @@ function buildHarness() {
   const store = new MemoryActivationStore();
   const challengeStore = new InMemoryOtpChallengeStore();
   const provider = new CaptureEmailProvider();
-  const authenticator = new MemoryAuthenticator();
+  const identity = new MemoryIdentityResolver();
   const sessions = new SessionService("test-secret-at-least-32-characters-long", () => NOW);
   const otp = new OtpService(challengeStore, provider, {
     now: () => NOW,
@@ -96,10 +89,10 @@ function buildHarness() {
     pepper: "test-otp-pepper-at-least-32-characters",
   });
   const app = new Hono();
-  registerActivationRoutes(app, { store, otp, sessions, authenticator });
-  registerLoginRoutes(app, { authenticator, otp, sessions });
-  registerOtpRoutes(app, { otp, sessions, authenticator, activationStore: store });
-  return { app, store, challengeStore, provider, authenticator, sessions, otp };
+  registerActivationRoutes(app, { store, otp, sessions });
+  registerLoginRoutes(app, { identity, otp, sessions });
+  registerOtpRoutes(app, { otp, sessions, identity, activationStore: store });
+  return { app, store, challengeStore, provider, identity, sessions, otp };
 }
 
 describe("Worker activation and authentication", () => {
@@ -161,7 +154,6 @@ describe("Worker activation and authentication", () => {
       store,
       otp,
       sessions: new SessionService("test-secret-at-least-32-characters-long", () => NOW),
-      authenticator: new MemoryAuthenticator(),
     });
 
     const response = await app.request("/api/activation/request-otp", {
@@ -221,44 +213,49 @@ describe("Worker activation and authentication", () => {
     await expect(otp.verify(singleUse.id, "482901", "LOGIN")).rejects.toThrow("OTP_ALREADY_CONSUMED");
   });
 
-  it("does not release a Supabase result or application cookie before login OTP succeeds", async () => {
-    const { app, provider, authenticator } = buildHarness();
-    const password = await app.request("/api/login/password", {
+  it("does not set an application cookie before login OTP succeeds, and rejects an unknown email", async () => {
+    const { app, provider } = buildHarness();
+    const unknown = await app.request("/api/login/otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "owner@dealer.test", password: "correct horse" }),
+      body: JSON.stringify({ email: "nobody@dealer.test" }),
     });
-    expect(password.status).toBe(202);
-    const passwordBody = await password.text();
-    expect(JSON.parse(passwordBody)).toMatchObject({ otpRequired: true });
-    expect(password.headers.get("set-cookie")).toContain("kitco_pending=");
-    expect(password.headers.get("set-cookie")).not.toContain("kitco_session=");
-    expect(passwordBody).not.toContain("supabase-access");
-    expect(authenticator.released).toBe(0);
+    expect(unknown.status).toBe(401);
 
-    const pendingCookie = password.headers.get("set-cookie")!.split(";")[0]!;
+    const started = await app.request("/api/login/otp", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ email: "owner@dealer.test" }),
+    });
+    expect(started.status).toBe(202);
+    const startedBody = await started.text();
+    expect(JSON.parse(startedBody)).toMatchObject({ otpRequired: true });
+    expect(started.headers.get("set-cookie")).toContain("kitco_pending=");
+    expect(started.headers.get("set-cookie")).not.toContain("kitco_session=");
+
+    const pendingCookie = started.headers.get("set-cookie")!.split(";")[0]!;
     const verified = await app.request("/api/otp/verify", {
       method: "POST",
       headers: { "content-type": "application/json", cookie: pendingCookie },
       body: JSON.stringify({ challengeId: provider.deliveries[0]!.challengeId, code: "482901", purpose: "LOGIN" }),
     });
     expect(verified.status).toBe(200);
+    expect(await verified.json()).toMatchObject({ authenticated: true, role: "DEALER" });
     const cookie = verified.headers.get("set-cookie") ?? "";
     expect(cookie).toContain("kitco_session=");
     expect(cookie).toContain("HttpOnly");
     expect(cookie).toContain("Secure");
     expect(cookie).toContain("SameSite=Lax");
-    expect(authenticator.released).toBe(1);
   });
 
   it("exposes resend only through the pending session and enforces cooldown", async () => {
     const { app, provider } = buildHarness();
-    const password = await app.request("/api/login/password", {
+    const started = await app.request("/api/login/otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email: "owner@dealer.test", password: "correct horse" }),
+      body: JSON.stringify({ email: "owner@dealer.test" }),
     });
-    const pendingCookie = password.headers.get("set-cookie")!.split(";")[0]!;
+    const pendingCookie = started.headers.get("set-cookie")!.split(";")[0]!;
     const response = await app.request("/api/otp/resend", {
       method: "POST",
       headers: { "content-type": "application/json", cookie: pendingCookie },
@@ -269,33 +266,27 @@ describe("Worker activation and authentication", () => {
     expect(provider.deliveries).toHaveLength(1);
   });
 
-  it("does not consume an activation OTP before password validation succeeds", async () => {
-    const { app, provider, store, authenticator, sessions } = buildHarness();
+  it("activates a dealer on OTP verification alone -- no password", async () => {
+    const { app, provider, store, identity, sessions } = buildHarness();
     const requested = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
     });
     const pendingCookie = requested.headers.get("set-cookie")!.split(";")[0]!;
-    const verify = (password: string) => app.request("/api/otp/verify", {
+    const completed = await app.request("/api/otp/verify", {
       method: "POST",
       headers: { "content-type": "application/json", cookie: pendingCookie },
-      body: JSON.stringify({
-        challengeId: provider.deliveries[0]!.challengeId,
-        code: "482901",
-        purpose: "ACTIVATION",
-        password,
-      }),
+      body: JSON.stringify({ challengeId: provider.deliveries[0]!.challengeId, code: "482901", purpose: "ACTIVATION" }),
     });
 
-    expect((await verify("short")).status).toBe(400);
-    const completed = await verify("a strong pilot password");
     expect(completed.status).toBe(200);
     expect(store.dealers[0]?.masterEmail).toBe("owner@dealer.test");
     expect(store.dealers[0]?.authUserId).toBe("user-created");
-    expect(authenticator.created).toBe(1);
+    expect(identity.created).toBe(1);
+    expect(identity.createdEmail).toBe("pilot@dealer.test");
     const applicationCookie = completed.headers.get("set-cookie")?.match(/kitco_session=([^;]+)/u)?.[1];
     expect(applicationCookie).toBeTruthy();
-    await expect(sessions.openApplication(applicationCookie!)).resolves.toMatchObject({ accessToken: "new-supabase-access" });
+    await expect(sessions.openApplication(applicationCookie!)).resolves.toMatchObject({ authUserId: "user-created", dealerId: "dealer-1" });
   });
 });

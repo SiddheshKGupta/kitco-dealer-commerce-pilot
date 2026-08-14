@@ -1,7 +1,6 @@
 import type { Hono } from "hono";
 import type { OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
-import type { PasswordAuthenticator } from "./login";
 
 export interface DealerRecord {
   id: string;
@@ -27,7 +26,6 @@ interface ActivationDependencies {
   store: ActivationStore;
   otp: OtpService;
   sessions: SessionService;
-  authenticator: PasswordAuthenticator;
 }
 
 function isEmail(value: unknown): value is string {

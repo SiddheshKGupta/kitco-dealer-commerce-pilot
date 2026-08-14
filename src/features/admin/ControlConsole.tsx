@@ -15,12 +15,12 @@ interface LiveOrder extends ControlOrder { version?: number; retailValueMinor?: 
 const shortDate = (value: string) => new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
 
 /* --------------------------------------------------------------- Admin Users */
-interface AdminUserRow { id: string; email: string; status: string; mustChangePassword: boolean; createdAt: string }
+interface AdminUserRow { id: string; email: string; status: string; createdAt: string }
 function AdminUsersSection() {
 	const { data, status, reload } = useAdminSection<{ users: AdminUserRow[] }>("/api/admin/users");
 	const [email, setEmail] = useState("");
 	const [creating, setCreating] = useState(false);
-	const [created, setCreated] = useState<{ email: string; tempPassword: string } | null>(null);
+	const [created, setCreated] = useState<string | null>(null);
 	const [error, setError] = useState("");
 	const users = data?.users ?? [];
 
@@ -28,9 +28,9 @@ function AdminUsersSection() {
 		setError(""); setCreating(true); setCreated(null);
 		try {
 			const response = await fetch("/api/admin/users", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
-			const body = await response.json() as { email?: string; tempPassword?: string; error?: { message?: string } };
+			const body = await response.json() as { email?: string; error?: { message?: string } };
 			if (!response.ok) throw new Error(body.error?.message ?? "Admin account could not be created");
-			setCreated({ email: body.email!, tempPassword: body.tempPassword! });
+			setCreated(body.email!);
 			setEmail("");
 			reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Admin account could not be created"); }
@@ -56,7 +56,7 @@ function AdminUsersSection() {
 					<Input id="new-admin-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@kitco.example" />
 				</FormField>
 				<Button disabled={!email || creating} onClick={() => void addAdmin()}>{creating ? "Creating…" : "Create admin account"}</Button>
-				{created && <p className="notice">Account created for {created.email}. Temporary password (share securely, shown once): <strong>{created.tempPassword}</strong></p>}
+				{created && <p className="notice">Account created for {created}. They sign in with email + a one-time code -- no password.</p>}
 				{error && <p className="form-error" role="alert">{error}</p>}
 			</div>
 		</section>
@@ -67,7 +67,7 @@ function AdminUsersSection() {
 				<div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Email</th><th>Status</th><th>Created</th><th /></tr></thead>
 					<tbody>{users.map((user) => <tr key={user.id}>
-						<td><b>{user.email}</b>{user.mustChangePassword && <div className="tiny">Must change password</div>}</td>
+						<td><b>{user.email}</b></td>
 						<td><StatusPill value={user.status} /></td>
 						<td>{shortDate(user.createdAt)}</td>
 						<td className="right">{user.status === "ACTIVE"

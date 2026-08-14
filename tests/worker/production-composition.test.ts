@@ -18,24 +18,20 @@ function chain(result: unknown) {
 }
 
 describe("production commerce composition", () => {
-  it("revalidates the encrypted application session against Supabase Auth and ACTIVE dealer membership", async () => {
+  it("revalidates the encrypted application session against current app_users/dealers state", async () => {
     const sessions = new SessionService("production-session-secret-that-is-long-enough");
     const token = await sessions.sealApplication({
       authUserId: "user-a",
       organisationId: "org-1",
       dealerId: "dealer-a",
       email: "owner@example.test",
-      accessToken: "live-access-token",
     });
     const from = vi.fn((table: string) => {
-      if (table === "app_users") return chain({ data: { auth_user_id: "user-a", organisation_id: "org-1", dealer_id: "dealer-a", app_role: "DEALER" }, error: null });
+      if (table === "app_users") return chain({ data: { auth_user_id: "user-a", organisation_id: "org-1", dealer_id: "dealer-a", app_role: "DEALER", status: "ACTIVE" }, error: null });
       if (table === "dealers") return chain({ data: { id: "dealer-a", organisation_id: "org-1", activation_status: "ACTIVE", pilot_email: "owner@example.test" }, error: null });
       throw new Error(`unexpected table ${table}`);
     });
-    const client = {
-      auth: { getUser: vi.fn(async () => ({ data: { user: { id: "user-a" } }, error: null })) },
-      from,
-    } as unknown as SupabaseClient;
+    const client = { from } as unknown as SupabaseClient;
 
     const verify = createVerifiedSessionVerifier(client, sessions);
     const identity = await verify(new Request("https://kitco.test/api/catalogue", {
@@ -43,7 +39,6 @@ describe("production commerce composition", () => {
     }));
 
     expect(identity).toMatchObject({ userId: "user-a", organisationId: "org-1", dealerId: "dealer-a", role: "DEALER" });
-    expect(client.auth.getUser).toHaveBeenCalledWith("live-access-token");
   });
 
   it("revalidates a SUPERADMIN session without being rejected by the ADMIN-only branch", async () => {
@@ -53,16 +48,12 @@ describe("production commerce composition", () => {
       organisationId: "org-1",
       dealerId: null,
       email: "superadmin@example.test",
-      accessToken: "live-access-token",
     });
     const from = vi.fn((table: string) => {
-      if (table === "app_users") return chain({ data: { auth_user_id: "user-super", organisation_id: "org-1", dealer_id: null, app_role: "SUPERADMIN" }, error: null });
+      if (table === "app_users") return chain({ data: { auth_user_id: "user-super", organisation_id: "org-1", dealer_id: null, app_role: "SUPERADMIN", status: "ACTIVE" }, error: null });
       throw new Error(`unexpected table ${table}`);
     });
-    const client = {
-      auth: { getUser: vi.fn(async () => ({ data: { user: { id: "user-super" } }, error: null })) },
-      from,
-    } as unknown as SupabaseClient;
+    const client = { from } as unknown as SupabaseClient;
 
     const verify = createVerifiedSessionVerifier(client, sessions);
     const identity = await verify(new Request("https://kitco.test/api/admin/orders", {
