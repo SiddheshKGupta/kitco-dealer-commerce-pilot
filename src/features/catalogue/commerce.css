@@ -69,5 +69,5 @@
 .commerce-submitted p { margin: 5px 0 0; color: var(--commerce-mid); font-size: 13px; }
 @media (max-width: 880px) { .commerce-results { grid-template-columns: 1fr; } .commerce-results > .commerce-filter-rail { display: none; } .commerce-filter-trigger { display: block; } .commerce-toolbar { grid-template-columns: 1fr auto; } .commerce-sort { grid-column: 1 / -1; } .commerce-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .commerce-pdp-grid { grid-template-columns: 1fr; } .commerce-pdp-media { position: static; } }
 @media (max-width: 560px) { .commerce-size-grid { grid-template-columns: 1fr; gap: 8px; } .commerce-size-grid label { grid-template-columns: 1fr 84px; justify-items: stretch; text-align: left; min-height: 48px; padding: 0 6px 0 14px; } .commerce-size-grid input { height: 40px; } }
-@media (max-width: 440px) { .commerce-product-grid { grid-template-columns: 1fr; } .commerce-order-tray { align-items: stretch; flex-direction: column; } }
+@media (max-width: 440px) { .commerce-order-tray { align-items: stretch; flex-direction: column; } }
 @media (prefers-reduced-motion: reduce) { .commerce-page *, .commerce-page *::before, .commerce-page *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
