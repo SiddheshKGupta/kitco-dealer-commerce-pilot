@@ -52,6 +52,7 @@ export interface DraftLine {
 export interface OrderVersionRecord { version: number; status: "SUBMITTED" | "PROPOSED" | "ACCEPTED"; retailValueMinor: number; lines: DraftLine[] }
 export interface OrderRecord {
   id: string;
+  orderNumber: string;
   organisationId: string;
   dealerId: string;
   status: "SUBMITTED" | "APPROVED" | "CANCELLED";
@@ -89,6 +90,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
   private readonly drafts = new Map<string, DraftLine[]>();
   private readonly orders = new Map<string, OrderRecord>();
   private readonly submissions = new Map<string, OrderRecord>();
+  private readonly orderNumberSeq = new Map<string, number>();
   readonly auditEvents: AuditEvent[] = [];
 
   constructor(seed: CommerceSeed) {
@@ -145,9 +147,10 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     if (!verification.ok) throw new ApiError(422, verification.reason, "OTP verification failed");
     const result = createIdempotentSubmission(this.submissions, submissionKey, () => {
       const id = crypto.randomUUID();
+      const orderNumber = this.nextOrderNumber(session.organisationId, new Date(input.now));
       const retailValue = draft.reduce((sum, line) => sum + line.retailValueMinor, 0);
       const order: OrderRecord = {
-        id, organisationId: session.organisationId, dealerId: session.dealerId!, status: "SUBMITTED",
+        id, orderNumber, organisationId: session.organisationId, dealerId: session.dealerId!, status: "SUBMITTED",
         versions: [{ version: 1, status: "SUBMITTED", retailValueMinor: retailValue, lines: clone(draft) }],
         allocations: draft.flatMap((line) => {
           const product = this.catalogue.find((item) => item.organisationId === session.organisationId && item.offering.id === line.offeringId);
@@ -241,5 +244,12 @@ export class InMemoryCommerceRepository implements CommerceRepository {
   }
   private audit(session: SessionIdentity, correlationId: string, action: string, entityId: string) {
     this.auditEvents.push({ correlationId, action, organisationId: session.organisationId, dealerId: session.dealerId, actorUserId: session.userId, entityId });
+  }
+  private nextOrderNumber(organisationId: string, now: Date): string {
+    const period = `${String(now.getUTCFullYear() % 100).padStart(2, "0")}${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+    const key = `${organisationId}:${period}`;
+    const seq = (this.orderNumberSeq.get(key) ?? 0) + 1;
+    this.orderNumberSeq.set(key, seq);
+    return `KIT-${period}-${String(seq).padStart(5, "0")}`;
   }
 }

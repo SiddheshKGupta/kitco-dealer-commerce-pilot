@@ -4,7 +4,7 @@ import { SupabaseCommerceRepository } from "../../worker/supabase-commerce-repos
 import { admin } from "./fixtures";
 
 const order = {
-  id: "order-1", organisationId: "org-1", dealerId: "dealer-a", status: "APPROVED" as const,
+  id: "order-1", orderNumber: "KIT-2608-00001", organisationId: "org-1", dealerId: "dealer-a", status: "APPROVED" as const,
   versions: [{ version: 1, status: "SUBMITTED" as const, retailValueMinor: 40000, lines: [] }], allocations: [],
 };
 

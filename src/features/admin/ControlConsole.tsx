@@ -176,7 +176,7 @@ function OrdersSection() {
 				<div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th><th /></tr></thead>
 					<tbody>{orders.map((order) => <tr key={order.id}>
-						<td><b>{order.id.slice(0, 8)}</b></td>
+						<td><b>{order.orderNumber ?? order.id.slice(0, 8)}</b></td>
 						<td>V{order.version ?? 1}</td>
 						<td>{number(order.allocations.length)}</td>
 						<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
@@ -220,7 +220,7 @@ function ReportsSection() {
 					<div className="table-wrap"><table className="data-table">
 						<thead><tr><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th></tr></thead>
 						<tbody>{rows.map((order) => <tr key={order.id}>
-							<td><b>{order.id.slice(0, 8)}</b></td>
+							<td><b>{order.orderNumber ?? order.id.slice(0, 8)}</b></td>
 							<td>V{order.version ?? 1}</td>
 							<td>{number((order.allocations ?? []).length)}</td>
 							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>

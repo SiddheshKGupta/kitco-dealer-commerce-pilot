@@ -120,7 +120,7 @@ function orderFromRow(row: Row): OrderRecord {
     });
   }) : [];
   return {
-    id: String(row.id), organisationId: String(row.organisation_id), dealerId: String(row.dealer_id),
+    id: String(row.id), orderNumber: String(row.order_number), organisationId: String(row.organisation_id), dealerId: String(row.dealer_id),
     status: row.status, versions, allocations,
   };
 }

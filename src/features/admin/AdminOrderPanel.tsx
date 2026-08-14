@@ -5,7 +5,7 @@ import { DispatchForm } from "../dispatch/DispatchForm";
 import { summarizeFulfilment, type FulfilmentAllocation } from "../dispatch/fulfilment";
 import "./control.css";
 
-export interface ControlOrder { id: string; status: string; allocations: FulfilmentAllocation[]; audit: Array<{ correlationId: string; action: string }>; }
+export interface ControlOrder { id: string; orderNumber?: string; status: string; allocations: FulfilmentAllocation[]; audit: Array<{ correlationId: string; action: string }>; }
 type AdminApi = (path: string, body: object) => Promise<unknown>;
 const defaultApi: AdminApi = async (path, body) => {
 	const response = await fetch(path, { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-correlation-id": crypto.randomUUID() }, body: JSON.stringify(body) });
@@ -38,7 +38,7 @@ export function AdminOrderPanel({ order, api = defaultApi }: { order: ControlOrd
 				</table>
 			</section>;
 		})}</div>
-		<section className="control-table-wrap"><table><caption>Order total · {order.id}</caption><thead><tr><th>Ordered</th><th>Dispatched</th><th>On hold</th><th>Pending</th></tr></thead><tbody><tr><td>{summary.orderedPairs}</td><td>{summary.dispatchedPairs}</td><td>{summary.heldPairs}</td><td>{summary.pendingPairs}</td></tr></tbody></table></section>
+		<section className="control-table-wrap"><table><caption>Order total · {order.orderNumber ?? order.id}</caption><thead><tr><th>Ordered</th><th>Dispatched</th><th>On hold</th><th>Pending</th></tr></thead><tbody><tr><td>{summary.orderedPairs}</td><td>{summary.dispatchedPairs}</td><td>{summary.heldPairs}</td><td>{summary.pendingPairs}</td></tr></tbody></table></section>
 		<div className="control-actions"><section><h2>Decision</h2><Button onClick={approve} disabled={status === "APPROVED"}>Approve order</Button><Button variant="secondary">Propose revision</Button></section>{allocation && <section><h2>Fulfilment</h2><DispatchForm orderId={order.id} allocation={allocation} request={api} onMessage={setMessage} /><CreditHoldPanel orderId={order.id} allocation={allocation} request={api} onMessage={setMessage} /></section>}<section><h2>Audit trail</h2><ul className="audit-list">{order.audit.map((event) => <li key={`${event.action}:${event.correlationId}`}><strong>{event.action.replaceAll("_", " ")}</strong><span>{event.correlationId}</span></li>)}</ul></section></div>
 		{message && <p className="control-message" role="status">{message}</p>}</>;
 }
