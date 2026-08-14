@@ -308,34 +308,154 @@ Required safeguards:
 
 **Files:** `ActivationPage.tsx` (→ multi-step), `worker/routes/activation.ts`,
 `worker/auth/supabase-auth.ts`, new migration, `ControlSections.tsx` (Dealers approve queue)
-**Accept:** a master dealer self-registers end-to-end with prefill; prefill returns 401 before
-OTP; an unknown dealer lands in the review queue and cannot reach `/products`.
+**Accept:** a master dealer self-registers end-to-end with prefill; `GET /api/activation/prefill`
+returns 401 before the OTP is verified; an unknown dealer self-activates but is written with
+`source='SELF_REGISTERED'` and a near-name-match is pushed back to autocomplete instead of
+creating a shadow dealership.
 
 ---
 
-## Phase 6 — KITCO Control depth (read → act)
+## Phase 6 — Roles and account management
 
-**Fixes D6.** The console currently reads live data across 15 sections; these add the actions
-the handover expects. Ship in this order:
+> **Scope note:** Handover §7.1 said *"Do not build full role-management UI unless needed by
+> implementation."* The client has now asked for it, so §7.1's deferral is **superseded by
+> explicit client instruction (2026-08-14)**. Everything else in §7 still stands.
 
-1. **Dealers** — detail drawer (GSTs, locations, activation history); Approve/Reject pending
-   registrations (from Phase 5); reset activation (§15, audited).
-2. **Catalogue** — publish / unpublish a colourway (§86 keeps import and publish separate);
-   bulk publish by filter.
-3. **Catalogue Imports** — upload → detect profile → preview → **confirm** → commit
-   (§61, §81, §82). Commit must be transactional and idempotent.
-4. **Media Library** — per-colourway upload → normalise to the §56 variant ladder
-   (200/600/900/1400 WebP + 1600 JPEG master) → publish. Reuse `scripts/generate-webp-600.mjs`
-   logic server-side. This is what actually closes the 551 missing images.
-5. **Commercial Offerings** — edit MOQ, order multiple, booking window, publish state.
-6. **Seasons / Schemes** — create + date windows; unblocks the deferred filters in Phase 3b.
-7. **Reports** — filter set per §105, CSV export per §107.
-8. **Dispatch / Credit Holds** — list + create; wire to the existing POST endpoints.
+### 6.1 Role model
 
-Every mutation: server-side validation (§122), correlation ID, audit event (§108), and a
-visible busy state on the control (CLAUDE.md live-honest-UI rule).
+Current constraint permits only `DEALER | ADMIN`
+(`app_users_app_role_check`). Migration — widen once, to the full §7.1 vocabulary, so adding a
+role later needs no further migration:
 
-**Accept:** each section's primary action round-trips to Supabase and writes an audit row.
+```sql
+alter table app_users drop constraint app_users_app_role_check;
+alter table app_users add constraint app_users_app_role_check
+  check (app_role = any (array[
+    'SUPER_ADMIN','ADMIN','MANAGEMENT','CATALOGUE_MANAGER','SALES',
+    'ORDER_OPERATIONS','DISPATCH_OPERATIONS','FINANCE_REPORTS','READ_ONLY','DEALER'
+  ]));
+```
+
+Implement **three** roles now; leave the rest reserved and unused:
+
+| Role | Can |
+|---|---|
+| `SUPER_ADMIN` | Everything, **plus** create/edit/disable admin accounts and change roles. The main KITCO account. |
+| `ADMIN` | All operational CRUD; **cannot** manage admin accounts or roles. |
+| `DEALER` | Dealer surfaces only — unchanged. |
+
+Guards in `worker/middleware/auth.ts`:
+
+- Generalise to `requireRole(...roles)`; keep `requireAdmin()` as
+  `requireRole('SUPER_ADMIN','ADMIN')` so every existing `/api/admin/*` route keeps working.
+- Add `requireSuperAdmin()` for `/api/admin/users/*`.
+- `verified-session.ts` currently branches on `app_role === "ADMIN"` and requires
+  `dealer_id === null` — update so `SUPER_ADMIN` takes the same non-dealer path, otherwise the
+  super admin cannot hold a session.
+
+Seed: promote `siddheshgupta7@gmail.com` to `SUPER_ADMIN`.
+
+### 6.2 Account creation — both admin and dealer
+
+**Constraint:** Resend is sandboxed, so an invite-email flow cannot be relied on yet. Use a
+temporary-password flow that does not depend on delivery:
+
+```text
+Super admin fills the form
+  → Worker calls auth.admin.createUser({ email, password: <generated>, email_confirm: true })
+  → app_users row created with the chosen role (+ dealer_id for dealers)
+  → generated password returned ONCE in the response, displayed once in the UI
+  → must_change_password = true
+  → user is forced through a password change on first successful login
+```
+
+Migration: `alter table app_users add column if not exists must_change_password boolean not null default false;`
+
+Rules:
+- Generate the password server-side (never client-side, never logged, never in an audit
+  `evidence` blob).
+- Show it exactly once with an explicit "copy now, it will not be shown again" affordance.
+- Force the change before any other route renders (check in `verified-session`).
+- Never expose the service-role key to the browser (§121) — creation happens only in the Worker.
+- Deactivate rather than delete a user; keep `app_users` rows for audit integrity.
+- A dealer account must bind to exactly one dealer, and a dealer to one auth user (§15).
+
+**Endpoints** (all `requireSuperAdmin()` except where noted):
+
+| Method | Path | Notes |
+|---|---|---|
+| `GET` | `/api/admin/users` | list app users + role + linked dealer (ADMIN may read) |
+| `POST` | `/api/admin/users` | create admin **or** dealer account |
+| `PATCH` | `/api/admin/users/:id` | change role, activate/deactivate |
+| `POST` | `/api/admin/users/:id/reset-password` | issue a new temporary password |
+| `POST` | `/api/auth/change-password` | self-service; satisfies `must_change_password` |
+
+**UI:** new Control section **Settings → Users & Roles** — table of users (email, role, linked
+dealer, status, last sign-in), "Create account" modal with a role selector, row actions for
+role change / deactivate / reset password. Visible only to `SUPER_ADMIN`; `ADMIN` sees the
+section read-only or not at all.
+
+---
+
+## Phase 6B — Full CRUD across KITCO Control
+
+**Fixes D6.** Console currently reads. Give every section real create/edit/configure actions.
+
+### Shared contract for every mutation
+1. Zod-validated request body (§122 — never trust the browser).
+2. Org-scoped write: **every** query filters `organisation_id = session.organisationId`. The
+   Worker uses the service-role key and therefore bypasses RLS — the guard is the query, so a
+   missing filter is a cross-tenant leak, not a cosmetic bug.
+3. Correlation ID + `audit_events` row (§108/§109).
+4. Idempotency key on anything that creates (§123).
+5. Visible busy state; write-before-commit (no optimistic local update) per CLAUDE.md.
+6. Destructive actions need typed confirmation.
+
+### Delete semantics — deactivate, don't destroy
+Order snapshots, audit rows and import lineage reference master data. Default to
+`active = false` / `published_at = null`. Hard `DELETE` is permitted **only** for records with
+no downstream references (e.g. an unused size value, a draft scheme never published).
+Handover §49: an expired scheme is never deleted.
+
+### Per-section CRUD
+
+| Section | Create | Edit / Configure | Remove |
+|---|---|---|---|
+| **Dealers** | new dealer + locations + GSTs | name, state, city, contacts, activation reset (§15) | deactivate |
+| **Catalogue** | colourway, family | article no, colour, MRP, size enablement, publish/unpublish (§86) | unpublish |
+| **Commercial Offerings** | offering per colourway | type, MOQ, order multiple, booking open/close, delivery window, publish | unpublish |
+| **Seasons** | season + delivery windows | code, name, dates, booking window | deactivate |
+| **Schemes** | scheme | code, name, dates, targets, audience, publish/expire | expire (never delete, §49) |
+| **Size Sets** | set + values | label, sort order, reorder | delete unused value only |
+| **Media Library** | upload per colourway | set primary, replace | remove from live |
+| **Catalogue Imports** | upload source | profile select, preview, resolve conflicts | cancel job |
+| **Dispatch** | record dispatch | qty, date, invoice no, LR/AWB, transporter | cancel |
+| **Credit Holds** | apply hold | scope, reason, partial qty | release |
+| **Orders** | — | approve, partial-approve, request revision, reject, cancel | — |
+| **Reports** | saved presets | filters | delete preset |
+| **Settings** | brands, import profiles, **users** (6.1) | org details, brand active, profile active | deactivate |
+| **Audit Trail** | — | **NONE — immutable** | **NONE** |
+| **Dashboard** | — | read-only | — |
+
+### Two things that must stay non-editable
+- **Audit trail** (§109): "No ordinary user can update/delete audit history." Read + filter +
+  export only. No edit affordance may render.
+- **Submitted order versions** (§95/§124): immutable. A change appends V2 as `PROPOSED` and
+  requires dealer OTP acceptance. Never rewrite V1 in place.
+
+### Build order
+Highest operational value first:
+1. Settings → Users & Roles (Phase 6.1 — unblocks everyone else onboarding)
+2. Dealers CRUD
+3. Media Library upload → §56 variant ladder → publish (**this is what closes the 551 missing images**)
+4. Catalogue + Offerings CRUD
+5. Seasons + Schemes CRUD (unblocks the deferred Phase 3b filters)
+6. Catalogue Imports upload → preview → commit
+7. Dispatch + Credit Holds
+8. Orders approve/revise/reject; Reports presets + CSV (§107)
+
+**Accept:** every section's create and edit round-trip to Supabase, write an audit row, show a
+busy state, and survive a page reload. Audit trail exposes no mutation control.
 
 ---
 
