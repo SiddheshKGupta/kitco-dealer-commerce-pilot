@@ -81,6 +81,80 @@ function AdminUsersSection() {
 
 const number = (value: number) => value.toLocaleString("en-IN");
 
+/* ------------------------------------------------------------ Dealer Applications */
+interface DealerApplicationRow { id: string; businessName: string; gstin: string; city: string; state: string; contactPerson: string; primaryEmail: string; secondaryEmail: string | null; mobile: string; status: string; reviewNotes: string | null; createdAt: string }
+function DealerApplicationsSection() {
+	const { data, status, reload } = useAdminSection<{ applications: DealerApplicationRow[] }>("/api/admin/dealer-applications");
+	const [openId, setOpenId] = useState<string | null>(null);
+	const [notes, setNotes] = useState("");
+	const [busy, setBusy] = useState(false);
+	const [error, setError] = useState("");
+	const applications = data?.applications ?? [];
+	const open = applications.find((item) => item.id === openId);
+	const reviewable = new Set(["SUBMITTED", "UNDER_REVIEW", "MORE_INFO_REQUIRED"]);
+
+	async function decide(action: "approve" | "reject" | "request-more-info") {
+		if (!open) return;
+		setError(""); setBusy(true);
+		try {
+			const response = await fetch(`/api/admin/dealer-applications/${open.id}/${action}`, {
+				method: "POST", credentials: "include", headers: { "content-type": "application/json" },
+				body: action === "approve" ? undefined : JSON.stringify({ notes }),
+			});
+			const body = await response.json() as { error?: string };
+			if (!response.ok) throw new Error(body.error ?? "Application could not be updated");
+			setOpenId(null); setNotes(""); reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Application could not be updated"); }
+		finally { setBusy(false); }
+	}
+
+	if (open) return <>
+		<PageHead eyebrow="New dealer registration" title={open.businessName} actions={<Button variant="secondary" onClick={() => setOpenId(null)}>Back to applications</Button>} />
+		<section className="panel"><div className="panel-body">
+			<dl className="control-detail-grid">
+				<div><dt>GSTIN</dt><dd>{open.gstin}</dd></div>
+				<div><dt>Location</dt><dd>{open.city}, {open.state}</dd></div>
+				<div><dt>Contact person</dt><dd>{open.contactPerson}</dd></div>
+				<div><dt>Primary email</dt><dd>{open.primaryEmail}</dd></div>
+				<div><dt>Secondary email</dt><dd>{open.secondaryEmail ?? "—"}</dd></div>
+				<div><dt>Mobile</dt><dd>{open.mobile}</dd></div>
+				<div><dt>Submitted</dt><dd>{shortDate(open.createdAt)}</dd></div>
+				<div><dt>Status</dt><dd><StatusPill value={open.status} /></dd></div>
+			</dl>
+			{open.reviewNotes && <p className="notice">Previous review note: {open.reviewNotes}</p>}
+			{reviewable.has(open.status) && <>
+				<FormField label="Review notes (required to reject or request more info)" htmlFor="app-notes"><Input id="app-notes" value={notes} onChange={(event) => setNotes(event.target.value)} /></FormField>
+				<div className="control-actions-row">
+					<Button onClick={() => void decide("approve")} disabled={busy}>{busy ? "Working…" : "Approve · create dealer"}</Button>
+					<Button variant="secondary" onClick={() => void decide("request-more-info")} disabled={busy || !notes}>Request more info</Button>
+					<Button variant="secondary" onClick={() => void decide("reject")} disabled={busy || !notes}>Reject</Button>
+				</div>
+			</>}
+			{error && <p className="form-error" role="alert">{error}</p>}
+		</div></section>
+	</>;
+
+	return <>
+		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="Review applications from dealers KITCO doesn't have on file yet." />
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : applications.length === 0
+			? <SectionState status="ready" retry={reload} empty="No dealer applications yet." />
+			: <section className="panel">
+				<div className="panel-head"><h3>{applications.length} applications</h3></div>
+				<div className="table-wrap"><table className="data-table">
+					<thead><tr><th>Business</th><th>City</th><th>Contact</th><th>Submitted</th><th>Status</th><th /></tr></thead>
+					<tbody>{applications.map((item) => <tr key={item.id}>
+						<td><b>{item.businessName}</b></td>
+						<td>{item.city}</td>
+						<td>{item.contactPerson}</td>
+						<td>{shortDate(item.createdAt)}</td>
+						<td><StatusPill value={item.status} /></td>
+						<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenId(item.id)}>Review</Button></td>
+					</tr>)}</tbody>
+				</table></div>
+			</section>}
+	</>;
+}
+
 /* ------------------------------------------------------------------- Orders */
 function OrdersSection() {
 	const { data, status, reload } = useAdminSection<{ orders: LiveOrder[] }>("/api/admin/orders");
@@ -165,6 +239,7 @@ const sections = [
 	{ slug: "dispatch", label: "Dispatch", group: "primary", render: () => <DispatchSection /> },
 	{ slug: "credit-holds", label: "Credit Holds", group: "primary", render: () => <HoldsSection /> },
 	{ slug: "dealers", label: "Dealers", group: "primary", render: () => <DealersSection /> },
+	{ slug: "dealer-applications", label: "Dealer Applications", group: "primary", render: () => <DealerApplicationsSection /> },
 	{ slug: "catalogue", label: "Catalogue", group: "primary", render: () => <CatalogueSection /> },
 	{ slug: "catalogue-imports", label: "Catalogue Imports", group: "operations", render: () => <ImportsSection /> },
 	{ slug: "media-library", label: "Media Library", group: "operations", render: () => <MediaSection /> },

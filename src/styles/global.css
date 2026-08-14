@@ -59,6 +59,10 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .auth-intro { max-width: 410px; margin: var(--space-4) 0 var(--space-6); color: var(--text-muted); font-size: 16px; line-height: 1.5; }
 .auth-page label { display: block; margin: var(--space-5) 0 var(--space-2); font-size: 13px; font-weight: 700; }
 .auth-page .ui-btn-full { margin-top: var(--space-5); }
+.auth-page-wide { width: min(100%, 720px); }
+.auth-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-5); margin: var(--space-5) 0; }
+.auth-form-grid .ui-field label { margin: 0; }
+@media (max-width: 640px) { .auth-form-grid { grid-template-columns: 1fr; } }
 .text-action:disabled { cursor: not-allowed; opacity: .5; transform: none; }
 .dealer-results { display: grid; gap: 1px; margin-top: var(--space-3); border: 1px solid var(--text); }
 .dealer-result { display: flex; width: 100%; border: 0; background: var(--canvas); padding: 15px var(--space-3); font: inherit; font-weight: 700; text-align: left; cursor: pointer; transition: background var(--motion-standard) var(--ease-standard), transform var(--motion-standard) var(--ease-standard); }

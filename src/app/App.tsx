@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { KitcoHeader } from "../components/KitcoHeader";
-import { SUPPORT_EMAIL, SUPPORT_PHONE } from "../config/support";
+import { SUPPORT_EMAIL } from "../config/support";
 import { RouteTransition } from "../components/RouteTransition";
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import { DealerCommercePage } from "../features/catalogue/DealerCommercePage";
@@ -14,7 +14,7 @@ export function App() {
 	const [pathname, setPathname] = useState(() => window.location.pathname);
 	const [cartCount, setCartCount] = useState(0);
 	useEffect(() => { const update = () => setPathname(window.location.pathname); window.addEventListener("popstate", update); return () => window.removeEventListener("popstate", update); }, []);
-	const authPage = pathname === "/" || pathname === "/login" || pathname === "/activate" ? <AuthLandingPage pathname={pathname} /> : null;
+	const authPage = pathname === "/" || pathname === "/login" || pathname === "/activate" || pathname === "/register" ? <AuthLandingPage pathname={pathname} /> : null;
 	const isControl = pathname.startsWith("/control");
 	useEffect(() => {
 		if (authPage || isControl) return;
@@ -33,7 +33,7 @@ export function App() {
 	</>;
 	return <div className="app-shell"><KitcoHeader showSignOut={!authPage} />
 		{authPage ? <main className="auth-shell"><RouteTransition>{authPage}</RouteTransition></main> : isControl ? <RouteTransition><ControlSurface /></RouteTransition> : <><nav className="dealer-nav" aria-label="Dealer navigation">{dealerNavigation.map(({ label, route }) => <a key={route} href={routeHref(route)} className={pathname.startsWith(routeHref(route)) ? "is-current" : undefined}>{navLink(label, route)}</a>)}</nav><RouteTransition>{dealerPage}</RouteTransition></>}
-		<footer><p>Need assistance? {SUPPORT_PHONE} | {SUPPORT_EMAIL}</p><p>© KITCO. Pilot Environment.</p></footer>
+		<footer><p>Developed by V L &amp; CO · {SUPPORT_EMAIL}</p><p>© KITCO. Pilot Environment.</p></footer>
 		{!authPage && !isControl && <nav className="ui-bottom-nav" aria-label="Dealer navigation (mobile)">
 			<ul className="ui-bottom-nav-list">{dealerNavigation.map(({ label, route }) => <li key={route} className="ui-bottom-nav-item">
 				<a href={routeHref(route)} className={`ui-bottom-nav-link${pathname.startsWith(routeHref(route)) ? " is-current" : ""}`} aria-current={pathname.startsWith(routeHref(route)) ? "page" : undefined}>{navLink(label, route)}</a>
