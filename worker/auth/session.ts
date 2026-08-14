@@ -19,7 +19,15 @@ export interface PendingActivationSession {
   email: string;
 }
 
-export type PendingSession = PendingLoginSession | PendingActivationSession;
+export interface PendingRegistrationSession {
+  kind: "registration";
+  challengeId: string;
+  applicationId: string;
+  organisationId: string;
+  email: string;
+}
+
+export type PendingSession = PendingLoginSession | PendingActivationSession | PendingRegistrationSession;
 
 export interface ApplicationSession {
   authUserId: string;

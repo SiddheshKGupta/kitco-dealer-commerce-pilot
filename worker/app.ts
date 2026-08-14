@@ -6,6 +6,7 @@ import type { CommerceRepository } from "./repository";
 import { registerAdminConsoleRoutes, type AdminConsoleReader } from "./routes/admin-console";
 import { registerAdminExportRoutes, type OrdersExporter } from "./routes/admin-export";
 import { registerAdminOrderRoutes } from "./routes/admin-orders";
+import { registerDealerApplicationRoutes, type DealerApplicationsAdmin } from "./routes/admin-dealer-applications";
 import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerDispatchRoutes } from "./routes/dispatch";
 import { registerDealerRoutes } from "./routes/dealer";
@@ -22,6 +23,7 @@ export interface CommerceAppDependencies {
   mediaStore?: MediaStore;
   adminConsole?: AdminConsoleReader;
   ordersExporter?: OrdersExporter;
+  dealerApplications?: DealerApplicationsAdmin;
 }
 
 export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, dependencies: CommerceAppDependencies) {
@@ -40,6 +42,7 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   registerAdminOrderRoutes(app, dependencies.repository);
   registerAdminConsoleRoutes(app, dependencies.adminConsole);
   registerAdminExportRoutes(app, dependencies.ordersExporter);
+  registerDealerApplicationRoutes(app, dependencies.dealerApplications);
   registerDispatchRoutes(app, dependencies.repository);
   registerHoldRoutes(app, dependencies.repository);
   registerImportRoutes(app, dependencies.repository);

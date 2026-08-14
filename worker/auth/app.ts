@@ -8,15 +8,18 @@ import { registerLoginRoutes } from "../routes/login";
 import { registerLogoutRoutes } from "../routes/logout";
 import { registerOrderOtpRoutes } from "../routes/order-otp";
 import { registerOtpRoutes } from "../routes/otp";
+import { registerRegistrationRoutes } from "../routes/register";
 import { OtpService } from "./otp-service";
 import { ResendEmailProvider } from "./resend-provider";
 import { SessionService } from "./session";
 import { SupabaseActivationStore, SupabaseOtpChallengeStore, SupabasePasswordAuthenticator } from "./supabase-auth";
+import { SupabaseDealerApplicationStore } from "../supabase-registration";
 import { createVerifiedSessionVerifier } from "./verified-session";
 
 export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   const client = createSupabaseAdminClient(env);
   const activationStore = new SupabaseActivationStore(client);
+  const applicationStore = new SupabaseDealerApplicationStore(client);
   const authenticator = new SupabasePasswordAuthenticator(client, () => createSupabaseAdminClient(env));
   const otp = new OtpService(new SupabaseOtpChallengeStore(client), new ResendEmailProvider(env), {
     pepper: env.SESSION_SECRET,
@@ -31,7 +34,8 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator });
   registerLoginRoutes(app, { authenticator, otp, sessions });
   registerLogoutRoutes(app, sessions);
-  registerOtpRoutes(app, { otp, sessions, authenticator, activationStore });
+  registerOtpRoutes(app, { otp, sessions, authenticator, activationStore, applicationStore });
   registerOrderOtpRoutes(app, otp);
+  registerRegistrationRoutes(app, { store: applicationStore, otp, sessions });
   return app;
 }

@@ -12,6 +12,7 @@ import { ApiError } from "./middleware/errors";
 import { SupabaseAdminConsoleReader } from "./supabase-admin-console";
 import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-commerce-repository";
 import { SupabaseOrdersExporter } from "./supabase-orders-export";
+import { SupabaseDealerApplicationsAdmin } from "./supabase-dealer-applications";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
@@ -36,6 +37,7 @@ export function createProductionCommerceApp(env: Env) {
     mediaStore: new R2CatalogueMediaStore(env.CATALOGUE_MEDIA),
     adminConsole: new SupabaseAdminConsoleReader(client),
     ordersExporter: new SupabaseOrdersExporter(client),
+    dealerApplications: new SupabaseDealerApplicationsAdmin(client),
   });
 }
 
@@ -49,6 +51,9 @@ app.all("/api/login/*", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/otp/*", (context) =>
+  createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
+);
+app.all("/api/register/*", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/orders/otp", (context) =>

@@ -20,19 +20,21 @@ export function FilterRail({ groups, selected, onToggle, mrpBounds, mrpSelected,
       <strong>Filter</strong>
       {totalSelected > 0 ? <button type="button" className="commerce-filter-clear" onClick={onClearAll}>Clear all ({totalSelected})</button> : <span>All</span>}
     </div>
-    {groups.map((group) => group.options.length > 0 && <fieldset key={group.key}>
-      <legend>{group.label}</legend>
-      {group.options.map((option) => <label key={option}>
-        <input type="checkbox" checked={(selected[group.key] ?? []).includes(option)} onChange={() => onToggle(group.key, option)} />
-        <span>{option}</span>
-      </label>)}
-    </fieldset>)}
-    {mrpBounds && mrpBounds.min < mrpBounds.max && <fieldset className="commerce-filter-range">
-      <legend>MRP</legend>
+    {groups.map((group) => group.options.length > 0 && <details key={group.key} className="commerce-filter-group" open={(selected[group.key] ?? []).length > 0}>
+      <summary>{group.label}</summary>
+      <fieldset>
+        {group.options.map((option) => <label key={option}>
+          <input type="checkbox" checked={(selected[group.key] ?? []).includes(option)} onChange={() => onToggle(group.key, option)} />
+          <span>{option}</span>
+        </label>)}
+      </fieldset>
+    </details>)}
+    {mrpBounds && mrpBounds.min < mrpBounds.max && <details className="commerce-filter-group" open={mrpSelected.min !== null || mrpSelected.max !== null}>
+      <summary>MRP</summary>
       <div className="commerce-filter-range-inputs">
         <label>Min<input type="number" inputMode="numeric" min={mrpBounds.min} max={mrpBounds.max} placeholder={String(mrpBounds.min)} value={mrpSelected.min ?? ""} onChange={(event) => onMrpChange({ min: event.target.value ? Number(event.target.value) : null, max: mrpSelected.max })} /></label>
         <label>Max<input type="number" inputMode="numeric" min={mrpBounds.min} max={mrpBounds.max} placeholder={String(mrpBounds.max)} value={mrpSelected.max ?? ""} onChange={(event) => onMrpChange({ min: mrpSelected.min, max: event.target.value ? Number(event.target.value) : null })} /></label>
       </div>
-    </fieldset>}
+    </details>}
   </aside>;
 }

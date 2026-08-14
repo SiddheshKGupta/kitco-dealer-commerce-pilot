@@ -3,15 +3,17 @@ import type { OtpPurpose, OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
 import type { ActivationStore } from "./activation";
 import type { PasswordAuthenticator } from "./login";
+import type { DealerApplicationStore } from "./register";
 
 interface OtpDependencies {
   otp: OtpService;
   sessions: SessionService;
   authenticator: PasswordAuthenticator;
   activationStore: ActivationStore;
+  applicationStore?: DealerApplicationStore;
 }
 
-const PURPOSES = new Set<OtpPurpose>(["ACTIVATION", "LOGIN", "ORDER_SUBMISSION", "REVISION_ACCEPTANCE"]);
+const PURPOSES = new Set<OtpPurpose>(["ACTIVATION", "LOGIN", "ORDER_SUBMISSION", "REVISION_ACCEPTANCE", "REGISTRATION"]);
 
 export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies): void {
   app.post("/api/otp/resend", async (context) => {
@@ -71,6 +73,13 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
         context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
         return context.json({ authenticated: true, role: pending.role });
+      }
+      if (pending.kind === "registration") {
+        if (!dependencies.applicationStore || !(await dependencies.applicationStore.submit(pending.applicationId))) {
+          return context.json({ error: "APPLICATION_NOT_FOUND" }, 404);
+        }
+        context.header("Set-Cookie", dependencies.sessions.clearPendingCookie());
+        return context.json({ submitted: true });
       }
 
       const created = await dependencies.authenticator.createUser(pending.email, body.password as string);
