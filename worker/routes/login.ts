@@ -4,7 +4,7 @@ import type { SessionService } from "../auth/session";
 
 export interface AuthenticatedPasswordResult {
   authUserId: string;
-  dealerId: string;
+  dealerId: string | null;
   organisationId: string;
   email: string;
   accessToken: string;
@@ -41,7 +41,8 @@ export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependenc
       const pending = await dependencies.sessions.sealPending({ kind: "login", challengeId: challenge.id, ...result });
       context.header("Set-Cookie", dependencies.sessions.pendingCookie(pending));
       return context.json({ otpRequired: true, challengeId: challenge.id }, 202);
-    } catch {
+    } catch (reason) {
+      console.error("login.otp.issue_failed", { reason: reason instanceof Error ? reason.message : String(reason) });
       return context.json({ error: "EMAIL_DELIVERY_FAILED" }, 502);
     }
   });

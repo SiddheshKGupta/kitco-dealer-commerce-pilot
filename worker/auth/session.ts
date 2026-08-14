@@ -2,7 +2,7 @@ export interface PendingLoginSession {
   kind: "login";
   challengeId: string;
   authUserId: string;
-  dealerId: string;
+  dealerId: string | null;
   organisationId: string;
   email: string;
   accessToken: string;
@@ -20,7 +20,7 @@ export type PendingSession = PendingLoginSession | PendingActivationSession;
 
 export interface ApplicationSession {
   authUserId: string;
-  dealerId: string;
+  dealerId: string | null;
   organisationId: string;
   email: string;
   accessToken: string;
@@ -77,6 +77,10 @@ export class SessionService {
 
   applicationCookie(token: string): string {
     return `kitco_session=${token}; Path=/; Max-Age=28800; HttpOnly; Secure; SameSite=Lax`;
+  }
+
+  clearApplicationCookie(): string {
+    return "kitco_session=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax";
   }
 
   clearPendingCookie(): string {

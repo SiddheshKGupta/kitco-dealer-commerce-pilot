@@ -10,7 +10,7 @@ describe("AdminWorkspace composition seam", () => {
 			audit: [{ correlationId: "corr-approve", action: "ORDER_APPROVED" }],
 		}} />);
 
-		expect(screen.getByRole("main")).toHaveTextContent("Exception-led order control.");
+		expect(screen.getByRole("main")).toHaveTextContent("Order review");
 		expect(screen.getByLabelText("Order fulfilment")).toHaveTextContent("Pending 3 pairs");
 		expect(screen.getByText("corr-approve")).toBeInTheDocument();
 	});

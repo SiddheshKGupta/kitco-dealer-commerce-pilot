@@ -5,6 +5,7 @@ import { requireDealer, requireSession, type AuthVariables } from "../middleware
 import { handleApiError } from "../middleware/errors";
 import { registerActivationRoutes } from "../routes/activation";
 import { registerLoginRoutes } from "../routes/login";
+import { registerLogoutRoutes } from "../routes/logout";
 import { registerOrderOtpRoutes } from "../routes/order-otp";
 import { registerOtpRoutes } from "../routes/otp";
 import { OtpService } from "./otp-service";
@@ -16,9 +17,10 @@ import { createVerifiedSessionVerifier } from "./verified-session";
 export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   const client = createSupabaseAdminClient(env);
   const activationStore = new SupabaseActivationStore(client);
-  const authenticator = new SupabasePasswordAuthenticator(client);
+  const authenticator = new SupabasePasswordAuthenticator(client, () => createSupabaseAdminClient(env));
   const otp = new OtpService(new SupabaseOtpChallengeStore(client), new ResendEmailProvider(env), {
     pepper: env.SESSION_SECRET,
+    pilotBypassCode: env.PILOT_STATIC_OTP,
   });
   const sessions = new SessionService(env.SESSION_SECRET);
   const verifyApplicationSession = createVerifiedSessionVerifier(client, sessions);
@@ -28,6 +30,7 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   app.use("/api/orders/otp", requireDealer());
   registerActivationRoutes(app, { store: activationStore, otp, sessions, authenticator, activationAccessCode: env.ACTIVATION_ACCESS_CODE });
   registerLoginRoutes(app, { authenticator, otp, sessions });
+  registerLogoutRoutes(app, sessions);
   registerOtpRoutes(app, { otp, sessions, authenticator, activationStore });
   registerOrderOtpRoutes(app, otp);
   return app;

@@ -9,13 +9,14 @@ import { createVerifiedSessionVerifier } from "./auth/verified-session";
 import type { Env } from "./env";
 import { createSupabaseAdminClient } from "./lib/supabase-admin";
 import { ApiError } from "./middleware/errors";
+import { SupabaseAdminConsoleReader } from "./supabase-admin-console";
 import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-commerce-repository";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
   const sessions = new SessionService(env.SESSION_SECRET);
   const otpStore = new SupabaseOtpChallengeStore(client);
-  const otp = new OtpService(otpStore, new ResendEmailProvider(env), { pepper: env.SESSION_SECRET });
+  const otp = new OtpService(otpStore, new ResendEmailProvider(env), { pepper: env.SESSION_SECRET, pilotBypassCode: env.PILOT_STATIC_OTP });
   return createCommerceApp({
     repository: new SupabaseCommerceRepository(client),
     verifySession: createVerifiedSessionVerifier(client, sessions),
@@ -32,6 +33,7 @@ export function createProductionCommerceApp(env: Env) {
       }
     },
     mediaStore: new R2CatalogueMediaStore(env.CATALOGUE_MEDIA),
+    adminConsole: new SupabaseAdminConsoleReader(client),
   });
 }
 
@@ -48,6 +50,9 @@ app.all("/api/otp/*", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/orders/otp", (context) =>
+  createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
+);
+app.all("/api/logout", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/*", (context) =>

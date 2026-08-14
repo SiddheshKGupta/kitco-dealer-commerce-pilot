@@ -44,7 +44,7 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
     tabRefs.current[target]?.focus();
   };
   return <main className="commerce-page" aria-busy={status === "loading"}>
-    <header className="commerce-page-heading"><div><p className="commerce-eyebrow">Dealer catalogue · Exact colourways</p><h1>Built to move.</h1></div><div><p>Browse your next collection.</p><p>See retail value, choose pairs by size, and build one Current Order.</p></div></header>
+    <header className="commerce-page-heading"><div><p className="commerce-eyebrow">Dealer catalogue · Exact colourways</p><h1>Products</h1></div><div><p>Browse your next collection.</p><p>See retail value, choose pairs by size, and build one Current Order.</p></div></header>
     <nav className="commerce-tabs" role="tablist" aria-label="Catalogue sections">{tabs.map((item, index) => <button key={item.id} ref={(node) => { tabRefs.current[index] = node; }} role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} type="button" onKeyDown={(event) => handleTabKey(event, index)} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>
     <div className="commerce-toolbar">
       <label className="commerce-search"><span>Search</span><input type="search" aria-label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Article, brand or colour" /></label>

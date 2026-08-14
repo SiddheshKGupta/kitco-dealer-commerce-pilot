@@ -14,7 +14,7 @@ export function App() {
 	const authPage = pathname === "/activate" ? <ActivationPage /> : pathname === "/" || pathname === "/login" ? <LoginPage /> : null;
 	const isControl = pathname.startsWith("/control");
 	const dealerPage = pathname.startsWith("/products") ? <DealerCommercePage requestOrderOtp={requestOrderOtp} /> : pathname.startsWith("/orders") ? <OrdersSurface /> : <OrdersSurface reports />;
-	return <div className="app-shell"><KitcoHeader />
+	return <div className="app-shell"><KitcoHeader showSignOut={!authPage} />
 		{authPage ? <main className="auth-shell"><RouteTransition>{authPage}</RouteTransition></main> : isControl ? <RouteTransition><ControlSurface /></RouteTransition> : <><nav className="dealer-nav" aria-label="Dealer navigation">{dealerNavigation.map(({ label, route }) => <a key={route} href={routeHref(route)} className={pathname.startsWith(routeHref(route)) ? "is-current" : undefined}>{label}</a>)}</nav><RouteTransition>{dealerPage}</RouteTransition></>}
 		<footer>Pilot Environment · Developed by V L &amp; CO</footer>
 	</div>;

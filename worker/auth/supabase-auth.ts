@@ -111,21 +111,25 @@ export class SupabaseActivationStore implements ActivationStore {
 }
 
 export class SupabasePasswordAuthenticator implements PasswordAuthenticator {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    private readonly createCredentialCheckClient: () => SupabaseClient,
+  ) {}
 
   async authenticate(email: string, password: string): Promise<AuthenticatedPasswordResult | null> {
-    const { data, error } = await this.client.auth.signInWithPassword({ email, password });
+    const { data, error } = await this.createCredentialCheckClient().auth.signInWithPassword({ email, password });
     if (error || !data.user || !data.session) return null;
     const { data: mapping, error: mappingError } = await this.client
       .from("app_users")
-      .select("dealer_id,organisation_id")
+      .select("dealer_id,organisation_id,app_role")
       .eq("auth_user_id", data.user.id)
-      .eq("app_role", "DEALER")
       .maybeSingle();
-    if (mappingError || !mapping?.dealer_id) return null;
+    if (mappingError || !mapping) return null;
+    if (mapping.app_role === "DEALER" && !mapping.dealer_id) return null;
+    if (mapping.app_role !== "DEALER" && mapping.app_role !== "ADMIN") return null;
     return {
       authUserId: data.user.id,
-      dealerId: mapping.dealer_id as string,
+      dealerId: mapping.app_role === "DEALER" ? (mapping.dealer_id as string) : null,
       organisationId: mapping.organisation_id as string,
       email,
       accessToken: data.session.access_token,
@@ -205,16 +209,14 @@ export class SupabaseOtpChallengeStore implements OtpChallengeStore {
     return data ? fromOtpRow(data as OtpRow) : null;
   }
 
-  async findLatest(organisationId: string, dealerId: string, purpose: StoredOtpChallenge["purpose"]): Promise<StoredOtpChallenge | null> {
-    const { data, error } = await this.client
+  async findLatest(organisationId: string, dealerId: string | null, purpose: StoredOtpChallenge["purpose"]): Promise<StoredOtpChallenge | null> {
+    let query = this.client
       .from("otp_challenges")
       .select("*")
       .eq("organisation_id", organisationId)
-      .eq("dealer_id", dealerId)
-      .eq("purpose", purpose)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("purpose", purpose);
+    query = dealerId === null ? query.is("dealer_id", null) : query.eq("dealer_id", dealerId);
+    const { data, error } = await query.order("created_at", { ascending: false }).limit(1).maybeSingle();
     if (error) throw new Error("OTP_STORAGE_FAILED");
     return data ? fromOtpRow(data as OtpRow) : null;
   }

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AdminWorkspace } from "../features/admin/AdminWorkspace";
+import { ControlConsole } from "../features/admin/ControlConsole";
 import type { ControlOrder } from "../features/admin/AdminOrderPanel";
 import type { FulfilmentAllocation } from "../features/dispatch/fulfilment";
 import { formatRetailValue } from "../features/catalogue/types";
@@ -35,10 +35,7 @@ function SurfaceState({ status, retry }: { status: "loading" | "error" | "forbid
 }
 
 export function ControlSurface() {
-  const { orders, status, load } = useOrders("/api/admin/orders");
-  if (status !== "ready") return <main className="shell-content pilot-control-loading"><h1>KITCO Control</h1><SurfaceState status={status} retry={load} /></main>;
-  if (orders.length === 0) return <main className="shell-content pilot-control-loading"><p className="eyebrow">KITCO Control</p><h1>No orders awaiting review.</h1><p className="intro">Submitted dealer orders will appear here automatically.</p></main>;
-  return <div className="pilot-control-surface"><AdminWorkspace order={orders[0]} /></div>;
+  return <div className="pilot-control-surface"><ControlConsole /></div>;
 }
 
 export function OrdersSurface({ reports = false }: { reports?: boolean }) {

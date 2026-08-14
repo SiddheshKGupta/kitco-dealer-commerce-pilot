@@ -70,7 +70,7 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         dependencies.authenticator.noteReleased?.();
         context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
         context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
-        return context.json({ authenticated: true });
+        return context.json({ authenticated: true, role: pending.dealerId ? "DEALER" : "ADMIN" });
       }
 
       const created = await dependencies.authenticator.createUser(pending.email, body.password as string);

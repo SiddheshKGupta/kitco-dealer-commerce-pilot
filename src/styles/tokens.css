@@ -1,11 +1,43 @@
+/* KITCO Dealer Commerce — design tokens.
+   Source of truth: the client-approved KITCO_Dealer_Commerce_Prototype.html. */
 :root {
   color-scheme: light;
+
+  /* Surface & ink */
   --canvas: #ffffff;
-  --surface-subtle: #f5f5f5;
-  --text: #111111;
-  --text-muted: #5c5c5c;
-  --border: #dedede;
-  --focus: #185adb;
+  --ink: #111111;
+  --ink-deep: #0c0c0c;
+  --muted: #6f6f6f;
+  --line: #e5e5e5;
+  --soft: #f6f6f6;
+  --soft2: #fafafa;
+
+  /* Semantic */
+  --success: #137333;
+  --success-soft: #e8f5ec;
+  --warning: #9a6700;
+  --warning-soft: #fff3d7;
+  --danger: #b42318;
+  --danger-soft: #fde8e7;
+  --info: #174ea6;
+  --info-soft: #e8f0fe;
+
+  /* Focus ring — must clear WCAG contrast on white and on --soft */
+  --focus: #1151ff;
+
+  /* Depth: one shadow level only. Cards are flat; this is for lifted surfaces
+     (sticky order bar, modals, toast). */
+  --shadow: 0 18px 45px rgba(0, 0, 0, .10);
+
+  /* Radius */
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-pill: 999px;
+
+  /* Type */
+  --font-ui: Arial, Helvetica, sans-serif;
+
+  /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -14,7 +46,27 @@
   --space-6: 32px;
   --space-7: 48px;
   --space-8: 64px;
-  --radius-control: 999px;
+
+  /* Motion */
   --motion-standard: 180ms;
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Chrome heights */
+  --topbar-h: 72px;
+}
+
+/* Legacy aliases still referenced by feature CSS. */
+:root {
+  --surface-subtle: var(--soft);
+  --text: var(--ink);
+  --text-muted: var(--muted);
+  --border: var(--line);
+  --radius-control: var(--radius-pill);
+  --radius-md: var(--radius-sm);
+  --radius-lg: var(--radius);
+  --hairline: var(--line);
+  --hairline-soft: #eeeeee;
+  --soft-cloud: var(--soft);
+  --charcoal: #39393b;
+  --mute: var(--muted);
 }

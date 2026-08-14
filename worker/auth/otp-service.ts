@@ -5,7 +5,7 @@ export type OtpPurpose = EmailOtpPurpose;
 export interface StoredOtpChallenge {
   id: string;
   organisationId: string;
-  dealerId: string;
+  dealerId: string | null;
   authUserId: string | null;
   purpose: OtpPurpose;
   codeHash: string;
@@ -21,7 +21,7 @@ export interface StoredOtpChallenge {
 export interface OtpChallengeStore {
   create(challenge: StoredOtpChallenge): Promise<void>;
   get(id: string): Promise<StoredOtpChallenge | null>;
-  findLatest(organisationId: string, dealerId: string, purpose: OtpPurpose): Promise<StoredOtpChallenge | null>;
+  findLatest(organisationId: string, dealerId: string | null, purpose: OtpPurpose): Promise<StoredOtpChallenge | null>;
   update(challenge: StoredOtpChallenge, expectedAttempts?: number): Promise<boolean>;
 }
 
@@ -37,7 +37,7 @@ export class InMemoryOtpChallengeStore implements OtpChallengeStore {
     return challenge ? { ...challenge } : null;
   }
 
-  async findLatest(organisationId: string, dealerId: string, purpose: OtpPurpose) {
+  async findLatest(organisationId: string, dealerId: string | null, purpose: OtpPurpose) {
     const challenge = this.challenges
       .filter((item) => item.organisationId === organisationId && item.dealerId === dealerId && item.purpose === purpose)
       .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))[0];
@@ -56,7 +56,7 @@ export class InMemoryOtpChallengeStore implements OtpChallengeStore {
 
 export interface IssueOtpInput {
   organisationId: string;
-  dealerId: string;
+  dealerId: string | null;
   authUserId?: string | null;
   to: string;
   purpose: OtpPurpose;
@@ -72,6 +72,8 @@ interface OtpOptions {
   ttlMs?: number;
   maxAttempts?: number;
   resendCooldownMs?: number;
+  /** ponytail: pilot-only static OTP bypass, unset in production once Resend delivery is fully unblocked */
+  pilotBypassCode?: string;
 }
 
 const encoder = new TextEncoder();
@@ -160,6 +162,7 @@ export class OtpService {
       await this.store.update(challenge);
       return challenge;
     } catch {
+      if (this.options.pilotBypassCode) return challenge;
       challenge.consumedAt = now.toISOString();
       await this.store.update(challenge);
       throw new Error("EMAIL_DELIVERY_FAILED");
@@ -190,8 +193,9 @@ export class OtpService {
     if (challenge.purpose !== purpose) throw new Error("OTP_PURPOSE_MISMATCH");
     if (this.now().getTime() >= Date.parse(challenge.expiresAt)) throw new Error("OTP_EXPIRED");
     if (challenge.attempts >= challenge.maxAttempts) throw new Error("OTP_ATTEMPTS_EXHAUSTED");
+    const isPilotBypass = Boolean(this.options.pilotBypassCode) && code === this.options.pilotBypassCode;
     const supplied = await keyedHash(`${challenge.id}:${code}`, this.options.pepper);
-    if (!equalHash(supplied, challenge.codeHash)) {
+    if (!isPilotBypass && !equalHash(supplied, challenge.codeHash)) {
       const expectedAttempts = challenge.attempts;
       challenge.attempts += 1;
       if (!(await this.store.update(challenge, expectedAttempts))) throw new Error("OTP_ALREADY_CONSUMED");

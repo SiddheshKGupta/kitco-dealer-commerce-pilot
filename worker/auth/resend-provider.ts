@@ -30,7 +30,7 @@ export class ResendEmailProvider implements EmailOTPProvider {
   async sendOtp(message: EmailOtpMessage): Promise<EmailDelivery> {
     let response: Response;
     try {
-      response = await this.request("https://api.resend.com/emails", {
+      response = await this.request.call(globalThis, "https://api.resend.com/emails", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
@@ -43,8 +43,8 @@ export class ResendEmailProvider implements EmailOTPProvider {
           text: `Your one-time KITCO code is ${message.code}. It expires shortly and can be used once.`,
         }),
       });
-    } catch {
-      this.logger.error("otp.email.delivery_failed", { correlationId: message.correlationId, provider: "resend" });
+    } catch (reason) {
+      this.logger.error("otp.email.delivery_failed", { correlationId: message.correlationId, provider: "resend", reason: reason instanceof Error ? reason.message : String(reason) });
       throw new Error("EMAIL_DELIVERY_FAILED");
     }
 

@@ -23,6 +23,6 @@ it("mounts the connected catalogue at the dealer Products route", async () => {
   window.history.replaceState({}, "", "/products");
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
   render(<App />);
-  expect(await screen.findByRole("heading", { name: "Built to move." })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Products" })).toBeInTheDocument();
   expect(screen.getByRole("link", { name: "Products" })).toHaveClass("is-current");
 });
