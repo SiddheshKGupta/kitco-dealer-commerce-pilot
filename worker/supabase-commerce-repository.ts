@@ -26,6 +26,16 @@ function dateOnly(value: unknown, fallback: string): string {
   return typeof value === "string" ? value.slice(0, 10) : fallback;
 }
 
+/** Normalises source audience vocabulary (MEN/Men/MENS -> MEN) for display and filtering
+ *  without touching the raw imported value. Handover §72. */
+function normalizeGender(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const upper = value.trim().toUpperCase();
+  if (upper === "MEN" || upper === "MENS") return "MEN";
+  if (upper === "WOMEN" || upper === "WOMENS") return "WOMEN";
+  return upper;
+}
+
 function catalogueRow(row: Row): CatalogueRecord | null {
   const colourway = one(row.product_colourways);
   const family = one(colourway?.product_families);
@@ -46,6 +56,10 @@ function catalogueRow(row: Row): CatalogueRecord | null {
     colourwayId: String(colourway.id),
     articleNo: String(colourway.article_no),
     brand: String(brand.name),
+    familyId: family?.id ? String(family.id) : null,
+    familyName: typeof family?.name === "string" ? family.name : null,
+    category: typeof family?.category === "string" ? family.category : null,
+    gender: normalizeGender(family?.gender),
     colour: typeof colourway.colour === "string" ? colourway.colour : "",
     mrpMinor: Number(row.mrp_minor),
     currencyCode: String(row.currency_code ?? "INR"),
@@ -107,7 +121,7 @@ const CATALOGUE_SELECT = `
   id,organisation_id,offering_type,mrp_minor,currency_code,moq_pairs,order_multiple,opens_at,closes_at,published_at,
   product_colourways!inner(
     id,article_no,colour,published_at,
-    product_families!inner(brands!inner(name)),
+    product_families!inner(id,name,category,gender,brands!inner(name)),
     product_size_values(enabled,size_values(label,sort_order)),
     product_media(object_key,media_kind,published_at),
     stock_snapshot_lines(quantity_pairs)

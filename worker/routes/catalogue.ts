@@ -7,6 +7,7 @@ export function registerCatalogueRoutes(app: Hono<{ Variables: AuthVariables }>,
     const items = await repository.listCatalogue(context.get("session"));
     return context.json({ items: items.map((item) => ({
       colourwayId: item.colourwayId, articleNo: item.articleNo, brand: item.brand, colour: item.colour,
+      familyId: item.familyId ?? null, familyName: item.familyName ?? null, category: item.category ?? null, gender: item.gender ?? null,
       mrpMinor: item.mrpMinor, currencyCode: item.currencyCode,
       mediaUrl: item.mediaKey ? `/api/media/${encodeURIComponent(item.mediaKey)}` : null,
       availability: item.stockPairs > 0 ? "AVAILABLE_TO_ORDER" : "UNAVAILABLE",

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { FilterRail } from "../../components/FilterRail";
+import { FilterRail, type MrpRange, type MrpSelection } from "../../components/FilterRail";
 import { MobileFilterDrawer } from "../../components/MobileFilterDrawer";
 import { ProductGrid } from "../../components/ProductGrid";
 import { CatalogueRequestError, fetchCatalogue } from "./api";
@@ -11,12 +11,25 @@ const tabs: Array<{ id: Tab; label: string; type?: OfferingType }> = [
   { id: "PRODUCTS", label: "Products" }, { id: "STOCK", label: "Stock in Hand", type: "STOCK_IN_HAND" }, { id: "UPCOMING", label: "Upcoming", type: "UPCOMING" }, { id: "PREBOOK", label: "Prebook", type: "PREBOOK" },
 ];
 
+// Colour is deliberately not a filter group: 396 distinct values across 641 colourways
+// makes a checkbox list unusable. Search already matches colour text instead.
+type Dimension = "brand" | "category" | "gender" | "size";
+const dimensionLabels: Record<Dimension, string> = { brand: "Brand", category: "Category", gender: "Audience", size: "Size" };
+function valuesFor(product: CatalogueProduct, dimension: Dimension): string[] {
+  if (dimension === "brand") return [product.brand];
+  if (dimension === "category") return product.category ? [product.category] : [];
+  if (dimension === "gender") return product.gender ? [product.gender] : [];
+  return product.offering.enabledSizes;
+}
+const emptySelection: Record<string, string[]> = {};
+
 export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: CatalogueProduct) => void }) {
   const [products, setProducts] = useState<CatalogueProduct[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error" | "unauthenticated">("loading");
   const [tab, setTab] = useState<Tab>("PRODUCTS");
   const [search, setSearch] = useState("");
-  const [brands, setBrands] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Record<string, string[]>>(emptySelection);
+  const [mrpSelected, setMrpSelected] = useState<MrpSelection>({ min: null, max: null });
   const [sort, setSort] = useState("featured");
   const [drawer, setDrawer] = useState(false);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -25,17 +38,48 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
     void fetchCatalogue().then((items) => { setProducts(items); setStatus("ready"); }, (error: unknown) => setStatus(error instanceof CatalogueRequestError && error.status === 401 ? "unauthenticated" : "error"));
   }, []);
   useEffect(load, [load]);
-  const allBrands = useMemo(() => [...new Set(products.map((product) => product.brand))].sort(), [products]);
+
+  const groups = useMemo(() => (["brand", "category", "gender", "size"] as Dimension[]).map((key) => ({
+    key,
+    label: dimensionLabels[key],
+    options: [...new Set(products.flatMap((product) => valuesFor(product, key)))].sort((a, b) => {
+      if (key !== "size") return a.localeCompare(b);
+      const numA = Number.parseFloat(a); const numB = Number.parseFloat(b);
+      if (Number.isNaN(numA) && Number.isNaN(numB)) return a.localeCompare(b);
+      if (Number.isNaN(numA)) return 1;
+      if (Number.isNaN(numB)) return -1;
+      return numA - numB;
+    }),
+  })), [products]);
+  const mrpBounds: MrpRange | null = useMemo(() => products.length === 0 ? null : {
+    min: Math.min(...products.map((product) => product.mrpMinor)),
+    max: Math.max(...products.map((product) => product.mrpMinor)),
+  }, [products]);
+  const totalSelected = useMemo(() => Object.values(selected).reduce((sum, values) => sum + values.length, 0) + (mrpSelected.min !== null || mrpSelected.max !== null ? 1 : 0), [selected, mrpSelected]);
+  const hasActiveQuery = search.trim() !== "" || totalSelected > 0;
+
   const visible = useMemo(() => {
     const selectedTab = tabs.find((item) => item.id === tab);
     const query = search.trim().toLowerCase();
     const filtered = products.filter((product) =>
       (!selectedTab?.type || product.offering.type === selectedTab.type) &&
-      (brands.length === 0 || brands.includes(product.brand)) &&
-      (!query || `${product.articleNo} ${product.brand} ${product.colour}`.toLowerCase().includes(query)));
+      (!query || `${product.articleNo} ${product.brand} ${product.colour} ${product.familyName ?? ""} ${product.category ?? ""}`.toLowerCase().includes(query)) &&
+      (mrpSelected.min === null || product.mrpMinor >= mrpSelected.min) &&
+      (mrpSelected.max === null || product.mrpMinor <= mrpSelected.max) &&
+      (["brand", "category", "gender", "size"] as Dimension[]).every((dimension) => {
+        const active = selected[dimension] ?? [];
+        return active.length === 0 || valuesFor(product, dimension).some((value) => active.includes(value));
+      }));
     return [...filtered].sort((a, b) => sort === "price-low" ? a.mrpMinor - b.mrpMinor : sort === "price-high" ? b.mrpMinor - a.mrpMinor : a.articleNo.localeCompare(b.articleNo));
-  }, [brands, products, search, sort, tab]);
-  const toggleBrand = (brand: string) => setBrands((current) => current.includes(brand) ? current.filter((item) => item !== brand) : [...current, brand]);
+  }, [selected, mrpSelected, products, search, sort, tab]);
+
+  const toggleFilter = (dimension: string, value: string) => setSelected((current) => {
+    const active = current[dimension] ?? [];
+    const next = active.includes(value) ? active.filter((item) => item !== value) : [...active, value];
+    return { ...current, [dimension]: next };
+  });
+  const clearFilters = () => { setSelected(emptySelection); setMrpSelected({ min: null, max: null }); };
+  const clearAll = () => { setSearch(""); clearFilters(); };
   const handleTabKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     const target = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : event.key === "ArrowRight" ? (index + 1) % tabs.length : event.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length : -1;
     if (target < 0) return;
@@ -44,14 +88,14 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
     tabRefs.current[target]?.focus();
   };
   return <main className="commerce-page" aria-busy={status === "loading"}>
-    <header className="commerce-page-heading"><div><p className="commerce-eyebrow">Dealer catalogue · Exact colourways</p><h1>Products</h1></div><div><p>Browse your next collection.</p><p>See retail value, choose pairs by size, and build one Current Order.</p></div></header>
+    <h1 className="sr-only">Products</h1>
     <nav className="commerce-tabs" role="tablist" aria-label="Catalogue sections">{tabs.map((item, index) => <button key={item.id} ref={(node) => { tabRefs.current[index] = node; }} role="tab" aria-selected={tab === item.id} tabIndex={tab === item.id ? 0 : -1} type="button" onKeyDown={(event) => handleTabKey(event, index)} onClick={() => setTab(item.id)}>{item.label}</button>)}</nav>
     <div className="commerce-toolbar">
-      <label className="commerce-search"><span>Search</span><input type="search" aria-label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Article, brand or colour" /></label>
-      <button className="commerce-filter-trigger" type="button" onClick={() => setDrawer(true)}>Filters</button>
+      <label className="commerce-search"><span>Search</span><input type="search" aria-label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Product, article, brand or colour" /></label>
+      <button className="commerce-filter-trigger" type="button" onClick={() => setDrawer(true)}>Filters{totalSelected > 0 ? ` (${totalSelected})` : ""}</button>
       <label className="commerce-sort"><span>Sort</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Featured</option><option value="price-low">MRP: Low to high</option><option value="price-high">MRP: High to low</option></select></label>
     </div>
-    {status === "loading" ? <p className="commerce-status" role="status">Loading products…</p> : status === "unauthenticated" ? <div className="commerce-status" role="alert"><strong>Your session has ended.</strong><a className="commerce-primary" href="/login?returnTo=/products">Sign in again</a></div> : status === "error" ? <div className="commerce-status" role="alert"><strong>Products could not be loaded.</strong><button className="commerce-primary" type="button" onClick={load}>Try again</button></div> : <div className="commerce-results"><FilterRail brands={allBrands} selected={brands} onToggle={toggleBrand} /><section aria-label="Products"><div className="commerce-result-count">{visible.length} colourways</div><ProductGrid products={visible} onOpenProduct={onOpenProduct} /></section></div>}
-    <MobileFilterDrawer open={drawer} brands={allBrands} selected={brands} onToggle={toggleBrand} onClose={() => setDrawer(false)} />
+    {status === "loading" ? <p className="commerce-status" role="status">Loading products…</p> : status === "unauthenticated" ? <div className="commerce-status" role="alert"><strong>Your session has ended.</strong><a className="commerce-primary" href="/login?returnTo=/products">Sign in again</a></div> : status === "error" ? <div className="commerce-status" role="alert"><strong>Products could not be loaded.</strong><button className="commerce-primary" type="button" onClick={load}>Try again</button></div> : <div className="commerce-results"><FilterRail groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} /><section aria-label="Products"><div className="commerce-result-count">{visible.length} colourways</div><ProductGrid products={visible} onOpenProduct={onOpenProduct} onClearFilters={hasActiveQuery ? clearAll : undefined} /></section></div>}
+    <MobileFilterDrawer open={drawer} groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} onClose={() => setDrawer(false)} />
   </main>;
 }

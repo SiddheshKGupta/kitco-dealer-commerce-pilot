@@ -67,3 +67,57 @@ describe("dealer catalogue", () => {
     expect(screen.getByRole("button", { name: "View NK-101" })).toBeInTheDocument();
   });
 });
+
+const richCatalogue = {
+  items: [
+    { colourwayId: "cw-1", articleNo: "NK-101", brand: "Nike", familyName: "Air Zoom Pulse", category: "RUNNING", gender: "MEN", colour: "Black", mrpMinor: 5000, currencyCode: "INR", mediaUrl: null, availability: "AVAILABLE_TO_ORDER", offering: { id: "offer-1", enabledSizes: ["7", "8"], moqPairs: 1, orderMultiplePairs: 1, type: "STOCK_IN_HAND" } },
+    { colourwayId: "cw-2", articleNo: "NK-202", brand: "Nike", familyName: "Court Vision", category: "BASKETBALL", gender: "WOMEN", colour: "White", mrpMinor: 9000, currencyCode: "INR", mediaUrl: null, availability: "AVAILABLE_TO_ORDER", offering: { id: "offer-2", enabledSizes: ["6", "9"], moqPairs: 1, orderMultiplePairs: 1, type: "STOCK_IN_HAND" } },
+    { colourwayId: "cw-3", articleNo: "RB-303", brand: "Reebok", familyName: null, category: null, gender: null, colour: "Grey", mrpMinor: 7000, currencyCode: "INR", mediaUrl: null, availability: "AVAILABLE_TO_ORDER", offering: { id: "offer-3", enabledSizes: ["10"], moqPairs: 1, orderMultiplePairs: 1, type: "STOCK_IN_HAND" } },
+  ],
+};
+
+describe("dealer catalogue — product identity search and filters", () => {
+  it("searches by product name and family, not just article number", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(richCatalogue), { status: 200 })));
+    render(<CataloguePage onOpenProduct={() => undefined} />);
+    await screen.findByText("Air Zoom Pulse");
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search products" }), { target: { value: "court vision" } });
+    expect(screen.getByRole("button", { name: "View NK-202" })).toBeInTheDocument();
+    expect(screen.queryByText("Air Zoom Pulse")).not.toBeInTheDocument();
+  });
+
+  it("filters by category, audience and size, with Clear all resetting every dimension", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(richCatalogue), { status: 200 })));
+    render(<CataloguePage onOpenProduct={() => undefined} />);
+    await screen.findByText("Air Zoom Pulse");
+    const rail = screen.getByRole("complementary", { name: "Product filters" });
+
+    fireEvent.click(within(rail).getByRole("checkbox", { name: "RUNNING" }));
+    expect(screen.getByText("Air Zoom Pulse")).toBeInTheDocument();
+    expect(screen.queryByText("Court Vision")).not.toBeInTheDocument();
+
+    fireEvent.click(within(rail).getByRole("checkbox", { name: "RUNNING" }));
+    fireEvent.click(within(rail).getByRole("checkbox", { name: "9" }));
+    expect(screen.getByText("Court Vision")).toBeInTheDocument();
+    expect(screen.queryByText("Air Zoom Pulse")).not.toBeInTheDocument();
+
+    fireEvent.click(within(rail).getByRole("button", { name: /Clear all/ }));
+    expect(screen.getByText("Air Zoom Pulse")).toBeInTheDocument();
+    expect(screen.getByText("Court Vision")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "View RB-303" })).toBeInTheDocument();
+  });
+
+  it("shows a Reebok article number when no product name exists, and offers a clear action on zero results", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(richCatalogue), { status: 200 })));
+    render(<CataloguePage onOpenProduct={() => undefined} />);
+    await screen.findByText("Air Zoom Pulse");
+    expect(screen.getByRole("button", { name: "View RB-303" })).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search products" }), { target: { value: "nonexistent product" } });
+    expect(screen.getByText("No products match.")).toBeInTheDocument();
+    const clear = screen.getByRole("button", { name: "Clear search and filters" });
+    fireEvent.click(clear);
+    expect(screen.getByRole("searchbox", { name: "Search products" })).toHaveValue("");
+    expect(screen.getByText("Air Zoom Pulse")).toBeInTheDocument();
+  });
+});

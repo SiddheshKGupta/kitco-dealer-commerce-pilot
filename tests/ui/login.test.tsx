@@ -31,7 +31,7 @@ describe("dealer login", () => {
 		expect(screen.getByText(/Resend available in/)).toBeInTheDocument();
 		fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
 		fireEvent.click(screen.getByRole("button", { name: "Confirm sign-in" }));
-		await screen.findByText("Browse your next collection.");
+		await screen.findByRole("tablist", { name: "Catalogue sections" });
 	});
 
 	it("shows a precise delivery failure without suggesting that credentials were accepted", async () => {

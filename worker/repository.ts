@@ -11,6 +11,10 @@ export interface CatalogueRecord {
   colourwayId: string;
   articleNo: string;
   brand: string;
+  familyId?: string | null;
+  familyName?: string | null;
+  category?: string | null;
+  gender?: string | null;
   colour: string;
   mrpMinor: number;
   currencyCode: string;
