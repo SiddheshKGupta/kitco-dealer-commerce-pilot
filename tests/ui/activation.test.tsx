@@ -57,4 +57,38 @@ describe("dealer activation", () => {
 		fireEvent.click(screen.getByRole("button", { name: "Verify and activate" }));
 		await screen.findByText("Activation complete");
 	});
+
+	it("offers the registered email masked, sends via emailChoice=MASTER, and lets the dealer switch to an alternate", async () => {
+		window.history.replaceState({}, "", "/activate");
+		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
+			if (input === "/api/activation/dealers?q=VLC") return response({ dealers: [{ id: "d-1", name: "VLCO", city: "Patna" }] });
+			if (input === "/api/activation/dealers/d-1") return response({ id: "d-1", name: "VLCO", city: "Patna", maskedMasterEmail: "s****h@vlconsultants.in" });
+			if (input === "/api/activation/request-otp") {
+				expect(JSON.parse(String(init?.body))).toEqual({ dealerId: "d-1", emailChoice: "MASTER" });
+				return response({ challengeId: "activation-1" }, 202);
+			}
+			throw new Error(`unexpected fetch ${input}`);
+		});
+		vi.stubGlobal("fetch", fetchMock);
+		render(<App />);
+		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
+		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
+		await screen.findByText("s****h@vlconsultants.in");
+		expect(screen.queryByLabelText("Email for this activation")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+		await screen.findByText("Enter the 6-digit code");
+	});
+
+	it("falls back to manual email entry when a dealer has no registered email on file", async () => {
+		window.history.replaceState({}, "", "/activate");
+		vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+			if (input === "/api/activation/dealers?q=VLC") return response({ dealers: [{ id: "d-1", name: "VLCO", city: "Patna" }] });
+			if (input === "/api/activation/dealers/d-1") return response({ id: "d-1", name: "VLCO", city: "Patna", maskedMasterEmail: null });
+			throw new Error(`unexpected fetch ${input}`);
+		}));
+		render(<App />);
+		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
+		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
+		await screen.findByLabelText("Email for this activation");
+	});
 });

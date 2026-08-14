@@ -15,7 +15,7 @@ const tabs: Array<{ id: Tab; label: string; type?: OfferingType }> = [
 // Colour is deliberately not a filter group: 396 distinct values across 641 colourways
 // makes a checkbox list unusable. Search already matches colour text instead.
 type Dimension = "brand" | "category" | "gender" | "size";
-const dimensionLabels: Record<Dimension, string> = { brand: "Brand", category: "Category", gender: "Audience", size: "Size" };
+const dimensionLabels: Record<Dimension, string> = { brand: "Brand", category: "Category", gender: "Gender", size: "Size" };
 function valuesFor(product: CatalogueProduct, dimension: Dimension): string[] {
   if (dimension === "brand") return [product.brand];
   if (dimension === "category") return product.category ? [product.category] : [];

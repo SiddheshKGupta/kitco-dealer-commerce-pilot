@@ -39,9 +39,9 @@ function Table({ head, children }: { head: string[]; children: ReactNode }) {
 
 function statusTone(value: string): string {
 	const text = value.toUpperCase();
+	if (["REJECT", "CANCEL", "ERROR", "FAILED", "INACTIVE"].some((token) => text.includes(token))) return "red";
 	if (["APPROVED", "ACTIVE", "COMMITTED", "DISPATCHED", "RELEASED", "PUBLISHED"].some((token) => text.includes(token))) return "green";
 	if (["SUBMITTED", "REVIEW", "REVISION", "PENDING", "UPLOADED", "PARTIAL", "HOLD"].some((token) => text.includes(token))) return "amber";
-	if (["REJECT", "CANCEL", "ERROR", "FAILED"].some((token) => text.includes(token))) return "red";
 	return "blue";
 }
 export function StatusPill({ value }: { value: string }) {
@@ -296,7 +296,7 @@ export function HoldsSection() {
 }
 
 /* -------------------------------------------------------------- Audit trail */
-interface AuditRow { id: string; eventType: string; entityType: string | null; entityId: string | null; correlationId: string | null; occurredAt: string }
+interface AuditRow { id: string; eventType: string; entityType: string | null; entityId: string | null; correlationId: string | null; occurredAt: string; actorEmail: string | null }
 export function AuditSection() {
 	const { data, status, reload } = useAdminSection<{ audit: AuditRow[] }>("/api/admin/console/audit");
 	const rows = data?.audit ?? [];
@@ -304,9 +304,10 @@ export function AuditSection() {
 		<PageHead eyebrow="Immutable evidence layer" title="Audit Trail" lead="Who changed what, when, and against which business object." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No audit events recorded yet." /> :
 			<Panel title={`${number(rows.length)} most recent events`}>
-				<Table head={["When", "Event", "Entity", "Correlation"]}>
+				<Table head={["When", "Who", "Event", "Entity", "Correlation"]}>
 					{rows.map((row) => <tr key={row.id}>
 						<td>{dateTime(row.occurredAt)}</td>
+						<td>{row.actorEmail ?? dash}</td>
 						<td><span className="status blue">{row.eventType.replaceAll("_", " ")}</span></td>
 						<td>{row.entityType ?? dash}<div className="tiny">{row.entityId?.slice(0, 8) ?? ""}</div></td>
 						<td className="tiny">{row.correlationId?.slice(0, 8) ?? dash}</td>

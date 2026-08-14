@@ -51,7 +51,7 @@ export interface ImportJobRow {
 }
 export interface AuditRow {
   id: string; eventType: string; entityType: string | null; entityId: string | null;
-  correlationId: string | null; occurredAt: string;
+  correlationId: string | null; occurredAt: string; actorEmail: string | null;
 }
 export interface SettingsPayload {
   organisation: { id: string; code: string | null; name: string } | null;

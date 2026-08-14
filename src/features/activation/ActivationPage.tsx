@@ -7,6 +7,7 @@ type Stage = "lookup" | "email" | "verify" | "complete";
 
 export function ActivationPage() {
 	const [query, setQuery] = useState(""); const [dealers, setDealers] = useState<Dealer[]>([]); const [dealer, setDealer] = useState<Dealer | null>(null);
+	const [maskedMasterEmail, setMaskedMasterEmail] = useState<string | null>(null); const [useAlternate, setUseAlternate] = useState(false);
 	const [email, setEmail] = useState(""); const [code, setCode] = useState(""); const [password, setPassword] = useState(""); const [challengeId, setChallengeId] = useState("");
 	const [stage, setStage] = useState<Stage>("lookup"); const [error, setError] = useState(""); const [resendIn, setResendIn] = useState(30);
 	useEffect(() => {
@@ -18,9 +19,19 @@ export function ActivationPage() {
 		return () => { current = false; };
 	}, [query]);
 	useEffect(() => { if (stage !== "verify" || resendIn <= 0) return; const timer = window.setTimeout(() => setResendIn((value) => value - 1), 1000); return () => window.clearTimeout(timer); }, [stage, resendIn]);
-	async function requestCode() {
+	function selectDealer(item: Dealer) {
+		setDealer(item); setStage("email"); setError(""); setUseAlternate(false); setMaskedMasterEmail(null); setEmail("");
+		fetch(`/api/activation/dealers/${item.id}`, { credentials: "include" }).then(async (response) => {
+			const payload = await response.json() as { maskedMasterEmail?: string | null };
+			if (response.ok) setMaskedMasterEmail(payload.maskedMasterEmail ?? null); else setUseAlternate(true);
+		}).catch(() => setUseAlternate(true));
+	}
+	async function requestCode(useMaster: boolean) {
 		if (!dealer) return; setError("");
-		try { const response = await postJson<{ challengeId: string }>("/api/activation/request-otp", { dealerId: dealer.id, email }); setChallengeId(response.challengeId); setResendIn(30); setStage("verify"); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
+		try {
+			const response = await postJson<{ challengeId: string }>("/api/activation/request-otp", useMaster ? { dealerId: dealer.id, emailChoice: "MASTER" } : { dealerId: dealer.id, email });
+			setChallengeId(response.challengeId); setResendIn(30); setStage("verify");
+		} catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 	async function verify() {
 		if (password.length < 12) { setError(errorMessage("PASSWORD_TOO_SHORT")); return; }
@@ -30,8 +41,18 @@ export function ActivationPage() {
 		setError(""); try { const response = await postJson<{ challengeId: string }>("/api/otp/resend", { challengeId }); setChallengeId(response.challengeId); setResendIn(30); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 	return <section className="auth-page"><div className="auth-kicker">Dealer activation <span>01 / 03</span></div><h1>Start with your dealership.</h1><p className="auth-intro">Confirm your dealer record, then create a secure account for the pilot.</p>
-		{stage === "lookup" && <><label htmlFor="dealer-lookup">Find your dealership</label><Input id="dealer-lookup" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type at least 3 characters" autoComplete="off" />{query.length > 0 && query.length < 3 && <p className="field-note">Enter at least 3 characters to search.</p>}<div className="dealer-results">{dealers.map((item) => <button className="dealer-result" type="button" key={item.id} onClick={() => { setDealer(item); setStage("email"); setError(""); }}>{item.name} · {item.city ?? "City unavailable"}</button>)}</div></>}
-		{stage === "email" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Choose an email</h2><p className="field-note">Registered email stays private. Enter the email you want to use for this controlled pilot.</p><label htmlFor="activation-email">Email for this activation</label><Input id="activation-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /><Button full disabled={!email} onClick={requestCode}>Send code</Button></>}
+		{stage === "lookup" && <><label htmlFor="dealer-lookup">Find your dealership</label><Input id="dealer-lookup" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type at least 3 characters" autoComplete="off" />{query.length > 0 && query.length < 3 && <p className="field-note">Enter at least 3 characters to search.</p>}<div className="dealer-results">{dealers.map((item) => <button className="dealer-result" type="button" key={item.id} onClick={() => selectDealer(item)}>{item.name} · {item.city ?? "City unavailable"}</button>)}</div></>}
+		{stage === "email" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Choose an email</h2>
+			{maskedMasterEmail && !useAlternate ? <>
+				<p className="field-note">Registered email: <strong>{maskedMasterEmail}</strong></p>
+				<Button full onClick={() => void requestCode(true)}>Send code</Button>
+				<button className="text-action" type="button" onClick={() => setUseAlternate(true)}>Can't access this email? Use another email</button>
+			</> : <>
+				<p className="field-note">Registered email stays private. Enter the email you want to use for this controlled pilot.</p>
+				<label htmlFor="activation-email">Email for this activation</label><Input id="activation-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+				<Button full disabled={!email} onClick={() => void requestCode(false)}>Send code</Button>
+				{maskedMasterEmail && <button className="text-action" type="button" onClick={() => setUseAlternate(false)}>Use registered email instead</button>}
+			</>}</>}
 		{stage === "verify" && <><h2>Enter the 6-digit code</h2><p className="field-note">We sent a verification code to your selected email.</p><OTPInput value={code} onChange={setCode} /><label htmlFor="activation-password">Create password</label><PasswordInput id="activation-password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /><Button full disabled={code.length !== 6} onClick={verify}>Verify and activate</Button><button className="text-action" type="button" disabled={resendIn > 0} onClick={resend}>{resendIn > 0 ? `Resend available in ${resendIn}s` : "Resend code"}</button></>}
 		{stage === "complete" && <div className="success-state"><p className="auth-kicker">Ready</p><h2>Activation complete</h2><p>Your dealer account is ready. Continue to the catalogue.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/products">View products</a></div>}
 		{error && <p className="form-error" role="alert">{error}</p>}</section>;

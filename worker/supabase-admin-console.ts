@@ -209,13 +209,20 @@ export class SupabaseAdminConsoleReader implements AdminConsoleReader {
   async audit(session: SessionIdentity): Promise<AuditRow[]> {
     const rows = await this.rows(
       "audit_events", session.organisationId,
-      "id,event_type,entity_type,entity_id,correlation_id,occurred_at",
+      "id,event_type,entity_type,entity_id,correlation_id,occurred_at,actor_auth_user_id",
       (q) => q.order("occurred_at", { ascending: false }).limit(200),
     );
+    const actorIds = [...new Set(rows.map((row) => row.actor_auth_user_id).filter(Boolean))] as string[];
+    const emailById = new Map<string, string>();
+    await Promise.all(actorIds.map(async (id) => {
+      const { data } = await this.client.auth.admin.getUserById(id);
+      if (data.user?.email) emailById.set(id, data.user.email);
+    }));
     return rows.map((row) => ({
       id: String(row.id), eventType: String(row.event_type),
       entityType: row.entity_type ?? null, entityId: row.entity_id ?? null,
       correlationId: row.correlation_id ?? null, occurredAt: String(row.occurred_at),
+      actorEmail: row.actor_auth_user_id ? emailById.get(String(row.actor_auth_user_id)) ?? null : null,
     }));
   }
 

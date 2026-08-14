@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, Select } from "../../components/ui";
+import { Button, FormField, Input, Select } from "../../components/ui";
 import { formatRetailValue } from "../catalogue/types";
 import { AdminOrderPanel, type ControlOrder } from "./AdminOrderPanel";
 import {
@@ -11,6 +11,73 @@ import { useAdminSection } from "./useAdminSection";
 import "./control.css";
 
 interface LiveOrder extends ControlOrder { version?: number; retailValueMinor?: number; dealerName?: string; submittedAt?: string }
+
+const shortDate = (value: string) => new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+/* --------------------------------------------------------------- Admin Users */
+interface AdminUserRow { id: string; email: string; status: string; mustChangePassword: boolean; createdAt: string }
+function AdminUsersSection() {
+	const { data, status, reload } = useAdminSection<{ users: AdminUserRow[] }>("/api/admin/users");
+	const [email, setEmail] = useState("");
+	const [creating, setCreating] = useState(false);
+	const [created, setCreated] = useState<{ email: string; tempPassword: string } | null>(null);
+	const [error, setError] = useState("");
+	const users = data?.users ?? [];
+
+	async function addAdmin() {
+		setError(""); setCreating(true); setCreated(null);
+		try {
+			const response = await fetch("/api/admin/users", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
+			const body = await response.json() as { email?: string; tempPassword?: string; error?: { message?: string } };
+			if (!response.ok) throw new Error(body.error?.message ?? "Admin account could not be created");
+			setCreated({ email: body.email!, tempPassword: body.tempPassword! });
+			setEmail("");
+			reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Admin account could not be created"); }
+		finally { setCreating(false); }
+	}
+
+	async function setUserStatus(id: string, nextStatus: "ACTIVE" | "INACTIVE") {
+		setError("");
+		try {
+			const response = await fetch(`/api/admin/users/${id}/status`, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: nextStatus }) });
+			const body = await response.json() as { error?: { message?: string } };
+			if (!response.ok) throw new Error(body.error?.message ?? "Admin account could not be updated");
+			reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Admin account could not be updated"); }
+	}
+
+	return <>
+		<PageHead eyebrow="Access control" title="Admin Users" lead="Every KITCO admin signs in with their own account. No shared credentials." />
+		<section className="panel">
+			<div className="panel-head"><h3>Add admin</h3></div>
+			<div className="panel-body">
+				<FormField label="Email" htmlFor="new-admin-email">
+					<Input id="new-admin-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@kitco.example" />
+				</FormField>
+				<Button disabled={!email || creating} onClick={() => void addAdmin()}>{creating ? "Creating…" : "Create admin account"}</Button>
+				{created && <p className="notice">Account created for {created.email}. Temporary password (share securely, shown once): <strong>{created.tempPassword}</strong></p>}
+				{error && <p className="form-error" role="alert">{error}</p>}
+			</div>
+		</section>
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : users.length === 0
+			? <SectionState status="ready" retry={reload} empty="No admin accounts yet." />
+			: <section className="panel">
+				<div className="panel-head"><h3>{users.length} admin accounts</h3></div>
+				<div className="table-wrap"><table className="data-table">
+					<thead><tr><th>Email</th><th>Status</th><th>Created</th><th /></tr></thead>
+					<tbody>{users.map((user) => <tr key={user.id}>
+						<td><b>{user.email}</b>{user.mustChangePassword && <div className="tiny">Must change password</div>}</td>
+						<td><StatusPill value={user.status} /></td>
+						<td>{shortDate(user.createdAt)}</td>
+						<td className="right">{user.status === "ACTIVE"
+							? <Button variant="secondary" size="sm" onClick={() => void setUserStatus(user.id, "INACTIVE")}>Deactivate</Button>
+							: <Button variant="secondary" size="sm" onClick={() => void setUserStatus(user.id, "ACTIVE")}>Reactivate</Button>}</td>
+					</tr>)}</tbody>
+				</table></div>
+			</section>}
+	</>;
+}
 
 const number = (value: number) => value.toLocaleString("en-IN");
 
@@ -107,6 +174,7 @@ const sections = [
 	{ slug: "schemes", label: "Schemes", group: "operations", render: () => <SchemesSection /> },
 	{ slug: "reports", label: "Reports", group: "operations", render: () => <ReportsSection /> },
 	{ slug: "audit-trail", label: "Audit Trail", group: "operations", render: () => <AuditSection /> },
+	{ slug: "admin-users", label: "Admin Users", group: "operations", render: () => <AdminUsersSection /> },
 	{ slug: "settings", label: "Settings", group: "operations", render: () => <SettingsSection /> },
 ] as const;
 

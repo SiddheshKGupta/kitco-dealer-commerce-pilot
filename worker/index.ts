@@ -13,6 +13,7 @@ import { SupabaseAdminConsoleReader } from "./supabase-admin-console";
 import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-commerce-repository";
 import { SupabaseOrdersExporter } from "./supabase-orders-export";
 import { SupabaseDealerApplicationsAdmin } from "./supabase-dealer-applications";
+import { SupabaseAdminUsersStore } from "./supabase-admin-users";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
@@ -38,6 +39,7 @@ export function createProductionCommerceApp(env: Env) {
     adminConsole: new SupabaseAdminConsoleReader(client),
     ordersExporter: new SupabaseOrdersExporter(client),
     dealerApplications: new SupabaseDealerApplicationsAdmin(client),
+    adminUsers: new SupabaseAdminUsersStore(client),
   });
 }
 

@@ -34,12 +34,31 @@ function isEmail(value: unknown): value is string {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value) && value.length <= 254;
 }
 
+/** Never expose a dealer's registered email in full -- only enough to let the
+ *  dealer recognise their own inbox (v3.0 §10). */
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!local || !domain) return "***";
+  const visible = local.length <= 2 ? local[0] ?? "*" : `${local[0]}${local.at(-1)}`;
+  return `${visible[0]}${"*".repeat(Math.max(local.length - visible.length, 1))}${visible.slice(1)}@${domain}`;
+}
+
 export function registerActivationRoutes(app: Hono<any>, dependencies: ActivationDependencies): void {
   app.get("/api/activation/dealers", async (context) => {
     const query = context.req.query("q")?.trim() ?? "";
     if (query.length < 3) return context.json({ error: "LOOKUP_PREFIX_TOO_SHORT" }, 400);
     const dealers = await dependencies.store.search(query);
     return context.json({ dealers: dealers.map(({ id, name, city }) => ({ id, name, city })) });
+  });
+
+  app.get("/api/activation/dealers/:id", async (context) => {
+    const dealer = await dependencies.store.get(context.req.param("id"));
+    if (!dealer) return context.json({ error: "DEALER_NOT_FOUND" }, 404);
+    if (dealer.authUserId || dealer.activationStatus === "ACTIVE") return context.json({ error: "DEALER_ALREADY_ACTIVE" }, 409);
+    return context.json({
+      id: dealer.id, name: dealer.name, city: dealer.city,
+      maskedMasterEmail: dealer.masterEmail ? maskEmail(dealer.masterEmail) : null,
+    });
   });
 
   app.post("/api/activation/request-otp", async (context) => {
