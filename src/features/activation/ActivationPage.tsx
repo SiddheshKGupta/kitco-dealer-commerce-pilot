@@ -13,7 +13,7 @@ export function ActivationPage() {
 	const [maskedMasterEmail, setMaskedMasterEmail] = useState<string | null>(null); const [useAlternate, setUseAlternate] = useState(false);
 	const [email, setEmail] = useState(""); const [code, setCode] = useState(""); const [challengeId, setChallengeId] = useState("");
 	const [business, setBusiness] = useState<Business>(emptyBusiness);
-	const [stage, setStage] = useState<Stage>("lookup"); const [error, setError] = useState(""); const [resendIn, setResendIn] = useState(30);
+	const [stage, setStage] = useState<Stage>("lookup"); const [error, setError] = useState(""); const [resendIn, setResendIn] = useState(60);
 	useEffect(() => {
 		if (query.trim().length < 3) { setDealers([]); return; }
 		let current = true;
@@ -48,14 +48,14 @@ export function ActivationPage() {
 		if (!dealer) return; setError("");
 		try {
 			const response = await postJson<{ challengeId: string }>("/api/activation/request-otp", useMaster ? { dealerId: dealer.id, emailChoice: "MASTER", business } : { dealerId: dealer.id, email, business });
-			setChallengeId(response.challengeId); setResendIn(30); setStage("verify");
+			setChallengeId(response.challengeId); setResendIn(60); setStage("verify");
 		} catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 	async function verify() {
 		setError(""); try { await postJson("/api/otp/verify", { challengeId, code, purpose: "ACTIVATION" }); setStage("complete"); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 	async function resend() {
-		setError(""); try { const response = await postJson<{ challengeId: string }>("/api/otp/resend", { challengeId }); setChallengeId(response.challengeId); setResendIn(30); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
+		setError(""); try { const response = await postJson<{ challengeId: string }>("/api/otp/resend", { challengeId }); setChallengeId(response.challengeId); setResendIn(60); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 	return <section className={stage === "business" ? "auth-page auth-page-wide" : "auth-page"}><div className="auth-kicker">Dealer activation <span>01 / 03</span></div><h1>Let's find your shop.</h1><p className="auth-intro">Search for your shop below, confirm a few details, then check your email. That's it.</p>
 		{stage === "lookup" && <><label htmlFor="dealer-lookup">Search for your shop</label><Input id="dealer-lookup" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type your shop's name" autoComplete="off" />{query.length > 0 && query.length < 3 && <p className="field-note">Type at least 3 letters to search.</p>}<div className="dealer-results">{dealers.map((item) => <button className="dealer-result" type="button" key={item.id} onClick={() => selectDealer(item)}>{item.name} · {item.city ?? "City unavailable"}</button>)}</div>{query.trim().length >= 3 && <p className="field-note">Don't see your shop? <a href="/register">Register as a new dealer</a></p>}</>}

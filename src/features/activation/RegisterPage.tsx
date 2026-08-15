@@ -22,7 +22,7 @@ export function RegisterPage() {
 	const [stage, setStage] = useState<Stage>("form");
 	const [error, setError] = useState("");
 	const [pending, setPending] = useState(false);
-	const [resendIn, setResendIn] = useState(30);
+	const [resendIn, setResendIn] = useState(60);
 
 	function set<K extends keyof FormState>(key: K) {
 		return (event: React.ChangeEvent<HTMLInputElement>) => setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -41,7 +41,7 @@ export function RegisterPage() {
 			});
 			setApplicationId(id);
 			const otp = await postJson<{ challengeId: string }>(`/api/register/${id}/otp`, {});
-			setChallengeId(otp.challengeId); setResendIn(30); setStage("verify");
+			setChallengeId(otp.challengeId); setResendIn(60); setStage("verify");
 		} catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 		finally { setPending(false); }
 	}
@@ -60,7 +60,7 @@ export function RegisterPage() {
 		setError("");
 		try {
 			const otp = await postJson<{ challengeId: string }>(`/api/register/${applicationId}/otp`, {});
-			setChallengeId(otp.challengeId); setResendIn(30);
+			setChallengeId(otp.challengeId); setResendIn(60);
 		} catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 
