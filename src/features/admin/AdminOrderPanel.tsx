@@ -43,11 +43,13 @@ export function AdminOrderPanel({ order, api = defaultApi }: { order: ControlOrd
 				<h2 className="control-article-title">{identity.articleNo ? <>{identity.brand ? `${identity.brand} · ` : ""}{identity.familyName ?? identity.articleNo}{identity.articleNo !== identity.familyName ? ` · ${identity.articleNo}` : ""}{identity.colour ? ` · ${identity.colour}` : ""}</> : `Article ${orderLineId}`}</h2>
 				<div className="control-size-cards">{items.map((item) => {
 					const pendingPairs = item.approvedPairs - item.dispatchedPairs - item.heldPairs;
-					return <article className="control-size-card" key={rowKey(item)}>
-						<div className="control-size-card-head"><strong>Size {item.size}</strong><span>{item.dispatchedPairs} dispatched · {item.heldPairs} on hold · {pendingPairs} pending</span></div>
-						<OrderLineDecision orderId={order.id} allocation={item} request={api} onDecided={handleDecided} />
-						<DispatchForm orderId={order.id} allocation={item} request={api} onMessage={setMessage} />
-					</article>;
+					return <details className="control-size-card" key={rowKey(item)}>
+						<summary className="control-size-card-head"><strong>Size {item.size}</strong><span>{item.dispatchedPairs} dispatched · {item.heldPairs} on hold · {pendingPairs} pending</span></summary>
+						<div className="control-size-card-body">
+							<OrderLineDecision orderId={order.id} allocation={item} request={api} onDecided={handleDecided} />
+							<DispatchForm orderId={order.id} allocation={item} request={api} onMessage={setMessage} />
+						</div>
+					</details>;
 				})}</div>
 			</section>;
 		})}</div>
