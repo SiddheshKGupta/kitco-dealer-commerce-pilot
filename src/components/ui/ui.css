@@ -86,20 +86,16 @@
 .ui-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas); overflow: hidden; }
 
 /* ---------------------------------------------------------- BottomSheet (mobile) */
-/* Centered, not bottom-anchored: a dialog appearing dead-center is unambiguous at a
-   glance for a non-tech-savvy audience -- no gesture/scroll discovery needed to
-   notice something appeared. */
-.ui-sheet-scrim { position: fixed; z-index: 60; inset: 0; display: grid; place-items: center; padding: var(--space-4); background: rgb(0 0 0 / .4); }
-.ui-sheet { width: min(100%, 480px); max-height: 85vh; overflow: auto; background: var(--canvas); border-radius: var(--radius); box-shadow: var(--shadow); padding-bottom: env(safe-area-inset-bottom, 0); opacity: 1; animation: ui-sheet-rise var(--motion-standard) var(--ease-standard); }
+/* Native <dialog>, shown via showModal(): the browser renders it in the top layer
+   (always above everything, no z-index/stacking-context possible) and centers it
+   the same way it centers a native <select> dropdown -- no custom scrim element,
+   no CSS animation-fill-mode state that can get stuck invisible. */
+.ui-native-sheet { width: min(100%, 480px); max-height: 85vh; overflow: auto; margin: auto; border: 0; border-radius: var(--radius); background: var(--canvas); box-shadow: var(--shadow); padding: 0; padding-bottom: env(safe-area-inset-bottom, 0); }
+.ui-native-sheet::backdrop { background: rgb(0 0 0 / .4); }
 .ui-sheet-head { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-5) var(--space-5) var(--space-4); background: var(--canvas); border-bottom: 1px solid var(--line); }
 .ui-sheet-head p { margin: 0; font-size: 18px; font-weight: 700; }
 .ui-sheet-body { padding: var(--space-5); }
 .ui-sheet-footer { position: sticky; bottom: 0; padding: var(--space-4) var(--space-5); background: var(--canvas); border-top: 1px solid var(--line); }
-/* Only the entrance motion is animated -- opacity stays 1 unconditionally so the
-   sheet's content is never hidden if the animation fails to start or complete
-   (observed live: a fresh-mounted element can get stuck at its `from` keyframe in
-   some engines when `animation-fill-mode: both` gates opacity on playback). */
-@keyframes ui-sheet-rise { from { transform: scale(.98); } to { transform: scale(1); } }
 
 /* ---------------------------------------------------------- Modal (desktop) */
 .ui-modal-scrim { position: fixed; z-index: 60; inset: 0; display: grid; place-items: center; padding: var(--space-4); background: rgb(0 0 0 / .4); }

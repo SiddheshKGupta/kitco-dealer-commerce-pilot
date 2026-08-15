@@ -314,6 +314,47 @@ fits the brand+gender.
 values a dealer sees on the PDP) as well as admin-facing (the CRUD), so the 40-50-year-old
 readability bar and plain-language bar both apply.
 
+## Task 9: Product-level order CSV (per-order + consolidated, dealer + admin)
+
+**Client requirement, verbatim:** a CSV export with exactly these columns: Article No., Article
+Name, MRP, Gender, All Sizes by Quantity, Total Value. Must be available **per order** and as a
+**consolidated** option on the main admin Orders page. The same export must also be available
+to the **dealer** on their Reports page (their own orders only, obviously — never another
+dealer's).
+
+**This is a different, simpler export from Task 6's.** Task 6 (already shipped) built a
+30-column operations CSV (dealer/dispatch/hold/fulfilment-focused) for KITCO admin reporting.
+This new one is product-centric — what a dealer or admin would actually want to see order
+contents as: article, name, MRP, gender, the size/quantity breakdown, and the line total. Don't
+conflate the two or try to make Task 6's export serve both purposes — add a second, focused
+export.
+
+**Do:**
+1. New worker route(s) (e.g. `/api/admin/orders/:orderId/export.csv` for per-order,
+   `/api/admin/orders/export-summary.csv` or a query param on the existing pattern for
+   consolidated — your call, but keep the two clearly distinct in the URL) producing exactly:
+   `Article No,Article Name,MRP,Gender,Size:Quantity...,Total Value` — "All Sizes by Quantity"
+   should render as either one column per distinct size seen across the rows (sparse, blank
+   where a size doesn't apply) or a single combined column like `7×4, 8×6, 9×2` — pick
+   whichever is simpler to implement correctly and note your choice; either is acceptable as
+   long as it's unambiguous and opens cleanly in Excel.
+2. A dealer-facing equivalent scoped to `session.dealerId` — reuse as much of the row-shaping
+   logic as sensibly possible between the admin and dealer versions (same column shape, just a
+   different `WHERE` scope) rather than writing two divergent implementations.
+3. Admin UI: an export link/button per order (on the admin order-review screen — coordinate
+   with whatever `AdminOrderPanel.tsx` looks like by the time you start this task, since Task 5
+   may have restructured it) and a consolidated export link on the main Orders queue
+   (`ControlConsole.tsx`'s `OrdersSection`, next to the existing filters).
+4. Dealer UI: an export link on the dealer Reports page (`src/app/PilotSurfaces.tsx`'s
+   `OrdersSurface` with `reports` — the "Where's my order?" screen).
+5. Every query scoped by `organisation_id` and (for the dealer version) `dealer_id` — no
+   exceptions, this is real customer order data.
+
+**Global Constraints apply in full**, especially plain language on any button/label copy
+("Download order summary" beats "Export CSV" for a 40-50-year-old audience, but use your
+judgment — keep it short and obvious) and mobile touch-target sizing for the export
+buttons/links themselves.
+
 ## Notes for every implementer
 
 - This repo has no separate PR/review-branch workflow in this session — work happens directly
