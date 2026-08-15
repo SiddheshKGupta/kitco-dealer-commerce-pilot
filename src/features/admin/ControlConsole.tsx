@@ -49,7 +49,7 @@ function AdminUsersSection() {
 	}
 
 	return <>
-		<PageHead eyebrow="Access control" title="Admin Users" lead="Every KITCO admin signs in with their own account. No shared credentials." />
+		<PageHead eyebrow="Team access" title="Admin Users" lead="Every KITCO admin has their own login. No shared passwords." />
 		<section className="panel">
 			<div className="panel-head"><h3>Add admin</h3></div>
 			<div className="panel-body">
@@ -57,7 +57,7 @@ function AdminUsersSection() {
 					<Input id="new-admin-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@kitco.example" />
 				</FormField>
 				<Button disabled={!email || creating} onClick={() => void addAdmin()}>{creating ? "Creating…" : "Create admin account"}</Button>
-				{created && <p className="notice">Account created for {created}. They sign in with email + a one-time code -- no password.</p>}
+				{created && <p className="notice">Account created for {created}. They'll sign in with their email and a one-time code — no password needed.</p>}
 				{error && <p className="form-error" role="alert">{error}</p>}
 			</div>
 		</section>
@@ -124,9 +124,9 @@ function DealerApplicationsSection() {
 			</dl>
 			{open.reviewNotes && <p className="notice">Previous review note: {open.reviewNotes}</p>}
 			{reviewable.has(open.status) && <>
-				<FormField label="Review notes (required to reject or request more info)" htmlFor="app-notes"><Input id="app-notes" value={notes} onChange={(event) => setNotes(event.target.value)} /></FormField>
+				<FormField label="Notes (required to reject or ask for more info)" htmlFor="app-notes"><Input id="app-notes" value={notes} onChange={(event) => setNotes(event.target.value)} /></FormField>
 				<div className="control-actions-row">
-					<Button onClick={() => void decide("approve")} disabled={busy}>{busy ? "Working…" : "Approve · create dealer"}</Button>
+					<Button onClick={() => void decide("approve")} disabled={busy}>{busy ? "Working…" : "Approve and create dealer"}</Button>
 					<Button variant="secondary" onClick={() => void decide("request-more-info")} disabled={busy || !notes}>Request more info</Button>
 					<Button variant="secondary" onClick={() => void decide("reject")} disabled={busy || !notes}>Reject</Button>
 				</div>
@@ -136,7 +136,7 @@ function DealerApplicationsSection() {
 	</>;
 
 	return <>
-		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="Dealers KITCO didn't have on file self-activate on registration for this pilot. This is a record of who registered." />
+		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="New dealers who aren't in our system yet can sign up here during the pilot. This is the list of who's applied." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : applications.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer applications yet." />
 			: <section className="panel">
@@ -282,19 +282,19 @@ function ReportsSection() {
 	const exportHref = `/api/admin/orders/export.csv${exportQuery ? `?${exportQuery}` : ""}`;
 
 	return <>
-		<PageHead eyebrow="Flexible reporting" title="Reports" lead="Filter the live order book. Retail Value only — dealer terms sit outside the platform." actions={<a className="ui-btn ui-btn-primary ui-btn-md" href={exportHref}>Export CSV</a>} />
+		<PageHead eyebrow="Reports" title="Reports" lead="Filter your orders and export what you need. Retail value only — dealer pricing terms aren't tracked here." actions={<a className="ui-btn ui-btn-primary ui-btn-md" href={exportHref}>Export CSV</a>} />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : orders.length === 0
-			? <SectionState status="ready" retry={reload} empty="No orders exist to report on yet." />
+			? <SectionState status="ready" retry={reload} empty="No orders to report on yet." />
 			: <>
 				<div className="stat-grid">
 					<div className="stat"><div className="k">Orders</div><div className="v">{number(rows.length)}</div></div>
 					<div className="stat"><div className="k">Retail Value</div><div className="v">{formatRetailValue(totalValue)}</div></div>
 					<div className="stat"><div className="k">Approved Pairs</div><div className="v">{number(totalPairs)}</div></div>
-					<div className="stat"><div className="k">Statuses</div><div className="v">{number(statuses.length)}</div></div>
+					<div className="stat"><div className="k">Status types</div><div className="v">{number(statuses.length)}</div></div>
 				</div>
 				<section className="panel">
 					<div className="panel-head">
-						<h3>Order register</h3>
+						<h3>Order list</h3>
 						<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
 							<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
 								<option value="">All statuses</option>
@@ -322,7 +322,7 @@ function ReportsSection() {
 						</div>
 					</div>
 					<div className="table-wrap"><table className="data-table">
-						<thead><tr><th>Dealer</th><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th></tr></thead>
+						<thead><tr><th>Dealer</th><th>Order</th><th>Version</th><th>Line items</th><th>Retail Value</th><th>Status</th></tr></thead>
 						<tbody>{rows.map((order) => <tr key={order.id}>
 							<td><b>{order.dealerName ?? "—"}</b></td>
 							<td>{order.orderNumber ?? order.id.slice(0, 8)}</td>
@@ -349,7 +349,7 @@ const sections = [
 	{ slug: "catalogue-imports", label: "Catalogue Imports", group: "operations", render: () => <ImportsSection /> },
 	{ slug: "media-library", label: "Media Library", group: "operations", render: () => <MediaSection /> },
 	{ slug: "size-sets", label: "Size Sets", group: "operations", render: () => <SizeSetsSection /> },
-	{ slug: "commercial-offerings", label: "Commercial Offerings", group: "operations", render: () => <OfferingsSection /> },
+	{ slug: "commercial-offerings", label: "Offerings", group: "operations", render: () => <OfferingsSection /> },
 	{ slug: "seasons", label: "Seasons", group: "operations", render: () => <SeasonsSection /> },
 	{ slug: "schemes", label: "Schemes", group: "operations", render: () => <SchemesSection /> },
 	{ slug: "reports", label: "Reports", group: "operations", render: () => <ReportsSection /> },

@@ -21,9 +21,9 @@ export function PageHead({ eyebrow, title, lead, actions }: { eyebrow: string; t
 /** One honest state machine for every section: loading, denied, failed, or empty. */
 export function SectionState({ status, retry, empty }: { status: SectionStatus; retry: () => void; empty?: string }) {
 	if (status === "loading") return <div className="empty" role="status">Loading…</div>;
-	if (status === "forbidden") return <div className="empty" role="alert"><h3>Administrator access required</h3><p>Sign in with a KITCO Control account to view this section.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/login">Sign in</a></div>;
-	if (status === "error") return <div className="empty" role="alert"><h3>This section could not be loaded</h3><p>The request did not complete.</p><Button onClick={retry}>Try again</Button></div>;
-	return <div className="empty"><h3>Nothing here yet</h3><p>{empty ?? "No records exist for this organisation yet."}</p></div>;
+	if (status === "forbidden") return <div className="empty" role="alert"><h3>Sign in required</h3><p>Sign in with your KITCO Control account to see this.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/login">Sign in</a></div>;
+	if (status === "error") return <div className="empty" role="alert"><h3>Couldn't load this page</h3><p>Something went wrong. Try again.</p><Button onClick={retry}>Try again</Button></div>;
+	return <div className="empty"><h3>Nothing here yet</h3><p>{empty ?? "Nothing to show here yet."}</p></div>;
 }
 
 function Panel({ title, meta, children }: { title: string; meta?: ReactNode; children: ReactNode }) {
@@ -59,29 +59,29 @@ export function DashboardSection() {
 	const { data, status, reload } = useAdminSection<DashboardPayload>("/api/admin/console/dashboard");
 	const complete = Boolean(data?.orders && data?.dealers && data?.catalogue);
 	return <>
-		<PageHead eyebrow="Management command centre" title="Dashboard" lead="Live commercial state across dealers, catalogue and the order book." />
+		<PageHead eyebrow="Business overview" title="Dashboard" lead="A live look at your dealers, catalogue and orders." />
 		{status !== "ready" || !data || !complete ? <SectionState status={status === "ready" ? "error" : status} retry={reload} /> : <>
 			<div className="stat-grid">
-				<div className="stat"><div className="k">Retail Value</div><div className="v">{formatRetailValue(data.retailValueMinor ?? 0)}</div><div className="d">Submitted order versions</div></div>
+				<div className="stat"><div className="k">Retail Value</div><div className="v">{formatRetailValue(data.retailValueMinor ?? 0)}</div><div className="d">From submitted orders</div></div>
 				<div className="stat"><div className="k">Pairs Ordered</div><div className="v">{number(data.pairsOrdered)}</div><div className="d">Across all sizes</div></div>
 				<div className="stat"><div className="k">Pending Review</div><div className="v">{number(data.orders.pendingReview)}</div><div className="d">of {number(data.orders.total)} orders</div></div>
-				<div className="stat"><div className="k">Active Dealers</div><div className="v">{number(data.dealers.active)}</div><div className="d">of {number(data.dealers.total)} on the master</div></div>
+				<div className="stat"><div className="k">Active Dealers</div><div className="v">{number(data.dealers.active)}</div><div className="d">of {number(data.dealers.total)} total dealers</div></div>
 			</div>
 			<div className="grid-2">
 				<Panel title="Catalogue readiness">
 					<div className="panel-body">
 						<div className="kpi-mini"><span>Colourways</span><b>{number(data.catalogue.colourways)}</b></div>
 						<div className="kpi-mini"><span>Published</span><b>{number(data.catalogue.published)}</b></div>
-						<div className="kpi-mini"><span>With display media</span><b>{number(data.catalogue.withMedia)}</b></div>
+						<div className="kpi-mini"><span>With photos</span><b>{number(data.catalogue.withMedia)}</b></div>
 						<div className="bar" aria-hidden="true"><div style={{ width: `${data.catalogue.colourways ? (data.catalogue.withMedia / data.catalogue.colourways) * 100 : 0}%` }} /></div>
-						<p className="tiny" style={{ marginTop: 8 }}>{number(data.catalogue.colourways - data.catalogue.withMedia)} colourways still awaiting photography.</p>
+						<p style={{ marginTop: 8 }}>{number(data.catalogue.colourways - data.catalogue.withMedia)} colourways still need photos.</p>
 					</div>
 				</Panel>
-				<Panel title="Order book">
+				<Panel title="Orders">
 					<div className="panel-body">
 						<div className="kpi-mini"><span>Total orders</span><b>{number(data.orders.total)}</b></div>
 						<div className="kpi-mini"><span>Approved</span><b>{number(data.orders.approved)}</b></div>
-						<div className="kpi-mini"><span>Awaiting KITCO action</span><b>{number(data.orders.pendingReview)}</b></div>
+						<div className="kpi-mini"><span>Needs review</span><b>{number(data.orders.pendingReview)}</b></div>
 					</div>
 				</Panel>
 			</div>
@@ -96,12 +96,12 @@ export function DealersSection() {
 	const [query, setQuery] = useState("");
 	const rows = (data?.dealers ?? []).filter((row) => !query || `${row.name} ${row.code ?? ""} ${row.city ?? ""} ${row.state ?? ""}`.toLowerCase().includes(query.toLowerCase()));
 	return <>
-		<PageHead eyebrow="Dealer master" title="Dealers" lead="Identity, activation state, GST registrations and delivery locations." />
+		<PageHead eyebrow="Dealer directory" title="Dealers" lead="Every dealer, whether they're active, their GST numbers, and where they ship to." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : <Panel
 			title={`${number(data?.dealers.length ?? 0)} dealers`}
 			meta={<SearchField label="Search dealers" style={{ minWidth: 220 }} placeholder="Search dealer, city or state" value={query} onChange={(event) => setQuery(event.target.value)} />}
 		>
-			{rows.length === 0 ? <div className="empty"><h3>No matching dealers</h3><p>Adjust the search to see more of the master.</p></div> : <Table head={["Dealer", "Location", "Activation", "GSTs", "Locations", "Orders"]}>
+			{rows.length === 0 ? <div className="empty"><h3>No matching dealers</h3><p>Try a different search.</p></div> : <Table head={["Dealer", "Location", "Activation", "GSTs", "Locations", "Orders"]}>
 				{rows.map((row) => <tr key={row.id}>
 					<td><b>{row.name}</b><div className="tiny">{row.code ?? row.id.slice(0, 8)}</div></td>
 					<td>{[row.city, row.state].filter(Boolean).join(", ") || dash}</td>
@@ -123,12 +123,12 @@ export function CatalogueSection() {
 	const all = data?.products ?? [];
 	const rows = all.filter((row) => !query || `${row.articleNo} ${row.brand ?? ""} ${row.family ?? ""} ${row.colour ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 250);
 	return <>
-		<PageHead eyebrow="Catalogue master" title="Catalogue" lead="Colourways, publication state and media readiness across every brand." />
+		<PageHead eyebrow="Catalogue" title="Catalogue" lead="Every colourway across every brand — what's published and what has photos." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : <Panel
 			title={`${number(all.length)} colourways`}
 			meta={<SearchField label="Search catalogue" style={{ minWidth: 220 }} placeholder="Search article, brand or colour" value={query} onChange={(event) => setQuery(event.target.value)} />}
 		>
-			{rows.length === 0 ? <div className="empty"><h3>No matching products</h3><p>Adjust the search to see more of the catalogue.</p></div> : <>
+			{rows.length === 0 ? <div className="empty"><h3>No matching products</h3><p>Try a different search.</p></div> : <>
 				<Table head={["Article", "Brand / Family", "Colour", "MRP", "Media", "Published"]}>
 					{rows.map((row) => <tr key={row.id}>
 						<td><b>{row.articleNo}</b>{row.offeringTypes.length > 0 && <div className="tiny">{row.offeringTypes.join(" · ").replaceAll("_", " ")}</div>}</td>
@@ -139,7 +139,7 @@ export function CatalogueSection() {
 						<td><span className={`status ${row.published ? "green" : "blue"}`}>{row.published ? "Published" : "Draft"}</span></td>
 					</tr>)}
 				</Table>
-				{all.length > rows.length && <div className="panel-body"><p className="tiny">Showing {number(rows.length)} of {number(all.length)}. Refine the search to narrow further.</p></div>}
+				{all.length > rows.length && <div className="panel-body"><p className="tiny">Showing {number(rows.length)} of {number(all.length)}. Search to see more.</p></div>}
 			</>}
 		</Panel>}
 	</>;
@@ -152,15 +152,15 @@ export function OfferingsSection() {
 	const all = data?.offerings ?? [];
 	const byType = all.reduce<Record<string, number>>((acc, row) => { acc[row.offeringType] = (acc[row.offeringType] ?? 0) + 1; return acc; }, {});
 	return <>
-		<PageHead eyebrow="Commercial architecture" title="Commercial Offerings" lead="How each colourway is presented to dealers: stock in hand, upcoming or prebook." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No commercial offerings have been published yet." /> : <>
+		<PageHead eyebrow="Offerings" title="Offerings" lead="How each colourway is presented to dealers: stock in hand, upcoming or prebook." />
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="Nothing published yet." /> : <>
 			<div className="stat-grid">
 				{Object.entries(byType).map(([type, count]) => <div className="stat" key={type}>
 					<div className="k">{type.replaceAll("_", " ")}</div><div className="v">{number(count)}</div><div className="d">offerings</div>
 				</div>)}
 			</div>
 			<Panel title={`${number(all.length)} offerings`}>
-				<Table head={["Article", "Type", "MRP", "MOQ", "Multiple", "Published"]}>
+				<Table head={["Article", "Type", "MRP", "MOQ", "Order multiple", "Published"]}>
 					{all.slice(0, 250).map((row) => <tr key={row.id}>
 						<td><b>{row.articleNo}</b></td>
 						<td><StatusPill value={row.offeringType} /></td>
@@ -180,16 +180,16 @@ interface MediaPayload { totals: { colourways: number; withDisplayMedia: number;
 export function MediaSection() {
 	const { data, status, reload } = useAdminSection<MediaPayload>("/api/admin/console/media");
 	return <>
-		<PageHead eyebrow="Product media" title="Media Library" lead="Display-image coverage across the catalogue. Missing media never blocks ordering." />
+		<PageHead eyebrow="Product photos" title="Media Library" lead="How many colourways have photos. Missing photos never stop an order." />
 		{status !== "ready" || !data ? <SectionState status={status} retry={reload} /> : <>
 			<div className="stat-grid">
 				<div className="stat"><div className="k">Colourways</div><div className="v">{number(data.totals.colourways)}</div></div>
-				<div className="stat"><div className="k">With display media</div><div className="v">{number(data.totals.withDisplayMedia)}</div></div>
-				<div className="stat"><div className="k">Awaiting media</div><div className="v">{number(data.totals.missing)}</div><div className="d">Shown with a placeholder</div></div>
-				<div className="stat"><div className="k">Stored objects</div><div className="v">{number(data.byKind.reduce((sum, row) => sum + row.count, 0))}</div><div className="d">Across all variants</div></div>
+				<div className="stat"><div className="k">With photos</div><div className="v">{number(data.totals.withDisplayMedia)}</div></div>
+				<div className="stat"><div className="k">Missing photos</div><div className="v">{number(data.totals.missing)}</div><div className="d">Shown with a placeholder</div></div>
+				<div className="stat"><div className="k">Files stored</div><div className="v">{number(data.byKind.reduce((sum, row) => sum + row.count, 0))}</div><div className="d">All image types combined</div></div>
 			</div>
-			<Panel title="Objects by kind">
-				{data.byKind.length === 0 ? <div className="empty"><h3>No media stored</h3><p>Upload product photography to populate the library.</p></div>
+			<Panel title="Photos by type">
+				{data.byKind.length === 0 ? <div className="empty"><h3>No photos stored</h3><p>Upload photos to get started.</p></div>
 					: <div className="panel-body">{data.byKind.map((row) => <div className="kpi-mini" key={row.kind}><span>{row.kind.replaceAll("_", " ")}</span><b>{number(row.count)}</b></div>)}</div>}
 			</Panel>
 		</>}
@@ -220,10 +220,10 @@ export function ImportsSection() {
 	const { data, status, reload } = useAdminSection<{ imports: ImportJobRow[] }>("/api/admin/console/imports");
 	const rows = data?.imports ?? [];
 	return <>
-		<PageHead eyebrow="Source-file driven catalogue" title="Catalogue Imports" lead="Every uploaded brand source, the profile that parsed it and what it staged." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No catalogue imports have been run yet." /> :
+		<PageHead eyebrow="Catalogue imports" title="Catalogue Imports" lead="Every file you've uploaded, which template read it, and how many rows came in." />
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No files uploaded yet." /> :
 			<Panel title={`${number(rows.length)} import jobs`}>
-				<Table head={["Source file", "Profile", "Rows staged", "Status", "Uploaded", "Committed"]}>
+				<Table head={["Source file", "Profile", "Rows", "Status", "Uploaded", "Confirmed"]}>
 					{rows.map((row) => <tr key={row.id}>
 						<td><b>{row.sourceName ?? dash}</b></td>
 						<td>{row.profileCode ?? dash}</td>
@@ -242,8 +242,8 @@ export function SeasonsSection() {
 	const { data, status, reload } = useAdminSection<{ seasons: Array<Record<string, string>> }>("/api/admin/console/seasons");
 	const rows = data?.seasons ?? [];
 	return <>
-		<PageHead eyebrow="Commercial calendar" title="Seasons" lead="Booking and delivery windows that govern when dealers can prebook." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No seasons configured yet. Prebook offerings need a season before dealers can book them." /> :
+		<PageHead eyebrow="Booking calendar" title="Seasons" lead="The booking and delivery windows that set when dealers can prebook." />
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No seasons set up yet. Prebook items need a season before dealers can order them." /> :
 			<Panel title={`${number(rows.length)} seasons`}>
 				<Table head={["Code", "Name", "Starts", "Ends"]}>
 					{rows.map((row) => <tr key={row.id}><td><b>{row.code}</b></td><td>{row.name}</td><td>{date(row.starts_at)}</td><td>{date(row.ends_at)}</td></tr>)}
@@ -256,7 +256,7 @@ export function SchemesSection() {
 	const { data, status, reload } = useAdminSection<{ schemes: Array<Record<string, string>> }>("/api/admin/console/schemes");
 	const rows = data?.schemes ?? [];
 	return <>
-		<PageHead eyebrow="Dealer incentives" title="Schemes" lead="Dated commercial schemes attach to existing products — never duplicate catalogue entries." />
+		<PageHead eyebrow="Dealer incentives" title="Schemes" lead="Time-limited offers on products you already have. A scheme never creates a new catalogue entry." />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No schemes have been created yet." /> :
 			<Panel title={`${number(rows.length)} schemes`}>
 				<Table head={["Code", "Name", "Starts", "Ends", "Published"]}>
@@ -301,10 +301,10 @@ export function AuditSection() {
 	const { data, status, reload } = useAdminSection<{ audit: AuditRow[] }>("/api/admin/console/audit");
 	const rows = data?.audit ?? [];
 	return <>
-		<PageHead eyebrow="Immutable evidence layer" title="Audit Trail" lead="Who changed what, when, and against which business object." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No audit events recorded yet." /> :
+		<PageHead eyebrow="Change history" title="Audit Trail" lead="Who did what, and when, across dealers, orders and the catalogue." />
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No activity recorded yet." /> :
 			<Panel title={`${number(rows.length)} most recent events`}>
-				<Table head={["When", "Who", "Event", "Entity", "Correlation"]}>
+				<Table head={["When", "Who", "Event", "Record", "Reference"]}>
 					{rows.map((row) => <tr key={row.id}>
 						<td>{dateTime(row.occurredAt)}</td>
 						<td>{row.actorEmail ?? dash}</td>
@@ -327,22 +327,21 @@ interface SettingsPayload {
 export function SettingsSection() {
 	const { data, status, reload } = useAdminSection<SettingsPayload>("/api/admin/console/settings");
 	return <>
-		<PageHead eyebrow="Platform masters" title="Settings" lead="Organisation boundary, brands and the import profiles that parse brand sources." />
+		<PageHead eyebrow="Setup" title="Settings" lead="Your organisation, the brands you carry, and the templates that read supplier files." />
 		{status !== "ready" || !data ? <SectionState status={status} retry={reload} /> : <div className="grid-2">
 			<Panel title="Organisation">
 				<div className="panel-body">
 					<div className="kpi-mini"><span>Name</span><b>{data.organisation?.name ?? dash}</b></div>
 					<div className="kpi-mini"><span>Code</span><b>{data.organisation?.code ?? dash}</b></div>
-					<div className="kpi-mini"><span>Tenant model</span><b>Single organisation</b></div>
 					<div className="kpi-mini"><span>Size sets</span><b>{number(data.sizeSets)}</b></div>
 				</div>
 			</Panel>
 			<Panel title="Authentication">
 				<div className="panel-body">
 					<div className="kpi-mini"><span>Dealer sign-in</span><span className="status green">Email + password</span></div>
-					<div className="kpi-mini"><span>Second factor</span><span className="status green">Email OTP</span></div>
-					<div className="kpi-mini"><span>Order submission</span><span className="status green">Purpose-specific OTP</span></div>
-					<p className="tiny" style={{ marginTop: 12 }}>Pilot is email-only. SMS and WhatsApp channels are not exposed.</p>
+					<div className="kpi-mini"><span>Extra check</span><span className="status green">Email code</span></div>
+					<div className="kpi-mini"><span>Order submission</span><span className="status green">Extra code required</span></div>
+					<p style={{ marginTop: 12 }}>This pilot only sends codes by email — no SMS or WhatsApp yet.</p>
 				</div>
 			</Panel>
 			<Panel title={`${number(data.brands.length)} brands`}>
