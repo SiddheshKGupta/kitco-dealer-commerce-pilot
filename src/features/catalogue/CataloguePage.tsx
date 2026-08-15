@@ -38,6 +38,16 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
     void fetchCatalogue().then((items) => { setProducts(items); setStatus("ready"); }, (error: unknown) => setStatus(error instanceof CatalogueRequestError && error.status === 401 ? "unauthenticated" : "error"));
   }, []);
   useEffect(load, [load]);
+  // Deep link from elsewhere in the app (Cart's "Edit", for one) -- /products?open=<offeringId>
+  // opens straight to that product's PDP instead of dropping the dealer into the full grid.
+  useEffect(() => {
+    if (status !== "ready") return;
+    const openId = new URLSearchParams(window.location.search).get("open");
+    if (!openId) return;
+    const match = products.find((product) => product.offering.id === openId);
+    window.history.replaceState({}, "", window.location.pathname);
+    if (match) onOpenProduct(match);
+  }, [status, products, onOpenProduct]);
 
   const groups = useMemo(() => (["brand", "category", "gender", "size"] as Dimension[]).map((key) => ({
     key,

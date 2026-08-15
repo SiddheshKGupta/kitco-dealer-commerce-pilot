@@ -19,6 +19,20 @@ it("connects catalogue selection to a server-persisted Current Order", async () 
   expect(await screen.findByText("Saved to Current Order")).toBeInTheDocument();
 });
 
+it("deep-links straight to a product's PDP via /products?open=<offeringId> -- Cart's Edit uses this instead of dropping the dealer into the full grid", async () => {
+  window.history.replaceState({}, "", "/products?open=offer-2");
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+    items: [
+      { colourwayId: "cw-1", articleNo: "NK-101", brand: "Northstar", colour: "Black", mrpMinor: 10000, currencyCode: "INR", mediaUrl: null, availability: "AVAILABLE_TO_ORDER", offering: { id: "offer-1", enabledSizes: ["7"], moqPairs: 2, orderMultiplePairs: 2, type: "STOCK_IN_HAND" } },
+      { colourwayId: "cw-2", articleNo: "RB-220", brand: "Southline", colour: "White", mrpMinor: 5000, currencyCode: "INR", mediaUrl: null, availability: "AVAILABLE_TO_ORDER", offering: { id: "offer-2", enabledSizes: ["8"], moqPairs: 2, orderMultiplePairs: 2, type: "STOCK_IN_HAND" } },
+    ],
+  }), { status: 200 })));
+  render(<DealerCommercePage />);
+  expect(await screen.findByLabelText("Pairs for size 8")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "View RB-220" })).not.toBeInTheDocument();
+  expect(window.location.search).toBe("");
+});
+
 it("mounts the connected catalogue at the dealer Products route", async () => {
   window.history.replaceState({}, "", "/products");
   vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ items: [] }), { status: 200 })));
