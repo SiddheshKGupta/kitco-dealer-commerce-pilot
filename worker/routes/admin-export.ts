@@ -11,7 +11,7 @@ export interface OrderExportRow {
 
 /** Query-param filters for the export, all optional and org-scoped by the caller. */
 export interface OrderExportFilters {
-	dealerId?: string; dateFrom?: string; dateTo?: string; brand?: string; orderStatus?: string; holdStatus?: string; state?: string;
+	dealerId?: string; dateFrom?: string; dateTo?: string; brand?: string; orderStatus?: string; holdStatus?: string; state?: string; orderId?: string;
 }
 
 /** One consolidated dealer-wise CSV, one row per dealer -> order -> article -> size (D7). */
@@ -29,7 +29,7 @@ const HEADERS = [
 	"MRP", "Ordered Value", "Retail Value", "Hold Status", "Hold Reason", "Order Status", "Fulfilment Status",
 ];
 
-function csvEscape(value: string | number): string {
+export function csvEscape(value: string | number): string {
 	const text = String(value);
 	return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
@@ -49,7 +49,7 @@ function toCsv(rows: OrderExportRow[]): string {
 	return lines.join("\r\n");
 }
 
-function parseFilters(query: Record<string, string>): OrderExportFilters {
+export function parseFilters(query: Record<string, string>): OrderExportFilters {
 	const pick = (key: string) => { const value = query[key]?.trim(); return value ? value : undefined; };
 	return {
 		dealerId: pick("dealerId"), dateFrom: pick("dateFrom"), dateTo: pick("dateTo"),

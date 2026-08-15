@@ -6,6 +6,7 @@ import type { CommerceRepository } from "./repository";
 import { registerAdminConsoleRoutes, type AdminConsoleReader } from "./routes/admin-console";
 import { registerAdminExportRoutes, type OrdersExporter } from "./routes/admin-export";
 import { registerAdminOrderRoutes } from "./routes/admin-orders";
+import { registerAdminProductExportRoutes, registerDealerProductExportRoutes } from "./routes/product-export";
 import { registerDealerApplicationRoutes, type DealerApplicationsAdmin } from "./routes/admin-dealer-applications";
 import { registerAdminUserRoutes, type AdminUsersStore } from "./routes/admin-users";
 import { registerSizeSetsAdminRoutes, type SizeSetsAdmin } from "./routes/admin-size-sets";
@@ -41,12 +42,17 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   app.use("/api/admin/*", requireAdmin());
   registerCatalogueRoutes(app, dependencies.repository);
   registerDraftRoutes(app, dependencies.repository);
+  // Must precede registerOrderRoutes: its GET /api/orders/:orderId otherwise shadows
+  // the literal /api/orders/export-products.csv route (Hono matches routes in
+  // registration order and :orderId matches "export-products.csv").
+  registerDealerProductExportRoutes(app, dependencies.ordersExporter);
   registerOrderRoutes(app, dependencies.repository, dependencies.verifyOrderOtp);
   registerDealerRoutes(app, dependencies.repository);
   // Must precede registerAdminOrderRoutes: its GET /api/admin/orders/:orderId
-  // otherwise shadows this literal /api/admin/orders/export.csv route, since
+  // otherwise shadows these literal /api/admin/orders/export*.csv routes, since
   // Hono matches routes in registration order and :orderId matches "export.csv".
   registerAdminExportRoutes(app, dependencies.ordersExporter);
+  registerAdminProductExportRoutes(app, dependencies.ordersExporter);
   registerAdminOrderRoutes(app, dependencies.repository);
   registerAdminConsoleRoutes(app, dependencies.adminConsole);
   registerDealerApplicationRoutes(app, dependencies.dealerApplications);

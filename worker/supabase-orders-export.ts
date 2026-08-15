@@ -50,6 +50,7 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 			// Organisation scope is applied first and unconditionally: no filter combination below
 			// can widen the result past this tenant's own orders.
 			.eq("organisation_id", session.organisationId);
+		if (filters.orderId) query = query.eq("id", filters.orderId);
 		if (filters.dealerId) query = query.eq("dealer_id", filters.dealerId);
 		if (filters.orderStatus) query = query.eq("status", filters.orderStatus);
 		if (filters.dateFrom) query = query.gte("submitted_at", filters.dateFrom);

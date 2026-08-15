@@ -180,9 +180,20 @@ function OrdersSection() {
 		&& (!stateFilter || order.dealerState === stateFilter)
 		&& (!dateFrom || (order.submittedAt ?? "").slice(0, 10) >= dateFrom)
 		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo));
+	const exportParams = new URLSearchParams();
+	if (statusFilter) exportParams.set("orderStatus", statusFilter);
+	if (dealerFilter) exportParams.set("dealerId", dealerFilter);
+	if (stateFilter) exportParams.set("state", stateFilter);
+	if (dateFrom) exportParams.set("dateFrom", dateFrom);
+	if (dateTo) exportParams.set("dateTo", dateTo);
+	const exportQuery = exportParams.toString();
+	const exportHref = `/api/admin/orders/export-products.csv${exportQuery ? `?${exportQuery}` : ""}`;
 
 	if (open) return <>
-		<PageHead eyebrow="Order governance" title="Order review" actions={<Button variant="secondary" onClick={() => setOpenOrderId(null)}>Back to all orders</Button>} />
+		<PageHead eyebrow="Order governance" title="Order review" actions={<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+			<a className="ui-btn ui-btn-secondary ui-btn-md" href={`/api/admin/orders/${open.id}/export-products.csv`}>Download this order</a>
+			<Button variant="secondary" onClick={() => setOpenOrderId(null)}>Back to all orders</Button>
+		</div>} />
 		<AdminOrderPanel order={open} />
 	</>;
 
@@ -208,6 +219,7 @@ function OrdersSection() {
 						</Select>
 						<Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label="Submitted from date" />
 						<Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label="Submitted to date" />
+						<a className="ui-btn ui-btn-secondary ui-btn-md" href={exportHref}>Download order summary</a>
 					</div>
 				</div>
 				<div className="table-wrap"><table className="data-table">
