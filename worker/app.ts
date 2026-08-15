@@ -41,9 +41,12 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   registerDraftRoutes(app, dependencies.repository);
   registerOrderRoutes(app, dependencies.repository, dependencies.verifyOrderOtp);
   registerDealerRoutes(app, dependencies.repository);
+  // Must precede registerAdminOrderRoutes: its GET /api/admin/orders/:orderId
+  // otherwise shadows this literal /api/admin/orders/export.csv route, since
+  // Hono matches routes in registration order and :orderId matches "export.csv".
+  registerAdminExportRoutes(app, dependencies.ordersExporter);
   registerAdminOrderRoutes(app, dependencies.repository);
   registerAdminConsoleRoutes(app, dependencies.adminConsole);
-  registerAdminExportRoutes(app, dependencies.ordersExporter);
   registerDealerApplicationRoutes(app, dependencies.dealerApplications);
   registerAdminUserRoutes(app, dependencies.adminUsers);
   registerDispatchRoutes(app, dependencies.repository);
