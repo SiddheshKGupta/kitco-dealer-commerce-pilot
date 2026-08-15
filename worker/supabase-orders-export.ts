@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SessionIdentity } from "./middleware/auth";
-import type { OrderExportRow, OrdersExporter } from "./routes/admin-export";
+import type { OrderExportFilters, OrderExportRow, OrdersExporter } from "./routes/admin-export";
 
 type Row = Record<string, any>;
 
@@ -12,16 +12,26 @@ function dateOnly(value: unknown): string {
 	return typeof value === "string" ? value.slice(0, 10) : "";
 }
 
-const EXPORT_SELECT = `
+// product_families/brands are non-nullable FKs, so marking them !inner never excludes rows that
+// a default join would have included -- it just lets a brand filter push down as a real SQL join
+// condition instead of an in-memory filter. hold_allocations/holds stay a default (non-inner)
+// join UNLESS a hold-status filter is active: marking them !inner unconditionally would drop every
+// size that has never had a hold at all, which is wrong when nobody asked to filter by hold status.
+function buildExportSelect(filters: OrderExportFilters): string {
+	const holdJoin = filters.holdStatus
+		? "hold_allocations!inner(quantity_pairs,holds!inner(status,reason))"
+		: "hold_allocations(quantity_pairs,holds(status,reason))";
+	return `
   id,order_number,status,submitted_at,dealer_id,
   dealers!inner(code,name,city,state),
   order_versions(version_no,
     order_lines(id,mrp_minor,
       commercial_offerings(offering_type),
-      product_colourways!inner(article_no,colour,product_families(name,category,gender,brands!inner(name))),
+      product_colourways!inner(article_no,colour,product_families!inner(name,category,gender,brands!inner(name))),
       order_line_sizes(ordered_quantity_pairs,approved_quantity_pairs,size_values(label),
-        dispatch_lines(quantity_pairs,dispatches(status)),
-        hold_allocations(quantity_pairs,holds(status,reason)))))`;
+        dispatch_lines(quantity_pairs,dispatches(status,dispatched_at,dispatch_number)),
+        ${holdJoin})))`;
+}
 
 function fulfilmentStatus(approvedPairs: number, dispatchedPairs: number, heldPairs: number): string {
 	if (heldPairs > 0 && dispatchedPairs < approvedPairs - heldPairs) return "ON_HOLD";
@@ -33,12 +43,21 @@ function fulfilmentStatus(approvedPairs: number, dispatchedPairs: number, heldPa
 export class SupabaseOrdersExporter implements OrdersExporter {
 	constructor(private readonly client: SupabaseClient) {}
 
-	async exportRows(session: SessionIdentity): Promise<OrderExportRow[]> {
-		const { data: orderRows, error: orderError } = await this.client
+	async exportRows(session: SessionIdentity, filters: OrderExportFilters = {}): Promise<OrderExportRow[]> {
+		let query = this.client
 			.from("orders")
-			.select(EXPORT_SELECT)
-			.eq("organisation_id", session.organisationId)
-			.order("submitted_at", { ascending: false });
+			.select(buildExportSelect(filters))
+			// Organisation scope is applied first and unconditionally: no filter combination below
+			// can widen the result past this tenant's own orders.
+			.eq("organisation_id", session.organisationId);
+		if (filters.dealerId) query = query.eq("dealer_id", filters.dealerId);
+		if (filters.orderStatus) query = query.eq("status", filters.orderStatus);
+		if (filters.dateFrom) query = query.gte("submitted_at", filters.dateFrom);
+		if (filters.dateTo) query = query.lte("submitted_at", `${filters.dateTo}T23:59:59.999Z`);
+		if (filters.state) query = query.eq("dealers.state", filters.state);
+		if (filters.brand) query = query.eq("order_versions.order_lines.product_colourways.product_families.brands.name", filters.brand);
+		if (filters.holdStatus) query = query.eq("order_versions.order_lines.order_line_sizes.hold_allocations.holds.status", filters.holdStatus);
+		const { data: orderRows, error: orderError } = await query.order("submitted_at", { ascending: false });
 		if (orderError) throw new Error("EXPORT_QUERY_FAILED");
 
 		const { data: gstRows, error: gstError } = await this.client
@@ -66,13 +85,17 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 				for (const size of (Array.isArray(line.order_line_sizes) ? line.order_line_sizes : []) as Row[]) {
 					const approvedPairs = Number(size.approved_quantity_pairs);
 					const orderedPairs = Number(size.ordered_quantity_pairs ?? size.approved_quantity_pairs);
-					const dispatchedPairs = (Array.isArray(size.dispatch_lines) ? size.dispatch_lines : [])
-						.filter((d: Row) => one(d.dispatches)?.status === "FINALISED")
-						.reduce((sum: number, d: Row) => sum + Number(d.quantity_pairs), 0);
-					const activeHolds = (Array.isArray(size.hold_allocations) ? size.hold_allocations : [])
-						.filter((h: Row) => one(h.holds)?.status === "ACTIVE");
+					const finalisedDispatches = (Array.isArray(size.dispatch_lines) ? size.dispatch_lines : [])
+						.map((d: Row) => ({ pairs: Number(d.quantity_pairs), dispatch: one(d.dispatches) }))
+						.filter((d: { dispatch: Row | null }) => d.dispatch?.status === "FINALISED");
+					const dispatchedPairs = finalisedDispatches.reduce((sum: number, d: { pairs: number }) => sum + d.pairs, 0);
+					const latestDispatch = [...finalisedDispatches]
+						.sort((a, b) => String(b.dispatch?.dispatched_at ?? "").localeCompare(String(a.dispatch?.dispatched_at ?? "")))[0]?.dispatch;
+					const holds = (Array.isArray(size.hold_allocations) ? size.hold_allocations : []) as Row[];
+					const activeHolds = holds.filter((h: Row) => one(h.holds)?.status === "ACTIVE");
 					const heldPairs = activeHolds.reduce((sum: number, h: Row) => sum + Number(h.quantity_pairs ?? 0), 0);
 					const holdReason = activeHolds.map((h: Row) => one(h.holds)?.reason).filter(Boolean)[0] ?? "";
+					const holdStatus = activeHolds.length > 0 ? "ACTIVE" : holds.some((h: Row) => one(h.holds)?.status === "RELEASED") ? "RELEASED" : "";
 					out.push({
 						orderNo: String(order.order_number ?? order.id),
 						orderDate: dateOnly(order.submitted_at),
@@ -95,8 +118,12 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 						heldQty: heldPairs,
 						dispatchedQty: dispatchedPairs,
 						pendingQty: approvedPairs - dispatchedPairs - heldPairs,
+						dispatchDate: latestDispatch ? dateOnly(latestDispatch.dispatched_at) : "",
+						dispatchNumber: latestDispatch?.dispatch_number ? String(latestDispatch.dispatch_number) : "",
 						mrpMinor: Number(line.mrp_minor),
+						orderedValueMinor: Number(line.mrp_minor) * orderedPairs,
 						retailValueMinor: Number(line.mrp_minor) * approvedPairs,
+						holdStatus: String(holdStatus),
 						holdReason: String(holdReason),
 						orderStatus: String(order.status),
 						fulfilmentStatus: fulfilmentStatus(approvedPairs, dispatchedPairs, heldPairs),

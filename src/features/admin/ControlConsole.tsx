@@ -190,17 +190,51 @@ function OrdersSection() {
 }
 
 /* ------------------------------------------------------------------ Reports */
+/** Adds the dealer identity/state fields the orders list already returns (see
+ *  SupabaseCommerceRepository.orderFromRow) but LiveOrder doesn't declare. */
+type ReportOrder = LiveOrder & { dealerId?: string; dealerState?: string };
+
 function ReportsSection() {
-	const { data, status, reload } = useAdminSection<{ orders: LiveOrder[] }>("/api/admin/orders");
+	const { data, status, reload } = useAdminSection<{ orders: ReportOrder[] }>("/api/admin/orders");
 	const [statusFilter, setStatusFilter] = useState("");
+	const [dealerFilter, setDealerFilter] = useState("");
+	const [brandFilter, setBrandFilter] = useState("");
+	const [stateFilter, setStateFilter] = useState("");
+	const [holdStatusFilter, setHoldStatusFilter] = useState("");
+	const [dateFrom, setDateFrom] = useState("");
+	const [dateTo, setDateTo] = useState("");
 	const orders = data?.orders ?? [];
 	const statuses = [...new Set(orders.map((order) => order.status))];
-	const rows = orders.filter((order) => !statusFilter || order.status === statusFilter);
+	const dealers = [...new Map(orders.filter((order) => order.dealerId).map((order) => [order.dealerId as string, order.dealerName ?? order.dealerId as string])).entries()];
+	const brands = [...new Set(orders.flatMap((order) => (order.allocations ?? []).map((item) => item.brand)).filter((value): value is string => Boolean(value)))];
+	const states = [...new Set(orders.map((order) => order.dealerState).filter((value): value is string => Boolean(value)))];
+	const rows = orders.filter((order) =>
+		(!statusFilter || order.status === statusFilter)
+		&& (!dealerFilter || order.dealerId === dealerFilter)
+		&& (!brandFilter || (order.allocations ?? []).some((item) => item.brand === brandFilter))
+		&& (!stateFilter || order.dealerState === stateFilter)
+		&& (!dateFrom || (order.submittedAt ?? "").slice(0, 10) >= dateFrom)
+		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo));
 	const totalValue = rows.reduce((sum, order) => sum + (order.retailValueMinor ?? 0), 0);
 	const totalPairs = rows.reduce((sum, order) => sum + (order.allocations ?? []).reduce((lines, item) => lines + item.approvedPairs, 0), 0);
 
+	// Hold status has no reliable per-order signal in this list payload (only active-hold pairs
+	// are surfaced, not a released/none distinction), so it drives the CSV export's real SQL
+	// filter only -- it's deliberately left out of the on-screen `rows` filter above rather than
+	// faking a match against data that can't actually answer it.
+	const exportParams = new URLSearchParams();
+	if (statusFilter) exportParams.set("orderStatus", statusFilter);
+	if (dealerFilter) exportParams.set("dealerId", dealerFilter);
+	if (brandFilter) exportParams.set("brand", brandFilter);
+	if (stateFilter) exportParams.set("state", stateFilter);
+	if (holdStatusFilter) exportParams.set("holdStatus", holdStatusFilter);
+	if (dateFrom) exportParams.set("dateFrom", dateFrom);
+	if (dateTo) exportParams.set("dateTo", dateTo);
+	const exportQuery = exportParams.toString();
+	const exportHref = `/api/admin/orders/export.csv${exportQuery ? `?${exportQuery}` : ""}`;
+
 	return <>
-		<PageHead eyebrow="Flexible reporting" title="Reports" lead="Filter the live order book. Retail Value only — dealer terms sit outside the platform." actions={<a className="ui-btn ui-btn-primary ui-btn-md" href="/api/admin/orders/export.csv">Export CSV</a>} />
+		<PageHead eyebrow="Flexible reporting" title="Reports" lead="Filter the live order book. Retail Value only — dealer terms sit outside the platform." actions={<a className="ui-btn ui-btn-primary ui-btn-md" href={exportHref}>Export CSV</a>} />
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : orders.length === 0
 			? <SectionState status="ready" retry={reload} empty="No orders exist to report on yet." />
 			: <>
@@ -213,10 +247,31 @@ function ReportsSection() {
 				<section className="panel">
 					<div className="panel-head">
 						<h3>Order register</h3>
-						<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
-							<option value="">All statuses</option>
-							{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
-						</Select>
+						<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+							<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
+								<option value="">All statuses</option>
+								{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
+							</Select>
+							<Select value={dealerFilter} onChange={(event) => setDealerFilter(event.target.value)} aria-label="Filter by dealer">
+								<option value="">All dealers</option>
+								{dealers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+							</Select>
+							<Select value={brandFilter} onChange={(event) => setBrandFilter(event.target.value)} aria-label="Filter by brand">
+								<option value="">All brands</option>
+								{brands.map((value) => <option key={value} value={value}>{value}</option>)}
+							</Select>
+							<Select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} aria-label="Filter by state">
+								<option value="">All states</option>
+								{states.map((value) => <option key={value} value={value}>{value}</option>)}
+							</Select>
+							<Select value={holdStatusFilter} onChange={(event) => setHoldStatusFilter(event.target.value)} aria-label="Filter by hold status (applies to CSV export)">
+								<option value="">All hold statuses</option>
+								<option value="ACTIVE">Active hold</option>
+								<option value="RELEASED">Released hold</option>
+							</Select>
+							<Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label="Submitted from date" />
+							<Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label="Submitted to date" />
+						</div>
 					</div>
 					<div className="table-wrap"><table className="data-table">
 						<thead><tr><th>Dealer</th><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th></tr></thead>
