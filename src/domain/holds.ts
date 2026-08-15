@@ -1,9 +1,24 @@
+export const HOLD_REASONS = [
+  "CREDIT_HOLD",
+  "STOCK_REVIEW",
+  "COMMERCIAL_REVIEW",
+  "ALLOCATION_PENDING",
+  "MANUAL_REVIEW",
+  "OTHER",
+] as const;
+export type HoldReason = (typeof HOLD_REASONS)[number];
+
 export interface FulfilmentAllocation {
   readonly orderLineId: string;
   readonly size: string;
+  /** Immutable submitted quantity for this line+size. Falls back to
+   *  approvedPairs where absent (pre-decision data / older callers), since
+   *  approved was pre-set equal to ordered before this field existed. */
+  readonly orderedPairs?: number;
   readonly approvedPairs: number;
   readonly dispatchedPairs: number;
   readonly heldPairs: number;
+  readonly holdReason?: HoldReason | string;
   readonly articleNo?: string;
   readonly colour?: string;
   readonly familyName?: string;
@@ -96,6 +111,66 @@ export function applyPartialHold(
     ok: true,
     allocations: allocations.map((allocation, index) =>
       index === targetIndex ? { ...allocation, heldPairs: allocation.heldPairs + request.pairs } : { ...allocation },
+    ),
+  };
+}
+
+export interface LineDecisionRequest {
+  readonly orderLineId: string;
+  readonly size: string;
+  readonly approvedPairs: number;
+  readonly heldPairs: number;
+  readonly holdReason: HoldReason | null;
+}
+
+export type DecisionResult =
+  | { ok: true; allocations: FulfilmentAllocation[] }
+  | {
+      ok: false;
+      reason:
+        | "INVALID_ALLOCATION_KEY"
+        | "ALLOCATION_NOT_FOUND"
+        | "INVALID_DECISION_QUANTITY"
+        | "DECISION_EXCEEDS_ORDERED"
+        | "HOLD_REASON_REQUIRED"
+        | "DECISION_BELOW_DISPATCHED";
+    };
+
+/** Sets the definitive approved/held quantities for one order line + size --
+ *  a replace, not an increment, since this is one admin decision per size,
+ *  not a running total. Requires the immutable ordered quantity (falls back
+ *  to the allocation's current approvedPairs when absent, matching pre-
+ *  decision data where approved was pre-set equal to ordered). */
+export function decideLineAllocation(
+  allocations: readonly FulfilmentAllocation[],
+  request: LineDecisionRequest,
+): DecisionResult {
+  if (!hasValidAllocationKey(request)) return { ok: false, reason: "INVALID_ALLOCATION_KEY" };
+  if (!isNonNegativeSafeInteger(request.approvedPairs) || !isNonNegativeSafeInteger(request.heldPairs)) {
+    return { ok: false, reason: "INVALID_DECISION_QUANTITY" };
+  }
+
+  const targetIndex = allocations.findIndex((allocation) => allocationKey(allocation) === allocationKey(request));
+  if (targetIndex < 0) return { ok: false, reason: "ALLOCATION_NOT_FOUND" };
+
+  const target = allocations[targetIndex]!;
+  const orderedPairs = target.orderedPairs ?? target.approvedPairs;
+  if (request.approvedPairs + request.heldPairs > orderedPairs) return { ok: false, reason: "DECISION_EXCEEDS_ORDERED" };
+  if (request.heldPairs > 0 && !request.holdReason) return { ok: false, reason: "HOLD_REASON_REQUIRED" };
+  if (request.approvedPairs < target.dispatchedPairs) return { ok: false, reason: "DECISION_BELOW_DISPATCHED" };
+
+  return {
+    ok: true,
+    allocations: allocations.map((allocation, index) =>
+      index === targetIndex
+        ? {
+            ...allocation,
+            orderedPairs,
+            approvedPairs: request.approvedPairs,
+            heldPairs: request.heldPairs,
+            holdReason: request.heldPairs > 0 ? request.holdReason ?? undefined : undefined,
+          }
+        : { ...allocation },
     ),
   };
 }

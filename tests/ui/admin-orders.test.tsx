@@ -5,53 +5,73 @@ import { DealerFulfilmentStatus } from "../../src/features/reports/DealerFulfilm
 
 const order = {
 	id: "order-1", status: "SUBMITTED", allocations: [
-		{ orderLineId: "order-1:offer-1", size: "7", approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
+		{ orderLineId: "order-1:offer-1", size: "7", orderedPairs: 6, approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
 	], audit: [{ correlationId: "corr-submitted", action: "ORDER_SUBMITTED" }],
 };
 
 describe("KITCO Control order operations", () => {
-	it("approves an order and records a partial dispatch through the admin API", async () => {
-		const api = vi.fn(async () => ({ status: "FINALISED" }));
+	it("saves a per-size approve/hold decision and records a dispatch through the admin API", async () => {
+		const api = vi.fn(async (path: string) => {
+			if (path.includes("decide")) return { order: { status: "PARTIALLY_APPROVED", allocations: [{ ...order.allocations[0], approvedPairs: 4, heldPairs: 2, holdReason: "STOCK_REVIEW" }] } };
+			return { status: "FINALISED" };
+		});
 		render(<AdminOrderPanel order={order} api={api} />);
-		fireEvent.click(screen.getByRole("button", { name: "Approve order" }));
-		await screen.findByText("Order approved");
-		expect(api).toHaveBeenCalledWith("/api/admin/orders/order-1/approve", {});
+
+		fireEvent.change(screen.getByLabelText("Approve pairs"), { target: { value: "4" } });
+		fireEvent.change(screen.getByLabelText("Hold pairs"), { target: { value: "2" } });
+		fireEvent.change(screen.getByLabelText("Hold reason"), { target: { value: "STOCK_REVIEW" } });
+		fireEvent.click(screen.getByRole("button", { name: "Save decision" }));
+		await screen.findByText("Decision saved");
+		expect(api).toHaveBeenCalledWith("/api/admin/orders/order-1/decide", { orderLineId: "order-1:offer-1", size: "7", approvedPairs: 4, heldPairs: 2, holdReason: "STOCK_REVIEW" });
+		expect(screen.getByText("Partially approved")).toBeInTheDocument();
+
 		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "2" } });
 		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
 		await screen.findByText("Dispatch recorded");
-		expect(api).toHaveBeenLastCalledWith("/api/admin/dispatches", expect.objectContaining({ pairs: 2, size: "7" }));
+		expect(api).toHaveBeenLastCalledWith("/api/admin/dispatches", expect.objectContaining({ pairs: 2, size: "7", orderLineId: "order-1:offer-1" }));
 	});
 
-	it("shows an over-dispatch rejection and captures a partial size Credit Hold", async () => {
+	it("blocks saving a decision that exceeds ordered pairs or is missing a hold reason", () => {
+		render(<AdminOrderPanel order={order} api={vi.fn()} />);
+		fireEvent.change(screen.getByLabelText("Approve pairs"), { target: { value: "5" } });
+		fireEvent.change(screen.getByLabelText("Hold pairs"), { target: { value: "3" } });
+		expect(screen.getByText(/can't add up to more than the 6 pairs ordered/)).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Save decision" })).toBeDisabled();
+
+		fireEvent.change(screen.getByLabelText("Approve pairs"), { target: { value: "4" } });
+		fireEvent.change(screen.getByLabelText("Hold pairs"), { target: { value: "2" } });
+		expect(screen.getByRole("button", { name: "Save decision" })).toBeDisabled();
+	});
+
+	it("shows a decision failure and an over-dispatch rejection", async () => {
 		const api = vi.fn(async (path: string) => {
-			if (path.includes("dispatches")) throw new Error("DISPATCH_EXCEEDS_PENDING");
-			return { status: "ACTIVE" };
+			if (path.includes("decide")) throw new Error("DECISION_EXCEEDS_ORDERED");
+			throw new Error("DISPATCH_EXCEEDS_PENDING");
 		});
 		render(<AdminOrderPanel order={order} api={api} />);
+		fireEvent.change(screen.getByLabelText("Approve pairs"), { target: { value: "6" } });
+		fireEvent.click(screen.getByRole("button", { name: "Save decision" }));
+		await screen.findByText("Decision could not be saved.");
+
 		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "9" } });
 		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
 		await screen.findByText("Dispatch exceeds the approved pending quantity.");
-		fireEvent.change(screen.getByLabelText("Hold pairs"), { target: { value: "1" } });
-		fireEvent.change(screen.getByLabelText("Hold reason"), { target: { value: "Credit review" } });
-		fireEvent.click(screen.getByRole("button", { name: "Apply Credit Hold" }));
-		await screen.findByText("Credit Hold applied");
-		expect(api).toHaveBeenLastCalledWith("/api/admin/holds", expect.objectContaining({ pairs: 1, reason: "Credit review" }));
 	});
 
-	it("targets dispatch/hold at the selected line+size, not always the first row", async () => {
+	it("targets the decision and dispatch at the right line+size on a multi-line order", async () => {
 		const multiLineOrder = {
 			id: "order-2", status: "SUBMITTED",
 			allocations: [
-				{ orderLineId: "order-2:offer-1", size: "7", approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
-				{ orderLineId: "order-2:offer-2", size: "9", approvedPairs: 4, dispatchedPairs: 0, heldPairs: 0 },
+				{ orderLineId: "order-2:offer-1", size: "7", orderedPairs: 6, approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
+				{ orderLineId: "order-2:offer-2", size: "9", orderedPairs: 4, approvedPairs: 4, dispatchedPairs: 0, heldPairs: 0 },
 			],
 			audit: [],
 		};
 		const api = vi.fn(async () => ({ status: "FINALISED" }));
 		render(<AdminOrderPanel order={multiLineOrder} api={api} />);
-		fireEvent.click(screen.getByRole("button", { name: "Select size 9 for dispatch or hold" }));
-		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "2" } });
-		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
+		const dispatchInputs = screen.getAllByLabelText("Dispatch pairs");
+		fireEvent.change(dispatchInputs[1]!, { target: { value: "2" } });
+		fireEvent.click(screen.getAllByRole("button", { name: "Record dispatch" })[1]!);
 		await screen.findByText("Dispatch recorded");
 		expect(api).toHaveBeenLastCalledWith("/api/admin/dispatches", expect.objectContaining({ orderLineId: "order-2:offer-2", size: "9", pairs: 2 }));
 	});
@@ -61,7 +81,7 @@ describe("KITCO Control order operations", () => {
 		expect(screen.getByText("Ordered 6 pairs")).toBeInTheDocument();
 		expect(screen.getByText("Dispatched 2 pairs")).toBeInTheDocument();
 		expect(screen.getByText("Pending 3 pairs")).toBeInTheDocument();
-		expect(screen.getByText("Credit Hold 1 pair")).toBeInTheDocument();
+		expect(screen.getByText("On hold 1 pair")).toBeInTheDocument();
 		expect(screen.queryByText(/available/i)).not.toBeInTheDocument();
 	});
 });

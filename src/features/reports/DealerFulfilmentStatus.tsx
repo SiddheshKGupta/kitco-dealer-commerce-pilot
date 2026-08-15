@@ -2,7 +2,7 @@ import { groupByArticle, summarizeFulfilment, type FulfilmentAllocation } from "
 
 export function DealerFulfilmentStatus({ order }: { order: { allocations: FulfilmentAllocation[] } }) {
 	const status = summarizeFulfilment(order.allocations);
-	return <section className="dealer-fulfilment" aria-label="Order fulfilment"><strong>Fulfilment</strong><div><span>Ordered {status.orderedPairs} pairs</span><span>Dispatched {status.dispatchedPairs} pairs</span><span>Pending {status.pendingPairs} pairs</span>{status.heldPairs > 0 && <span>Credit Hold {status.heldPairs} {status.heldPairs === 1 ? "pair" : "pairs"}</span>}</div></section>;
+	return <section className="dealer-fulfilment" aria-label="Order fulfilment"><strong>Fulfilment</strong><div><span>Ordered {status.orderedPairs} pairs</span><span>Dispatched {status.dispatchedPairs} pairs</span><span>Pending {status.pendingPairs} pairs</span>{status.heldPairs > 0 && <span>On hold {status.heldPairs} {status.heldPairs === 1 ? "pair" : "pairs"}</span>}</div></section>;
 }
 
 function articleLabel(identity: FulfilmentAllocation) {
@@ -19,8 +19,12 @@ export function DealerOrderArticles({ allocations }: { allocations: FulfilmentAl
 		const summary = summarizeFulfilment(items);
 		return <article className="dealer-order-article" key={orderLineId}>
 			<header><strong>{articleLabel(identity)}</strong>{identity.colour && <span>{identity.colour}</span>}</header>
-			<div className="dealer-order-article-sizes">{items.map((item) => <span key={`${item.orderLineId}:${item.size}`}>Size {item.size} · {item.approvedPairs} {item.approvedPairs === 1 ? "pair" : "pairs"}</span>)}</div>
-			<div className="dealer-order-article-status"><span>Ordered {summary.orderedPairs} pairs</span><span>Dispatched {summary.dispatchedPairs} pairs</span><span>Pending {summary.pendingPairs} pairs</span>{summary.heldPairs > 0 && <span>Credit Hold {summary.heldPairs} {summary.heldPairs === 1 ? "pair" : "pairs"}</span>}</div>
+			<div className="dealer-order-article-sizes">{items.map((item) => {
+				const orderedPairs = item.orderedPairs ?? item.approvedPairs;
+				const decided = item.approvedPairs !== orderedPairs || item.heldPairs > 0;
+				return <span key={`${item.orderLineId}:${item.size}`}>Size {item.size} · {orderedPairs} {orderedPairs === 1 ? "pair" : "pairs"}{decided && ` (${item.approvedPairs} approved${item.heldPairs > 0 ? `, ${item.heldPairs} on hold` : ""})`}</span>;
+			})}</div>
+			<div className="dealer-order-article-status"><span>Ordered {summary.orderedPairs} pairs</span><span>Dispatched {summary.dispatchedPairs} pairs</span><span>Pending {summary.pendingPairs} pairs</span>{summary.heldPairs > 0 && <span>On hold {summary.heldPairs} {summary.heldPairs === 1 ? "pair" : "pairs"}</span>}</div>
 		</article>;
 	})}</div>;
 }

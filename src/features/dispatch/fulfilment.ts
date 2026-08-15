@@ -1,9 +1,23 @@
+export const HOLD_REASONS = [
+	"CREDIT_HOLD",
+	"STOCK_REVIEW",
+	"COMMERCIAL_REVIEW",
+	"ALLOCATION_PENDING",
+	"MANUAL_REVIEW",
+	"OTHER",
+] as const;
+export type HoldReason = (typeof HOLD_REASONS)[number];
+
 export interface FulfilmentAllocation {
 	orderLineId: string;
 	size: string;
+	/** Immutable submitted quantity. Falls back to approvedPairs where absent
+	 *  (pre-decision data), since approved was pre-set equal to ordered. */
+	orderedPairs?: number;
 	approvedPairs: number;
 	dispatchedPairs: number;
 	heldPairs: number;
+	holdReason?: string;
 	articleNo?: string;
 	colour?: string;
 	familyName?: string;
@@ -12,7 +26,7 @@ export interface FulfilmentAllocation {
 
 export function summarizeFulfilment(allocations: FulfilmentAllocation[]) {
 	return allocations.reduce((summary, allocation) => ({
-		orderedPairs: summary.orderedPairs + allocation.approvedPairs,
+		orderedPairs: summary.orderedPairs + (allocation.orderedPairs ?? allocation.approvedPairs),
 		dispatchedPairs: summary.dispatchedPairs + allocation.dispatchedPairs,
 		heldPairs: summary.heldPairs + allocation.heldPairs,
 		pendingPairs: summary.pendingPairs + allocation.approvedPairs - allocation.dispatchedPairs - allocation.heldPairs,

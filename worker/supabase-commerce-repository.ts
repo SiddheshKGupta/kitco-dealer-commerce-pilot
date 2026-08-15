@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canOrderOffering } from "../src/domain/catalogue";
+import type { HoldReason } from "../src/domain/holds";
 import { retailValueMinor, validatePurchaseQuantities, type SizeQuantities } from "../src/domain/orders";
 import { isAdminRole, type SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
@@ -107,15 +108,18 @@ function orderFromRow(row: Row): OrderRecord {
       const dispatchedPairs = (Array.isArray(size.dispatch_lines) ? size.dispatch_lines : [])
         .filter((dispatch: Row) => one(dispatch.dispatches)?.status === "FINALISED")
         .reduce((sum: number, dispatch: Row) => sum + Number(dispatch.quantity_pairs), 0);
-      const heldPairs = (Array.isArray(size.hold_allocations) ? size.hold_allocations : [])
-        .filter((hold: Row) => one(hold.holds)?.status === "ACTIVE")
-        .reduce((sum: number, hold: Row) => sum + Number(hold.quantity_pairs ?? 0), 0);
+      const activeHolds = (Array.isArray(size.hold_allocations) ? size.hold_allocations : [])
+        .filter((hold: Row) => one(hold.holds)?.status === "ACTIVE");
+      const heldPairs = activeHolds.reduce((sum: number, hold: Row) => sum + Number(hold.quantity_pairs ?? 0), 0);
+      const holdReason = activeHolds.length > 0 ? String(one(activeHolds[0]!.holds)?.hold_type ?? "") || undefined : undefined;
       return {
         orderLineId: String(line.id),
         size: String(one(size.size_values)?.label ?? ""),
+        orderedPairs: Number(size.ordered_quantity_pairs),
         approvedPairs: Number(size.approved_quantity_pairs),
         dispatchedPairs,
         heldPairs,
+        holdReason,
         articleNo: colourway?.article_no ? String(colourway.article_no) : undefined,
         colour: colourway?.colour ? String(colourway.colour) : undefined,
         familyName: family?.name ? String(family.name) : undefined,
@@ -153,7 +157,7 @@ const ORDER_SELECT = `
     order_lines(id,commercial_offering_id,mrp_minor,approved_quantity_pairs,
       product_colourways!inner(article_no,colour,product_families(name,brands(name))),
       order_line_sizes(ordered_quantity_pairs,approved_quantity_pairs,size_values(label),
-        dispatch_lines(quantity_pairs,dispatches(status)),hold_allocations(quantity_pairs,holds(status)))))`;
+        dispatch_lines(quantity_pairs,dispatches(status)),hold_allocations(quantity_pairs,holds(status,hold_type)))))`;
 
 export class SupabaseCommerceRepository implements CommerceRepository {
   constructor(private readonly client: SupabaseClient) {}
@@ -294,6 +298,25 @@ export class SupabaseCommerceRepository implements CommerceRepository {
       p_correlation_id: correlationId,
     });
     if (error || !data) fail(error, "HOLD_FAILED");
+  }
+  async decideOrderLine(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; approvedPairs: number; heldPairs: number; holdReason: HoldReason | null }, correlationId: string): Promise<OrderRecord> {
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("decide_kitco_order_line", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: input.orderId,
+      p_order_line_id: input.orderLineId,
+      p_size_label: input.size,
+      p_approved_pairs: input.approvedPairs,
+      p_held_pairs: input.heldPairs,
+      p_hold_reason: input.holdReason,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "ORDER_LINE_DECISION_FAILED");
+    const order = await this.findOrder(session, input.orderId);
+    if (!order) throw new ApiError(409, "ORDER_LINE_DECISION_FAILED", "The decided order could not be loaded");
+    return order;
   }
   async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<void> {
     if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");

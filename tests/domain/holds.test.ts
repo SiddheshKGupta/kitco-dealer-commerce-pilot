@@ -1,4 +1,4 @@
-import { applyPartialHold, availablePairsForDispatch } from "../../src/domain/holds";
+import { applyPartialHold, availablePairsForDispatch, decideLineAllocation } from "../../src/domain/holds";
 
 describe("credit hold domain rules", () => {
   it("tracks a partial size hold without changing the purchased quantity", () => {
@@ -97,6 +97,61 @@ describe("credit hold domain rules", () => {
         { orderLineId: "line-1", size: "7", approvedPairs: 6, dispatchedPairs: 0, heldPairs: 4 },
         { orderLineId: "line-1", size: "8", approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
       ],
+    });
+  });
+});
+
+describe("per-line/size decision domain rules", () => {
+  const allocations = [
+    { orderLineId: "line-1", size: "7", orderedPairs: 10, approvedPairs: 10, dispatchedPairs: 0, heldPairs: 0 },
+  ];
+
+  it("records a partial approve + hold decision with a reason", () => {
+    expect(
+      decideLineAllocation(allocations, { orderLineId: "line-1", size: "7", approvedPairs: 7, heldPairs: 3, holdReason: "STOCK_REVIEW" }),
+    ).toEqual({
+      ok: true,
+      allocations: [
+        { orderLineId: "line-1", size: "7", orderedPairs: 10, approvedPairs: 7, dispatchedPairs: 0, heldPairs: 3, holdReason: "STOCK_REVIEW" },
+      ],
+    });
+  });
+
+  it("rejects approved + held exceeding the ordered quantity", () => {
+    expect(
+      decideLineAllocation(allocations, { orderLineId: "line-1", size: "7", approvedPairs: 8, heldPairs: 3, holdReason: "OTHER" }),
+    ).toEqual({ ok: false, reason: "DECISION_EXCEEDS_ORDERED" });
+  });
+
+  it("requires a hold reason whenever pairs are held", () => {
+    expect(
+      decideLineAllocation(allocations, { orderLineId: "line-1", size: "7", approvedPairs: 7, heldPairs: 3, holdReason: null }),
+    ).toEqual({ ok: false, reason: "HOLD_REASON_REQUIRED" });
+  });
+
+  it("rejects dropping approved pairs below what's already dispatched", () => {
+    const dispatched = [{ orderLineId: "line-1", size: "7", orderedPairs: 10, approvedPairs: 10, dispatchedPairs: 6, heldPairs: 0 }];
+    expect(
+      decideLineAllocation(dispatched, { orderLineId: "line-1", size: "7", approvedPairs: 5, heldPairs: 0, holdReason: null }),
+    ).toEqual({ ok: false, reason: "DECISION_BELOW_DISPATCHED" });
+  });
+
+  it("rejects negative or non-integer quantities and an unknown allocation", () => {
+    expect(
+      decideLineAllocation(allocations, { orderLineId: "line-1", size: "7", approvedPairs: -1, heldPairs: 0, holdReason: null }),
+    ).toEqual({ ok: false, reason: "INVALID_DECISION_QUANTITY" });
+    expect(
+      decideLineAllocation(allocations, { orderLineId: "line-1", size: "9", approvedPairs: 1, heldPairs: 0, holdReason: null }),
+    ).toEqual({ ok: false, reason: "ALLOCATION_NOT_FOUND" });
+  });
+
+  it("clears a previous hold when the new decision holds nothing", () => {
+    const held = [{ orderLineId: "line-1", size: "7", orderedPairs: 10, approvedPairs: 7, dispatchedPairs: 0, heldPairs: 3, holdReason: "OTHER" }];
+    expect(
+      decideLineAllocation(held, { orderLineId: "line-1", size: "7", approvedPairs: 10, heldPairs: 0, holdReason: null }),
+    ).toEqual({
+      ok: true,
+      allocations: [{ orderLineId: "line-1", size: "7", orderedPairs: 10, approvedPairs: 10, dispatchedPairs: 0, heldPairs: 0, holdReason: undefined }],
     });
   });
 });

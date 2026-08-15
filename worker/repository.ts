@@ -1,4 +1,4 @@
-import { applyPartialHold, type FulfilmentAllocation } from "../src/domain/holds";
+import { applyPartialHold, decideLineAllocation, type FulfilmentAllocation, type HoldReason } from "../src/domain/holds";
 import { recordDispatch } from "../src/domain/dispatch";
 import { createIdempotentSubmission, createOrderVersion, retailValueMinor, validatePurchaseQuantities, type SizeQuantities } from "../src/domain/orders";
 import { canOrderOffering } from "../src/domain/catalogue";
@@ -55,7 +55,7 @@ export interface OrderRecord {
   orderNumber: string;
   organisationId: string;
   dealerId: string;
-  status: "SUBMITTED" | "APPROVED" | "CANCELLED";
+  status: "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "PARTIALLY_APPROVED" | "REJECTED" | "CANCELLED";
   versions: OrderVersionRecord[];
   allocations: FulfilmentAllocation[];
   dealerName?: string;
@@ -84,11 +84,23 @@ export interface CommerceRepository {
   approveOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderRecord>;
   reviseOrder(session: SessionIdentity, orderId: string, lines: Array<{ offeringId: string; quantities: SizeQuantities }>, correlationId: string): Promise<OrderRecord>;
   applyHold(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; reason: string }, correlationId: string): Promise<void>;
+  decideOrderLine(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; approvedPairs: number; heldPairs: number; holdReason: HoldReason | null }, correlationId: string): Promise<OrderRecord>;
   createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<void>;
   stageImport(session: SessionIdentity, input: { sourceFileId: string; profileId: string }, correlationId: string): Promise<{ id: string; status: "UPLOADED" }>;
 }
 
 function clone<T>(value: T): T { return structuredClone(value); }
+
+/** Mirrors decide_kitco_order_line's status recompute: fully decided once
+ *  every line+size's approved+held reaches its ordered quantity; PARTIALLY_
+ *  APPROVED if any of those are held, APPROVED otherwise, UNDER_REVIEW while
+ *  any line+size is still undecided. */
+function computeOrderStatus(allocations: readonly FulfilmentAllocation[]): OrderRecord["status"] {
+  if (allocations.length === 0) return "SUBMITTED";
+  const allDecided = allocations.every((allocation) => allocation.approvedPairs + allocation.heldPairs >= (allocation.orderedPairs ?? allocation.approvedPairs));
+  if (!allDecided) return "UNDER_REVIEW";
+  return allocations.some((allocation) => allocation.heldPairs > 0) ? "PARTIALLY_APPROVED" : "APPROVED";
+}
 
 export class InMemoryCommerceRepository implements CommerceRepository {
   private readonly catalogue: CatalogueRecord[];
@@ -161,7 +173,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
         allocations: draft.flatMap((line) => {
           const product = this.catalogue.find((item) => item.organisationId === session.organisationId && item.offering.id === line.offeringId);
           return Object.entries(line.quantities).map(([size, pairs]) => ({
-            orderLineId: `${id}:${line.offeringId}`, size, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0,
+            orderLineId: `${id}:${line.offeringId}`, size, orderedPairs: pairs, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0,
             articleNo: product?.articleNo, colour: product?.colour, familyName: product?.familyName ?? undefined, brand: product?.brand,
           }));
         }),
@@ -211,7 +223,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     order.allocations = canonicalLines.flatMap((line) => {
       const product = this.catalogue.find((item) => item.organisationId === session.organisationId && item.offering.id === line.offeringId);
       return Object.entries(line.quantities).map(([size, pairs]) => ({
-        orderLineId: `${orderId}:${line.offeringId}`, size, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0,
+        orderLineId: `${orderId}:${line.offeringId}`, size, orderedPairs: pairs, approvedPairs: pairs, dispatchedPairs: 0, heldPairs: 0,
         articleNo: product?.articleNo, colour: product?.colour, familyName: product?.familyName ?? undefined, brand: product?.brand,
       }));
     });
@@ -224,6 +236,16 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     if (!result.ok) throw new ApiError(422, result.reason, "Hold cannot be applied");
     order.allocations = result.allocations;
     this.audit(session, correlationId, "HOLD_APPLIED", input.orderId);
+  }
+  async decideOrderLine(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; approvedPairs: number; heldPairs: number; holdReason: HoldReason | null }, correlationId: string) {
+    const order = this.requireAdminOrder(session, input.orderId);
+    if (order.status === "REJECTED" || order.status === "CANCELLED") throw new ApiError(422, "ORDER_DECISIONS_CLOSED", "This order can no longer be decided");
+    const result = decideLineAllocation(order.allocations, input);
+    if (!result.ok) throw new ApiError(422, result.reason, "Decision cannot be recorded");
+    order.allocations = result.allocations;
+    order.status = computeOrderStatus(order.allocations);
+    this.audit(session, correlationId, "ORDER_LINE_DECIDED", input.orderId);
+    return clone(order);
   }
   async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string) {
     const order = this.requireAdminOrder(session, input.orderId);

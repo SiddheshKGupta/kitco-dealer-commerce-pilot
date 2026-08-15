@@ -16,11 +16,11 @@ describe("DealerOrderArticles", () => {
 		render(<DealerOrderArticles allocations={allocations} />);
 		const airRunner = screen.getByText("Northstar · Air Runner · NK-101").closest("article")!;
 		expect(within(airRunner).getByText("Size 7 · 4 pairs")).toBeInTheDocument();
-		expect(within(airRunner).getByText("Size 8 · 6 pairs")).toBeInTheDocument();
+		expect(within(airRunner).getByText("Size 8 · 6 pairs (6 approved, 1 on hold)")).toBeInTheDocument();
 		expect(within(airRunner).getByText("Ordered 10 pairs")).toBeInTheDocument();
 		expect(within(airRunner).getByText("Dispatched 2 pairs")).toBeInTheDocument();
 		expect(within(airRunner).getByText("Pending 7 pairs")).toBeInTheDocument();
-		expect(within(airRunner).getByText("Credit Hold 1 pair")).toBeInTheDocument();
+		expect(within(airRunner).getByText("On hold 1 pair")).toBeInTheDocument();
 
 		const trailGlide = screen.getByText("Northstar · Trail Glide · NK-202").closest("article")!;
 		expect(within(trailGlide).getByText("Size 9 · 3 pairs")).toBeInTheDocument();
