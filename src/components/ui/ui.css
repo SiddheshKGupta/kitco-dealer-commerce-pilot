@@ -104,7 +104,7 @@
 .ui-modal-head p { margin: 0; font-size: 18px; font-weight: 700; }
 .ui-modal-body { padding: var(--space-5); }
 .ui-modal-footer { display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); }
-/* Same fix as .ui-sheet above: opacity is never gated on animation playback. */
+/* Same fix as .ui-native-sheet: opacity is never gated on animation playback. */
 @keyframes ui-modal-in { from { transform: scale(.98); } to { transform: scale(1); } }
 
 /* ---------------------------------------------------------- EmptyState */
@@ -115,7 +115,7 @@
 /* ---------------------------------------------------------- QuantityStepper */
 .ui-stepper { display: inline-flex; align-items: center; gap: var(--space-2); }
 .ui-stepper-btn { border-radius: var(--radius-sm); }
-.ui-stepper-value { width: 48px; height: 40px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: center; font: inherit; font-weight: 700; background: var(--canvas); color: var(--ink); }
+.ui-stepper-value { width: 56px; height: 48px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: center; font: inherit; font-size: 16px; font-weight: 700; background: var(--canvas); color: var(--ink); }
 .ui-stepper-value:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 
 /* ---------------------------------------------------------- FormField */
@@ -157,5 +157,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ui-btn, .ui-icon-btn, .ui-sheet, .ui-modal, .ui-toast, .ui-skeleton, .ui-btn-spinner { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .ui-btn, .ui-icon-btn, .ui-native-sheet, .ui-modal, .ui-toast, .ui-skeleton, .ui-btn-spinner { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }

@@ -3,7 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { DealerOrderJourney } from "../../src/features/orders/DealerOrderJourney";
 import { requestOrderOtp } from "../../src/features/orders/api";
 
-const product = { colourwayId: "cw-1", articleNo: "NK-101", brand: "Northstar", colour: "Black / Sail", mrpMinor: 10000, currencyCode: "INR", mediaUrl: "/api/media/nk.webp", availability: "AVAILABLE_TO_ORDER" as const, offering: { id: "offer-1", enabledSizes: ["7", "8"], moqPairs: 4, orderMultiplePairs: 2, type: "STOCK_IN_HAND" as const } };
+const product = { colourwayId: "cw-1", familyId: "fam-1", articleNo: "NK-101", brand: "Northstar", colour: "Black / Sail", mrpMinor: 10000, currencyCode: "INR", mediaUrl: "/api/media/nk.webp", availability: "AVAILABLE_TO_ORDER" as const, offering: { id: "offer-1", enabledSizes: ["7", "8"], moqPairs: 4, orderMultiplePairs: 2, type: "STOCK_IN_HAND" as const } };
+const whiteColourway = { ...product, colourwayId: "cw-2", colour: "White", mediaUrl: null };
 
 afterEach(() => { vi.unstubAllGlobals(); window.history.replaceState({}, "", "/"); });
 
@@ -41,5 +42,23 @@ describe("Current Order journey", () => {
     expect(screen.getByRole("button", { name: "Continue Shopping" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "View Cart" }));
     expect(window.location.pathname).toBe("/cart");
+  });
+
+  it("shows a colourway switcher when siblings exist, marks the current one, and switches on click without leaving the PDP", () => {
+    const onSelectColourway = vi.fn();
+    render(<DealerOrderJourney product={product} colourways={[product, whiteColourway]} onSelectColourway={onSelectColourway} />);
+    const current = screen.getByTitle("Black / Sail");
+    const other = screen.getByTitle("White");
+    expect(current).toHaveAttribute("aria-current", "true");
+    expect(other).toHaveAttribute("aria-current", "false");
+    fireEvent.click(other);
+    expect(onSelectColourway).toHaveBeenCalledWith(whiteColourway);
+    fireEvent.click(current);
+    expect(onSelectColourway).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders no switcher for a single-colourway family", () => {
+    render(<DealerOrderJourney product={product} colourways={[product]} />);
+    expect(screen.queryByRole("group", { name: "Other colours" })).not.toBeInTheDocument();
   });
 });

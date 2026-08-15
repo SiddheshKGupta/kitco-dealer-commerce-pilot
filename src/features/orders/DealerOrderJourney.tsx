@@ -14,7 +14,9 @@ function navigate(path: string) {
 /** Article selection only -- adds to the shared Current Order and stops there.
  *  No OTP, no ship-to, no submit here: that's the review screen (Slice 6),
  *  reached once via Cart, after every article the dealer wants is added. */
-export function DealerOrderJourney({ product, onBack }: { product: CatalogueProduct; onBack?: () => void }) {
+export function DealerOrderJourney({ product, colourways = [], onSelectColourway, onBack }: {
+	product: CatalogueProduct; colourways?: CatalogueProduct[]; onSelectColourway?: (product: CatalogueProduct) => void; onBack?: () => void;
+}) {
 	const [quantities, setQuantities] = useState<Record<string, number>>({});
 	const [saved, setSaved] = useState(false);
 	const [error, setError] = useState("");
@@ -36,8 +38,12 @@ export function DealerOrderJourney({ product, onBack }: { product: CatalogueProd
 	return <main className="commerce-page commerce-pdp">
 		{onBack && <Button variant="secondary" className="commerce-back" onClick={onBack}>← All products</Button>}
 		<div className="commerce-pdp-grid"><div className="commerce-pdp-media">{product.mediaUrl ? <img src={product.mediaUrl} alt={`${product.articleNo} · ${product.colour}`} /> : <div className="commerce-placeholder" role="img" aria-label={`Image unavailable for ${product.articleNo}`}><b>{product.articleNo}</b><small>Image arriving soon</small></div>}</div>
-			<section className="commerce-pdp-copy"><p className="commerce-eyebrow">{product.brand} · Exact colourway</p><h1>{product.familyName ?? product.articleNo}</h1><p className="commerce-colour">{product.colour}{product.familyName ? ` · Article ${product.articleNo}` : ""}</p><p className="commerce-colour">{genderCategoryLabel(product)}</p><p className="commerce-mrp">MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</p><div className="commerce-policy"><span>Minimum {product.offering.moqPairs} pairs</span><span>Multiple of {product.offering.orderMultiplePairs}</span></div>
-				<Button variant="ghost" size="sm" onClick={() => setShowSizeChart(true)}>Not sure of your size? See the size chart</Button>
+			<section className="commerce-pdp-copy"><p className="commerce-eyebrow">{product.brand} · Exact colourway</p><h1>{product.familyName ?? product.articleNo}</h1><p className="commerce-colour">{product.colour}{product.familyName ? ` · Article ${product.articleNo}` : ""}</p><p className="commerce-colour">{genderCategoryLabel(product)}</p>
+				{colourways.length > 1 && <div className="commerce-colourway-switcher" role="group" aria-label="Other colours">{colourways.map((option) => <button key={option.colourwayId} type="button" className="commerce-colourway-swatch" aria-current={option.colourwayId === product.colourwayId} title={option.colour} onClick={() => { if (option.colourwayId !== product.colourwayId) onSelectColourway?.(option); }}>
+					{option.mediaUrl ? <img src={option.mediaUrl} alt={option.colour} /> : <span>{option.colour}</span>}
+				</button>)}</div>}
+				<p className="commerce-mrp">MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</p><div className="commerce-policy"><span>Minimum {product.offering.moqPairs} pairs</span><span>Multiple of {product.offering.orderMultiplePairs}</span></div>
+				<Button variant="ghost" size="md" onClick={() => setShowSizeChart(true)}>Not sure of your size? See the size chart</Button>
 				<SizeGrid sizes={product.offering.enabledSizes} quantities={quantities} onChange={(size, pairs) => { setQuantities((current) => ({ ...current, [size]: pairs })); setSaved(false); }} />
 				{validation && <p className="commerce-validation" role="alert">{validation}</p>}
 				<SizeChartSheet open={showSizeChart} onClose={() => setShowSizeChart(false)} />

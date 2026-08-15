@@ -11,8 +11,10 @@ interface QuantityStepperProps {
 
 export function QuantityStepper({ value, onChange, label, min = 0, max, step = 1 }: QuantityStepperProps) {
 	const clamp = (next: number) => Math.max(min, max === undefined ? next : Math.min(max, next));
-	return <div className="ui-stepper" role="group" aria-label={label}>
-		<IconButton label={`Decrease ${label}`} size="sm" className="ui-stepper-btn" onClick={() => onChange(clamp(value - step))} disabled={value <= min}>−</IconButton>
+	return <div className="ui-stepper" role="group">
+		{/* No group-level aria-label: it would duplicate the input's own label below and
+		    make getByLabelText-style label queries match two elements for the same name. */}
+		<IconButton label={`Decrease ${label}`} className="ui-stepper-btn" onClick={() => onChange(clamp(value - step))} disabled={value <= min}>−</IconButton>
 		<input
 			className="ui-stepper-value"
 			inputMode="numeric"
@@ -20,6 +22,6 @@ export function QuantityStepper({ value, onChange, label, min = 0, max, step = 1
 			value={value}
 			onChange={(event) => onChange(clamp(Number.parseInt(event.target.value.replace(/\D/g, "") || "0", 10)))}
 		/>
-		<IconButton label={`Increase ${label}`} size="sm" className="ui-stepper-btn" onClick={() => onChange(clamp(value + step))} disabled={max !== undefined && value >= max}>+</IconButton>
+		<IconButton label={`Increase ${label}`} className="ui-stepper-btn" onClick={() => onChange(clamp(value + step))} disabled={max !== undefined && value >= max}>+</IconButton>
 	</div>;
 }
