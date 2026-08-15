@@ -53,17 +53,39 @@ describe("groupProductRows", () => {
 });
 
 describe("toProductCsv", () => {
-	it("renders dealer columns plus one column per distinct size, sparse where an article doesn't carry a size, plus Grand Total and Total Value", () => {
+	it("prints the dealer once as a small header block, followed by that dealer's article table with one column per distinct size", () => {
 		const rows = groupProductRows([
 			baseRow({ articleNo: "NK-101", size: "7", approvedQty: 4 }),
 			baseRow({ articleNo: "NK-101", size: "9", approvedQty: 2 }),
 			baseRow({ articleNo: "RB-1", productFamily: "Classic", mrpMinor: 499900, size: "8", approvedQty: 3 }),
 		]);
 		const csv = toProductCsv(rows);
-		const lines = csv.split("\r\n");
-		expect(lines[0]).toBe("Dealer Code,Dealer Name,Article No,Article Name,MRP,Gender,7,8,9,Grand Total,Total Value");
-		expect(lines[1]).toBe("VLCO,VLCO Sports,NK-101,Air Max,8999.00,Men,4,,2,6,53994.00");
-		expect(lines[2]).toBe("VLCO,VLCO Sports,RB-1,Classic,4999.00,Men,,3,,3,14997.00");
+		expect(csv).toBe([
+			"Dealer Code,Dealer Name",
+			"VLCO,VLCO Sports",
+			"Article No,Article Name,MRP,Gender,7,8,9,Grand Total,Total Value",
+			"NK-101,Air Max,8999.00,Men,4,,2,6,53994.00",
+			"RB-1,Classic,4999.00,Men,,3,,3,14997.00",
+		].join("\r\n"));
+	});
+
+	it("starts a new dealer block, blank-line separated, instead of repeating the dealer on every row -- the consolidated-export case", () => {
+		const rows = groupProductRows([
+			baseRow({ dealerCode: "VLCO", dealerName: "VLCO Sports", articleNo: "NK-101", size: "7", approvedQty: 4 }),
+			baseRow({ dealerCode: "SHOE1", dealerName: "Shoe Palace", articleNo: "NK-101", size: "10", approvedQty: 3 }),
+		]);
+		const csv = toProductCsv(rows);
+		expect(csv).toBe([
+			"Dealer Code,Dealer Name",
+			"SHOE1,Shoe Palace",
+			"Article No,Article Name,MRP,Gender,7,10,Grand Total,Total Value",
+			"NK-101,Air Max,8999.00,Men,,3,3,26997.00",
+			"",
+			"Dealer Code,Dealer Name",
+			"VLCO,VLCO Sports",
+			"Article No,Article Name,MRP,Gender,7,10,Grand Total,Total Value",
+			"NK-101,Air Max,8999.00,Men,4,,4,35996.00",
+		].join("\r\n"));
 	});
 });
 
@@ -83,7 +105,7 @@ describe("registerAdminProductExportRoutes", () => {
 		expect(received).toEqual({ orderId: "order-42" });
 		expect(response.status).toBe(200);
 		const body = await response.text();
-		expect(body.split("\r\n")[0]).toBe("Dealer Code,Dealer Name,Article No,Article Name,MRP,Gender,8,Grand Total,Total Value");
+		expect(body.split("\r\n").slice(0, 3)).toEqual(["Dealer Code,Dealer Name", "VLCO,VLCO Sports", "Article No,Article Name,MRP,Gender,8,Grand Total,Total Value"]);
 	});
 
 	it("threads query filters into the consolidated export", async () => {

@@ -42,24 +42,34 @@ export function groupProductRows(rows: OrderExportRow[]): ProductExportRow[] {
 		});
 }
 
-/** One column per distinct size seen across every row in this export (sparse -- blank
- *  where a given article doesn't carry that size), per the client's requested layout:
- *  Dealer Code, Dealer Name, Article No, Article Name, MRP, Gender, <size columns...>,
- *  Grand Total, Total Value. Dealer columns are included whether this is a single
- *  dealer's own report or a multi-dealer consolidated file -- for a single dealer
- *  they just repeat the same value on every row, which is harmless. */
+/** One column per distinct size seen ANYWHERE in this export (sparse -- blank where a
+ *  given article doesn't carry that size), kept consistent across every dealer's block
+ *  so columns line up throughout the file. Rows are grouped into one block per dealer --
+ *  printing "Dealer Code,Dealer Name" once followed by that dealer's article table --
+ *  rather than repeating the dealer on every article row. This is a no-op shape (one
+ *  block) for a single dealer's own report and the real payoff for a multi-dealer
+ *  consolidated export, where repeating the same dealer on every line was pure noise. */
 export function toProductCsv(rows: ProductExportRow[]): string {
 	const allSizes = [...new Set(rows.flatMap((row) => [...row.sizes.keys()]))].sort((a, b) => sizeSortKey(a) - sizeSortKey(b));
-	const headers = ["Dealer Code", "Dealer Name", "Article No", "Article Name", "MRP", "Gender", ...allSizes, "Grand Total", "Total Value"];
-	const lines = [headers.join(",")];
+	const articleHeaders = ["Article No", "Article Name", "MRP", "Gender", ...allSizes, "Grand Total", "Total Value"];
+	const blocks: string[][] = [];
+	let currentDealer = "";
+	let block: string[] = [];
 	for (const row of rows) {
-		lines.push([
-			row.dealerCode, row.dealerName, row.articleNo, row.articleName, (row.mrpMinor / 100).toFixed(2), row.gender,
+		const dealerKey = `${row.dealerCode}||${row.dealerName}`;
+		if (dealerKey !== currentDealer) {
+			if (block.length > 0) blocks.push(block);
+			currentDealer = dealerKey;
+			block = ["Dealer Code,Dealer Name", [row.dealerCode, row.dealerName].map(csvEscape).join(","), articleHeaders.join(",")];
+		}
+		block.push([
+			row.articleNo, row.articleName, (row.mrpMinor / 100).toFixed(2), row.gender,
 			...allSizes.map((size) => row.sizes.get(size) ?? ""),
 			row.grandTotalPairs, (row.totalValueMinor / 100).toFixed(2),
 		].map(csvEscape).join(","));
 	}
-	return lines.join("\r\n");
+	if (block.length > 0) blocks.push(block);
+	return blocks.map((lines) => lines.join("\r\n")).join("\r\n\r\n");
 }
 
 function sendCsv(context: Context<{ Variables: AuthVariables }>, rows: ProductExportRow[], filenamePrefix: string) {
