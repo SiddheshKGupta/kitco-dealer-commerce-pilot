@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
-import { SupabaseDealerApplicationsAdmin } from "../../worker/supabase-dealer-applications";
+import { SupabaseDealerApplicationsAdmin, slugCode } from "../../worker/supabase-dealer-applications";
 import { admin } from "./fixtures";
 
 type Row = Record<string, any>;
@@ -80,5 +80,72 @@ describe("SupabaseDealerApplicationsAdmin audit trail", () => {
 
 		await expect(store.reject(admin, "app-1", "too late", "corr-x")).rejects.toThrow();
 		expect(auditInserts).toEqual([]);
+	});
+});
+
+function makeDealersInsertClient(failuresBeforeSuccess: number, errorCode = "23505") {
+	let attempts = 0;
+	const from = vi.fn((table: string) => {
+		if (table === "dealer_applications") {
+			return {
+				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: applicationRow, error: null }) }) }) }),
+				update: () => ({ eq: async () => ({ error: null }) }),
+			};
+		}
+		if (table === "dealers") {
+			return {
+				insert: () => ({
+					select: () => ({
+						maybeSingle: async () => {
+							attempts += 1;
+							if (attempts <= failuresBeforeSuccess) return { data: null, error: { code: errorCode, message: "duplicate key value violates unique constraint" } };
+							return { data: { id: `dealer-attempt-${attempts}` }, error: null };
+						},
+					}),
+				}),
+			};
+		}
+		if (table === "dealer_gst_registrations") return { insert: async () => ({ error: null }) };
+		if (table === "audit_events") return { insert: async () => ({ error: null }) };
+		throw new Error(`unexpected table ${table}`);
+	});
+	return { client: { from } as unknown as SupabaseClient, getAttempts: () => attempts };
+}
+
+describe("SupabaseDealerApplicationsAdmin.approve -- dealer-code collision retry", () => {
+	it("retries slugCode generation on a unique-violation (23505) and succeeds once a non-colliding code is generated", async () => {
+		const { client, getAttempts } = makeDealersInsertClient(2);
+		const store = new SupabaseDealerApplicationsAdmin(client);
+
+		const result = await store.approve(admin, "app-1", "corr-x");
+
+		expect(result.dealerId).toBe("dealer-attempt-3");
+		expect(getAttempts()).toBe(3);
+	});
+
+	it("gives up after 3 collisions and throws DEALER_CREATE_FAILED", async () => {
+		const { client, getAttempts } = makeDealersInsertClient(3);
+		const store = new SupabaseDealerApplicationsAdmin(client);
+
+		await expect(store.approve(admin, "app-1", "corr-x")).rejects.toMatchObject({ code: "DEALER_CREATE_FAILED" });
+		expect(getAttempts()).toBe(3);
+	});
+
+	it("does not retry on a non-collision database error -- fails immediately on the first attempt", async () => {
+		const { client, getAttempts } = makeDealersInsertClient(1, "23503");
+		const store = new SupabaseDealerApplicationsAdmin(client);
+
+		await expect(store.approve(admin, "app-1", "corr-x")).rejects.toMatchObject({ code: "DEALER_CREATE_FAILED" });
+		expect(getAttempts()).toBe(1);
+	});
+});
+
+describe("slugCode", () => {
+	it("derives a dealer code from the business name's letters/digits (max 6) plus a random 4-digit suffix", () => {
+		expect(slugCode("VLCO Sports & Co.")).toMatch(/^VLCOSP\d{4}$/);
+	});
+
+	it("falls back to DEALER when the business name has no letters or digits", () => {
+		expect(slugCode("!!!")).toMatch(/^DEALER\d{4}$/);
 	});
 });
