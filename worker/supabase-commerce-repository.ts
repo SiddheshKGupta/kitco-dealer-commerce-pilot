@@ -26,14 +26,18 @@ function dateOnly(value: unknown, fallback: string): string {
   return typeof value === "string" ? value.slice(0, 10) : fallback;
 }
 
-/** Normalises source audience vocabulary (MEN/Men/MENS -> MEN) for display and filtering
- *  without touching the raw imported value. Handover §72. */
-function normalizeGender(value: unknown): string | null {
-  if (typeof value !== "string" || !value.trim()) return null;
+/** Normalises source audience vocabulary (MEN/Men/MENS -> MEN) to the fixed vocabulary
+ *  MEN | WOMEN | KIDS | UNISEX | UNKNOWN for display and filtering, without touching the
+ *  raw imported value. Never returns null -- absent/unrecognised stays UNKNOWN (v4.0 §41).
+ *  Handover §72. */
+function normalizeGender(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return "UNKNOWN";
   const upper = value.trim().toUpperCase();
-  if (upper === "MEN" || upper === "MENS") return "MEN";
-  if (upper === "WOMEN" || upper === "WOMENS") return "WOMEN";
-  return upper;
+  if (upper === "MEN" || upper === "MENS" || upper === "MALE") return "MEN";
+  if (upper === "WOMEN" || upper === "WOMENS" || upper === "FEMALE") return "WOMEN";
+  if (upper === "KID" || upper === "KIDS" || upper === "CHILD" || upper === "CHILDREN") return "KIDS";
+  if (upper === "UNISEX") return "UNISEX";
+  return "UNKNOWN";
 }
 
 function catalogueRow(row: Row): CatalogueRecord | null {

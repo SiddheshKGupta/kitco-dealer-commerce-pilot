@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "../../components/ui";
 import { SizeGrid } from "../../components/SizeGrid";
 import type { CatalogueProduct } from "../catalogue/types";
-import { formatRetailValue } from "../catalogue/types";
+import { formatRetailValue, genderCategoryLabel } from "../catalogue/types";
 import { saveDraft } from "./api";
 
 function navigate(path: string) {
@@ -34,7 +34,7 @@ export function DealerOrderJourney({ product, onBack }: { product: CatalogueProd
 	return <main className="commerce-page commerce-pdp">
 		{onBack && <Button variant="secondary" className="commerce-back" onClick={onBack}>← All products</Button>}
 		<div className="commerce-pdp-grid"><div className="commerce-pdp-media">{product.mediaUrl ? <img src={product.mediaUrl} alt={`${product.articleNo} · ${product.colour}`} /> : <div className="commerce-placeholder" role="img" aria-label={`Image unavailable for ${product.articleNo}`}><b>{product.articleNo}</b><small>Image arriving soon</small></div>}</div>
-			<section className="commerce-pdp-copy"><p className="commerce-eyebrow">{product.brand} · Exact colourway</p><h1>{product.familyName ?? product.articleNo}</h1><p className="commerce-colour">{product.colour}{product.familyName ? ` · Article ${product.articleNo}` : ""}</p><p className="commerce-mrp">MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</p><div className="commerce-policy"><span>Minimum {product.offering.moqPairs} pairs</span><span>Multiple of {product.offering.orderMultiplePairs}</span></div>
+			<section className="commerce-pdp-copy"><p className="commerce-eyebrow">{product.brand} · Exact colourway</p><h1>{product.familyName ?? product.articleNo}</h1><p className="commerce-colour">{product.colour}{product.familyName ? ` · Article ${product.articleNo}` : ""}</p><p className="commerce-colour">{genderCategoryLabel(product)}</p><p className="commerce-mrp">MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</p><div className="commerce-policy"><span>Minimum {product.offering.moqPairs} pairs</span><span>Multiple of {product.offering.orderMultiplePairs}</span></div>
 				<SizeGrid sizes={product.offering.enabledSizes} quantities={quantities} onChange={(size, pairs) => { setQuantities((current) => ({ ...current, [size]: pairs })); setSaved(false); }} />
 				{validation && <p className="commerce-validation" role="alert">{validation}</p>}
 				<section className="commerce-order-tray" aria-label="Current Order action">

@@ -1,5 +1,5 @@
 import type { CatalogueProduct } from "../features/catalogue/types";
-import { formatRetailValue } from "../features/catalogue/types";
+import { formatRetailValue, genderCategoryLabel } from "../features/catalogue/types";
 
 interface Props { products: CatalogueProduct[]; onOpenProduct: (product: CatalogueProduct) => void; onClearFilters?: () => void }
 
@@ -11,7 +11,7 @@ export function ProductGrid({ products, onOpenProduct, onClearFilters }: Props) 
         ? <img src={product.mediaUrl} alt={`${product.articleNo} · ${product.colour}`} />
         : <span className="commerce-placeholder" role="img" aria-label={`Image unavailable for ${product.articleNo}`}><b>{product.articleNo}</b><small>Image arriving soon</small></span>}
       </span>
-      <span className="commerce-card-copy"><strong>{product.familyName ?? product.articleNo}</strong><span>{product.brand}{product.familyName ? ` · ${product.articleNo}` : ""}</span><span>{product.colour}</span><b>MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</b></span>
+      <span className="commerce-card-copy"><strong>{product.familyName ?? product.articleNo}</strong><span>{product.brand}{product.familyName ? ` · ${product.articleNo}` : ""}</span><span>{product.colour}</span><span>{genderCategoryLabel(product)}</span><b>MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</b></span>
     </button>
   </article>)}</div>;
 }

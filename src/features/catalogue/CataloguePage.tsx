@@ -19,7 +19,7 @@ const dimensionLabels: Record<Dimension, string> = { brand: "Brand", category: "
 function valuesFor(product: CatalogueProduct, dimension: Dimension): string[] {
   if (dimension === "brand") return [product.brand];
   if (dimension === "category") return product.category ? [product.category] : [];
-  if (dimension === "gender") return product.gender ? [product.gender] : [];
+  if (dimension === "gender") return [product.gender ?? "UNKNOWN"];
   return product.offering.enabledSizes;
 }
 const emptySelection: Record<string, string[]> = {};

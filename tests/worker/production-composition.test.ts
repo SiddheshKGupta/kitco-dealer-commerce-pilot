@@ -85,6 +85,30 @@ describe("production commerce composition", () => {
     })]);
   });
 
+  it("normalises the full gender vocabulary and falls back to UNKNOWN instead of null", async () => {
+    const familyFor = (gender: unknown) => ({ brands: { name: "Nike" }, category: "Running", gender });
+    const rowFor = (id: string, gender: unknown) => ({
+      id, organisation_id: "org-1", offering_type: "STOCK_IN_HAND", mrp_minor: 10000, currency_code: "INR", moq_pairs: 4,
+      order_multiple: 2, opens_at: "2026-01-01T00:00:00Z", closes_at: "2026-12-31T23:59:59Z", published_at: "2026-08-13T00:00:00Z",
+      product_colourways: {
+        id: `cw-${id}`, article_no: id, colour: "Black", published_at: "2026-08-13T00:00:00Z",
+        product_families: familyFor(gender),
+        product_size_values: [], product_media: [], stock_snapshot_lines: [],
+      },
+    });
+    const rows = [
+      rowFor("mens", "Mens"), rowFor("womens", "WOMENS"), rowFor("unisex", "unisex"),
+      rowFor("kids", "Kids"), rowFor("blank", ""), rowFor("typo", "Boys"),
+    ];
+    const client = { from: vi.fn(() => chain({ data: rows, error: null })) } as unknown as SupabaseClient;
+    const repo = new SupabaseCommerceRepository(client);
+
+    const catalogue = await repo.listCatalogue(dealerA);
+
+    expect(catalogue.map((item) => item.gender)).toEqual(["MEN", "WOMEN", "UNISEX", "KIDS", "UNKNOWN", "UNKNOWN"]);
+    expect(catalogue.every((item) => item.gender !== null)).toBe(true);
+  });
+
   it("requires the real OTP verifier before handing an order to persistence", async () => {
     const repo = repository();
     const verifyOrderOtp = vi.fn(async () => undefined);
