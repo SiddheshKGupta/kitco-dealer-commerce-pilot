@@ -3,10 +3,8 @@ import type { AuthVariables } from "../middleware/auth";
 import { csvEscape, parseFilters, type OrderExportRow, type OrdersExporter } from "./admin-export";
 
 export interface ProductExportRow {
-	articleNo: string; articleName: string; mrpMinor: number; gender: string; sizeQuantities: string; totalValueMinor: number;
+	dealerCode: string; dealerName: string; articleNo: string; articleName: string; mrpMinor: number; gender: string; sizes: Map<string, number>; grandTotalPairs: number; totalValueMinor: number;
 }
-
-const PRODUCT_HEADERS = ["Article No", "Article Name", "MRP", "Gender", "All Sizes by Quantity", "Total Value"];
 
 function titleCase(value: string): string {
 	return value.split(" ").filter(Boolean).map((word) => word.charAt(0) + word.slice(1).toLowerCase()).join(" ");
@@ -17,34 +15,49 @@ function sizeSortKey(label: string): number {
 	return Number.isNaN(value) ? Number.POSITIVE_INFINITY : value;
 }
 
-/** Groups the flat per-order/line/size export rows into one row per distinct article
- *  (article no. + colour, since the same article no. can carry more than one colourway
- *  at a different MRP -- colour itself isn't a requested column, but still separates the
- *  grain). Quantities use approvedQty, matching the "Retail Value" already shown to
- *  dealers elsewhere in the app; a line held/rejected down to zero drops out entirely
- *  rather than showing an empty, zero-value row. */
+/** Groups the flat per-order/line/size export rows into one row per distinct dealer +
+ *  article (article no. + colour, since the same article no. can carry more than one
+ *  colourway at a different MRP -- colour itself isn't a requested column, but still
+ *  separates the grain). Grouping by dealer as well as article matters even for a
+ *  single-dealer export (it's a no-op there) and is essential for a multi-dealer
+ *  consolidated export: without it, two different dealers' orders of the same article
+ *  would silently merge into one blended quantity with no way to tell them apart.
+ *  Quantities use approvedQty, matching the "Retail Value" already shown to dealers
+ *  elsewhere in the app; a line held/rejected down to zero drops out entirely rather
+ *  than showing an empty, zero-value row. */
 export function groupProductRows(rows: OrderExportRow[]): ProductExportRow[] {
-	const groups = new Map<string, { articleNo: string; articleName: string; mrpMinor: number; gender: string; sizes: Map<string, number> }>();
+	const groups = new Map<string, { dealerCode: string; dealerName: string; articleNo: string; articleName: string; mrpMinor: number; gender: string; sizes: Map<string, number> }>();
 	for (const row of rows) {
-		const key = `${row.articleNo}||${row.colour}`;
+		const key = `${row.dealerCode}||${row.articleNo}||${row.colour}`;
 		let group = groups.get(key);
-		if (!group) { group = { articleNo: row.articleNo, articleName: row.productFamily, mrpMinor: row.mrpMinor, gender: titleCase(row.gender || "Unknown"), sizes: new Map() }; groups.set(key, group); }
+		if (!group) { group = { dealerCode: row.dealerCode, dealerName: row.dealerName, articleNo: row.articleNo, articleName: row.productFamily, mrpMinor: row.mrpMinor, gender: titleCase(row.gender || "Unknown"), sizes: new Map() }; groups.set(key, group); }
 		if (row.approvedQty > 0) group.sizes.set(row.size, (group.sizes.get(row.size) ?? 0) + row.approvedQty);
 	}
 	return [...groups.values()]
 		.filter((group) => group.sizes.size > 0)
-		.sort((a, b) => a.articleNo.localeCompare(b.articleNo))
+		.sort((a, b) => a.dealerName.localeCompare(b.dealerName) || a.articleNo.localeCompare(b.articleNo))
 		.map((group) => {
-			const sizeQuantities = [...group.sizes.entries()].sort((a, b) => sizeSortKey(a[0]) - sizeSortKey(b[0])).map(([size, qty]) => `${size}x${qty}`).join(", ");
-			const totalPairs = [...group.sizes.values()].reduce((sum, qty) => sum + qty, 0);
-			return { articleNo: group.articleNo, articleName: group.articleName, mrpMinor: group.mrpMinor, gender: group.gender, sizeQuantities, totalValueMinor: group.mrpMinor * totalPairs };
+			const grandTotalPairs = [...group.sizes.values()].reduce((sum, qty) => sum + qty, 0);
+			return { dealerCode: group.dealerCode, dealerName: group.dealerName, articleNo: group.articleNo, articleName: group.articleName, mrpMinor: group.mrpMinor, gender: group.gender, sizes: group.sizes, grandTotalPairs, totalValueMinor: group.mrpMinor * grandTotalPairs };
 		});
 }
 
+/** One column per distinct size seen across every row in this export (sparse -- blank
+ *  where a given article doesn't carry that size), per the client's requested layout:
+ *  Dealer Code, Dealer Name, Article No, Article Name, MRP, Gender, <size columns...>,
+ *  Grand Total, Total Value. Dealer columns are included whether this is a single
+ *  dealer's own report or a multi-dealer consolidated file -- for a single dealer
+ *  they just repeat the same value on every row, which is harmless. */
 export function toProductCsv(rows: ProductExportRow[]): string {
-	const lines = [PRODUCT_HEADERS.join(",")];
+	const allSizes = [...new Set(rows.flatMap((row) => [...row.sizes.keys()]))].sort((a, b) => sizeSortKey(a) - sizeSortKey(b));
+	const headers = ["Dealer Code", "Dealer Name", "Article No", "Article Name", "MRP", "Gender", ...allSizes, "Grand Total", "Total Value"];
+	const lines = [headers.join(",")];
 	for (const row of rows) {
-		lines.push([row.articleNo, row.articleName, (row.mrpMinor / 100).toFixed(2), row.gender, row.sizeQuantities, (row.totalValueMinor / 100).toFixed(2)].map(csvEscape).join(","));
+		lines.push([
+			row.dealerCode, row.dealerName, row.articleNo, row.articleName, (row.mrpMinor / 100).toFixed(2), row.gender,
+			...allSizes.map((size) => row.sizes.get(size) ?? ""),
+			row.grandTotalPairs, (row.totalValueMinor / 100).toFixed(2),
+		].map(csvEscape).join(","));
 	}
 	return lines.join("\r\n");
 }

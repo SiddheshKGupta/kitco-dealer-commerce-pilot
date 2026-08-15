@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { AuthVariables, SessionIdentity } from "../../worker/middleware/auth";
 import { handleApiError } from "../../worker/middleware/errors";
 import type { OrderExportFilters, OrderExportRow } from "../../worker/routes/admin-export";
-import { groupProductRows, registerAdminProductExportRoutes, registerDealerProductExportRoutes } from "../../worker/routes/product-export";
+import { groupProductRows, registerAdminProductExportRoutes, registerDealerProductExportRoutes, toProductCsv } from "../../worker/routes/product-export";
 
 const adminSession: SessionIdentity = { userId: "u-1", organisationId: "org-1", dealerId: null, role: "ADMIN" };
 const dealerSession: SessionIdentity = { userId: "u-2", organisationId: "org-1", dealerId: "dealer-1", role: "DEALER" };
@@ -20,13 +20,14 @@ function baseRow(overrides: Partial<OrderExportRow> = {}): OrderExportRow {
 }
 
 describe("groupProductRows", () => {
-	it("groups sizes for the same article+colour into one row with a combined size:qty string and total value", () => {
+	it("groups sizes for the same dealer+article+colour into one row with a sizes map, grand total, and total value", () => {
 		const rows = [baseRow({ size: "8", approvedQty: 4 }), baseRow({ size: "7", approvedQty: 6 }), baseRow({ size: "9", approvedQty: 2 })];
 		const result = groupProductRows(rows);
 		expect(result).toHaveLength(1);
 		expect(result[0]).toEqual({
-			articleNo: "NK-101", articleName: "Air Max", mrpMinor: 899900, gender: "Men",
-			sizeQuantities: "7x6, 8x4, 9x2",
+			dealerCode: "VLCO", dealerName: "VLCO Sports", articleNo: "NK-101", articleName: "Air Max", mrpMinor: 899900, gender: "Men",
+			sizes: new Map([["8", 4], ["7", 6], ["9", 2]]),
+			grandTotalPairs: 12,
 			totalValueMinor: 899900 * 12,
 		});
 	});
@@ -36,14 +37,33 @@ describe("groupProductRows", () => {
 		expect(result).toHaveLength(2);
 	});
 
+	it("keeps two different dealers' orders of the same article as separate rows instead of merging their quantities", () => {
+		const result = groupProductRows([
+			baseRow({ dealerCode: "VLCO", dealerName: "VLCO Sports", approvedQty: 4 }),
+			baseRow({ dealerCode: "SHOE1", dealerName: "Shoe Palace", approvedQty: 9 }),
+		]);
+		expect(result).toHaveLength(2);
+		expect(result.map((row) => [row.dealerCode, row.grandTotalPairs])).toEqual([["SHOE1", 9], ["VLCO", 4]]);
+	});
+
 	it("drops a line entirely once every size is held/rejected down to zero approved pairs", () => {
 		const result = groupProductRows([baseRow({ approvedQty: 0 })]);
 		expect(result).toEqual([]);
 	});
+});
 
-	it("sorts numeric size labels in ascending order", () => {
-		const rows = [baseRow({ size: "10", approvedQty: 1 }), baseRow({ size: "2", approvedQty: 1 })];
-		expect(groupProductRows(rows)[0]!.sizeQuantities).toBe("2x1, 10x1");
+describe("toProductCsv", () => {
+	it("renders dealer columns plus one column per distinct size, sparse where an article doesn't carry a size, plus Grand Total and Total Value", () => {
+		const rows = groupProductRows([
+			baseRow({ articleNo: "NK-101", size: "7", approvedQty: 4 }),
+			baseRow({ articleNo: "NK-101", size: "9", approvedQty: 2 }),
+			baseRow({ articleNo: "RB-1", productFamily: "Classic", mrpMinor: 499900, size: "8", approvedQty: 3 }),
+		]);
+		const csv = toProductCsv(rows);
+		const lines = csv.split("\r\n");
+		expect(lines[0]).toBe("Dealer Code,Dealer Name,Article No,Article Name,MRP,Gender,7,8,9,Grand Total,Total Value");
+		expect(lines[1]).toBe("VLCO,VLCO Sports,NK-101,Air Max,8999.00,Men,4,,2,6,53994.00");
+		expect(lines[2]).toBe("VLCO,VLCO Sports,RB-1,Classic,4999.00,Men,,3,,3,14997.00");
 	});
 });
 
@@ -63,7 +83,7 @@ describe("registerAdminProductExportRoutes", () => {
 		expect(received).toEqual({ orderId: "order-42" });
 		expect(response.status).toBe(200);
 		const body = await response.text();
-		expect(body.split("\r\n")[0]).toBe("Article No,Article Name,MRP,Gender,All Sizes by Quantity,Total Value");
+		expect(body.split("\r\n")[0]).toBe("Dealer Code,Dealer Name,Article No,Article Name,MRP,Gender,8,Grand Total,Total Value");
 	});
 
 	it("threads query filters into the consolidated export", async () => {
