@@ -8,3 +8,15 @@
 .pilot-order-card > header strong { overflow-wrap: anywhere; }
 .pilot-order-card > header b { border-radius: var(--radius-lg); border: 1px solid var(--ink); padding: 6px 10px; font-size: 11px; font-weight: 500; letter-spacing: .06em; }
 .pilot-order-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; color: var(--mute); font-size: 13px; }
+.dealer-fulfilment { display: grid; gap: 10px; border: 1px solid var(--hairline); padding: 16px; background: var(--canvas); font-family: var(--font-ui); }
+.dealer-fulfilment div { display: flex; flex-wrap: wrap; gap: 8px; }
+.dealer-fulfilment span { padding: 6px 10px; border-radius: var(--radius-lg); background: var(--soft-cloud); font-size: 12px; font-weight: 500; }
+.pilot-order-details { border-top: 1px solid var(--hairline); padding-top: 12px; }
+.pilot-order-details > summary { cursor: pointer; font-size: 13px; font-weight: 500; color: var(--ink); }
+.dealer-order-articles { display: grid; gap: 12px; margin-top: 14px; }
+.dealer-order-article { display: grid; gap: 8px; border: 1px solid var(--hairline); padding: 12px; background: var(--soft-cloud); }
+.dealer-order-article > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.dealer-order-article > header span { color: var(--mute); font-size: 12px; }
+.dealer-order-article-sizes, .dealer-order-article-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.dealer-order-article-sizes span { padding: 4px 8px; border-radius: var(--radius-lg); background: var(--canvas); border: 1px solid var(--hairline); font-size: 12px; }
+.dealer-order-article-status span { padding: 4px 8px; border-radius: var(--radius-lg); background: var(--canvas); font-size: 12px; font-weight: 500; }

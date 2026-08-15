@@ -4,7 +4,7 @@ import { ControlConsole } from "../features/admin/ControlConsole";
 import type { ControlOrder } from "../features/admin/AdminOrderPanel";
 import type { FulfilmentAllocation } from "../features/dispatch/fulfilment";
 import { formatRetailValue } from "../features/catalogue/types";
-import { DealerFulfilmentStatus } from "../features/reports/DealerFulfilmentStatus";
+import { DealerFulfilmentStatus, DealerOrderArticles } from "../features/reports/DealerFulfilmentStatus";
 import "./surfaces.css";
 
 interface LiveOrder extends ControlOrder {
@@ -45,6 +45,6 @@ export function OrdersSurface({ reports = false }: { reports?: boolean }) {
     <p className="eyebrow">{reports ? "Dealer reporting" : "Dealer ordering"}</p>
     <h1>{reports ? "Fulfilment reports" : "Current Order"}</h1>
     <p className="intro">{reports ? "Track ordered, dispatched, held, and pending pairs from KITCO's live ledger." : "Track submitted orders or start your next order from the catalogue."}</p>
-    {status !== "ready" ? <SurfaceState status={status} retry={load} /> : orders.length === 0 ? <div className="pilot-orders-empty"><strong>No submitted orders yet.</strong><a className="ui-btn ui-btn-primary ui-btn-md" href="/products">Start an order</a></div> : <div className="pilot-order-list">{orders.map((order) => <article key={order.id} className="pilot-order-card"><header><div><span>Order</span><strong>{order.orderNumber ?? order.id}</strong></div><b>{order.status}</b></header><div className="pilot-order-meta"><span>Version {order.version ?? 1}</span>{typeof order.retailValueMinor === "number" && <span>Retail Value {formatRetailValue(order.retailValueMinor)}</span>}</div><DealerFulfilmentStatus order={{ allocations: order.allocations as FulfilmentAllocation[] }} /></article>)}</div>}
+    {status !== "ready" ? <SurfaceState status={status} retry={load} /> : orders.length === 0 ? <div className="pilot-orders-empty"><strong>No submitted orders yet.</strong><a className="ui-btn ui-btn-primary ui-btn-md" href="/products">Start an order</a></div> : <div className="pilot-order-list">{orders.map((order) => <article key={order.id} className="pilot-order-card"><header><div><span>Order</span><strong>{order.orderNumber ?? order.id}</strong></div><b>{order.status}</b></header><div className="pilot-order-meta"><span>Version {order.version ?? 1}</span>{typeof order.retailValueMinor === "number" && <span>Retail Value {formatRetailValue(order.retailValueMinor)}</span>}</div><DealerFulfilmentStatus order={{ allocations: order.allocations as FulfilmentAllocation[] }} />{order.allocations.length > 0 && <details className="pilot-order-details"><summary>View articles in this order</summary><DealerOrderArticles allocations={order.allocations as FulfilmentAllocation[]} /></details>}</article>)}</div>}
   </main>;
 }

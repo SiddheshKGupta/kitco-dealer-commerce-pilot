@@ -55,7 +55,7 @@ describe("pilot surface routing", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ orders: [{ id: "order-1", status: "APPROVED", version: 1, retailValueMinor: 40000, allocations: [{ orderLineId: "line-1", size: "7", approvedPairs: 4, dispatchedPairs: 2, heldPairs: 0 }] }] }), { status: 200 })));
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Fulfilment reports" })).toBeInTheDocument();
-    expect(screen.getByText("Dispatched 2 pairs")).toBeInTheDocument();
+    expect(within(screen.getByLabelText("Order fulfilment")).getByText("Dispatched 2 pairs")).toBeInTheDocument();
   });
 
   it("keeps activation and login routes outside dealer and control workspaces", () => {
