@@ -50,6 +50,9 @@ export interface DraftLine {
   mrpMinor?: number; currencyCode?: string; mediaKey?: string | null;
 }
 export interface OrderVersionRecord { version: number; status: "SUBMITTED" | "PROPOSED" | "ACCEPTED"; retailValueMinor: number; lines: DraftLine[] }
+/** A single row of an order's real audit trail (see SupabaseCommerceRepository.attachAudit). action/detail
+ *  are already human-paraphrased for admin display -- never raw event_type enums or evidence JSON. */
+export interface OrderAuditEvent { correlationId: string; action: string; detail: string; occurredAt: string; actorEmail: string }
 export interface OrderRecord {
   id: string;
   orderNumber: string;
@@ -64,6 +67,7 @@ export interface OrderRecord {
   submittedAt?: string;
   version?: number;
   retailValueMinor?: number;
+  audit?: OrderAuditEvent[];
 }
 export interface AuditEvent { correlationId: string; action: string; organisationId: string; dealerId: string | null; actorUserId: string; entityId: string }
 export interface DealerLocationRecord { id: string; name: string; locationType: "BILL_TO" | "SHIP_TO" | "BOTH" }

@@ -1,11 +1,10 @@
 import { useMemo, useState } from "react";
-import { Button } from "../../components/ui";
 import { DispatchForm } from "../dispatch/DispatchForm";
 import { groupByArticle, summarizeFulfilment, type FulfilmentAllocation } from "../dispatch/fulfilment";
 import { OrderLineDecision } from "../holds/OrderLineDecision";
 import "./control.css";
 
-export interface ControlOrder { id: string; orderNumber?: string; status: string; allocations: FulfilmentAllocation[]; audit: Array<{ correlationId: string; action: string }>; }
+export interface ControlOrder { id: string; orderNumber?: string; status: string; allocations: FulfilmentAllocation[]; audit: Array<{ correlationId: string; action: string; detail: string; occurredAt: string; actorEmail: string }>; }
 type AdminApi = (path: string, body: object) => Promise<unknown>;
 const defaultApi: AdminApi = async (path, body) => {
 	const response = await fetch(path, { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-correlation-id": crypto.randomUUID() }, body: JSON.stringify(body) });
@@ -53,6 +52,6 @@ export function AdminOrderPanel({ order, api = defaultApi }: { order: ControlOrd
 			</section>;
 		})}</div>
 		<section className="control-table-wrap"><table><caption>Order total · {order.orderNumber ?? order.id}</caption><thead><tr><th>Ordered</th><th>Dispatched</th><th>On hold</th><th>Pending</th></tr></thead><tbody><tr><td>{summary.orderedPairs}</td><td>{summary.dispatchedPairs}</td><td>{summary.heldPairs}</td><td>{summary.pendingPairs}</td></tr></tbody></table></section>
-		<div className="control-actions"><section><h2>Revision</h2><Button variant="secondary" full>Propose revision</Button></section><section><h2>Audit trail</h2><ul className="audit-list">{order.audit.map((event) => <li key={`${event.action}:${event.correlationId}`}><strong>{event.action.replaceAll("_", " ")}</strong><span>{event.correlationId}</span></li>)}</ul></section></div>
+		<div className="control-actions"><section style={{ gridColumn: "1 / -1" }}><h2>Audit trail</h2><ul className="audit-list">{order.audit.map((event) => <li key={`${event.correlationId}:${event.action}`}><div><strong>{event.action}</strong><span>{new Date(event.occurredAt).toLocaleString()}</span></div>{event.detail && <p>{event.detail}</p>}<span>{event.actorEmail}</span></li>)}</ul></section></div>
 		{message && <p className="control-message" role="status">{message}</p>}</>;
 }

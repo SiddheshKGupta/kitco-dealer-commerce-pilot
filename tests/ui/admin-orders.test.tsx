@@ -6,7 +6,7 @@ import { DealerFulfilmentStatus } from "../../src/features/reports/DealerFulfilm
 const order = {
 	id: "order-1", status: "SUBMITTED", allocations: [
 		{ orderLineId: "order-1:offer-1", size: "7", orderedPairs: 6, approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
-	], audit: [{ correlationId: "corr-submitted", action: "ORDER_SUBMITTED" }],
+	], audit: [{ correlationId: "corr-submitted", action: "Order submitted", detail: "Submitted as version 1", occurredAt: "2026-08-01T09:00:00.000Z", actorEmail: "dealer@example.com" }],
 };
 
 describe("KITCO Control order operations", () => {

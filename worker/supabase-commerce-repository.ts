@@ -9,6 +9,7 @@ import type {
   CommerceRepository,
   DealerLocationRecord,
   DraftLine,
+  OrderAuditEvent,
   OrderRecord,
   OrderVersionRecord,
 } from "./repository";
@@ -140,6 +141,89 @@ function orderFromRow(row: Row): OrderRecord {
   };
 }
 
+const ORDER_AUDIT_ACTIONS: Record<string, string> = {
+  ORDER_SUBMITTED: "Order submitted",
+  ORDER_APPROVED: "Order approved",
+  ORDER_LINE_DECIDED: "Order line decided",
+  CREDIT_HOLD_APPLIED: "Credit hold applied",
+  DISPATCH_FINALISED: "Dispatch finalised",
+};
+
+/** Title-cases a SCREAMING_SNAKE_CASE enum for display, e.g. STOCK_REVIEW -> Stock review. */
+function humanizeEnum(value: string): string {
+  const words = value.replaceAll("_", " ").toLowerCase();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+/** One-line plain-English paraphrase of an audit event's evidence, keyed by event_type. Unknown
+ *  event types fall back to an empty detail -- the humanized action label alone still shows. */
+function auditDetail(eventType: string, evidence: Row): string {
+  switch (eventType) {
+    case "ORDER_LINE_DECIDED": {
+      const approved = Number(evidence.approved_pairs ?? 0);
+      const held = Number(evidence.held_pairs ?? 0);
+      const size = evidence.size ?? "?";
+      if (held > 0) {
+        const reason = evidence.hold_reason ? ` (${humanizeEnum(String(evidence.hold_reason))})` : "";
+        return `Approved ${approved}, held ${held} of size ${size}${reason}`;
+      }
+      return `Approved ${approved} of size ${size}`;
+    }
+    case "CREDIT_HOLD_APPLIED":
+      return `Held ${Number(evidence.pairs ?? 0)} pairs on credit hold`;
+    case "DISPATCH_FINALISED":
+      return `Dispatched ${Number(evidence.pairs ?? 0)} pairs`;
+    case "ORDER_APPROVED":
+      return "Order approved for fulfilment";
+    case "ORDER_SUBMITTED":
+      return `Submitted as version ${Number(evidence.version ?? 1)}`;
+    default:
+      return "";
+  }
+}
+
+const ORDER_AUDIT_SELECT = "event_type,entity_id,correlation_id,evidence,occurred_at,actor_auth_user_id";
+
+/** Order-related audit events don't share one entity_type/entity_id: ORDER_SUBMITTED and ORDER_APPROVED
+ *  use entity_type='ORDER' with entity_id = the order id, while CREDIT_HOLD_APPLIED/ORDER_LINE_DECIDED/
+ *  DISPATCH_FINALISED stash the order id inside evidence->>'order_id' instead (confirmed against
+ *  supabase/migrations/20260815120000_partial_order_line_decisions.sql and 20260813184500_admin_fulfilment_rpc.sql).
+ *  Matching on either covers every order-related event type currently written. Actor emails are
+ *  batch-resolved once per call (same pattern as SupabaseAdminUsersStore.list / SupabaseAdminConsoleReader.audit)
+ *  rather than N+1 per event. */
+async function loadOrderAudit(client: SupabaseClient, organisationId: string, orderIds: string[]): Promise<Map<string, OrderAuditEvent[]>> {
+  const byOrder = new Map<string, OrderAuditEvent[]>();
+  if (orderIds.length === 0) return byOrder;
+  const idList = orderIds.join(",");
+  const { data, error } = await client.from("audit_events").select(ORDER_AUDIT_SELECT)
+    .eq("organisation_id", organisationId)
+    .or(`entity_id.in.(${idList}),evidence->>order_id.in.(${idList})`)
+    .order("occurred_at", { ascending: true });
+  if (error) fail(error, "ORDER_AUDIT_LOAD_FAILED");
+  const rows = (data ?? []) as Row[];
+  const actorIds = [...new Set(rows.map((row) => row.actor_auth_user_id).filter(Boolean))] as string[];
+  const emailById = new Map<string, string>();
+  await Promise.all(actorIds.map(async (id) => {
+    const { data: user } = await client.auth.admin.getUserById(id);
+    if (user.user?.email) emailById.set(id, user.user.email);
+  }));
+  for (const row of rows) {
+    const evidence = (row.evidence ?? {}) as Row;
+    const orderId = evidence.order_id ? String(evidence.order_id) : String(row.entity_id);
+    const eventType = String(row.event_type);
+    const entry: OrderAuditEvent = {
+      correlationId: String(row.correlation_id),
+      action: ORDER_AUDIT_ACTIONS[eventType] ?? humanizeEnum(eventType),
+      detail: auditDetail(eventType, evidence),
+      occurredAt: String(row.occurred_at),
+      actorEmail: row.actor_auth_user_id ? emailById.get(String(row.actor_auth_user_id)) ?? "(unknown)" : "(unknown)",
+    };
+    const existing = byOrder.get(orderId);
+    if (existing) existing.push(entry); else byOrder.set(orderId, [entry]);
+  }
+  return byOrder;
+}
+
 const CATALOGUE_SELECT = `
   id,organisation_id,offering_type,mrp_minor,currency_code,moq_pairs,order_multiple,opens_at,closes_at,published_at,
   product_colourways!inner(
@@ -242,7 +326,9 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     if (session.role === "DEALER") query = query.eq("dealer_id", session.dealerId);
     const { data, error } = await query;
     if (error) fail(error, "ORDER_LOAD_FAILED");
-    return (data as Row[]).map(orderFromRow);
+    const orders = (data as Row[]).map(orderFromRow);
+    await this.attachAudit(session, orders);
+    return orders;
   }
 
   async findOrder(session: SessionIdentity, orderId: string): Promise<OrderRecord | null> {
@@ -250,7 +336,20 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     if (session.role === "DEALER") query = query.eq("dealer_id", session.dealerId);
     const { data, error } = await query.maybeSingle();
     if (error) fail(error, "ORDER_LOAD_FAILED");
-    return data ? orderFromRow(data as Row) : null;
+    if (!data) return null;
+    const order = orderFromRow(data as Row);
+    await this.attachAudit(session, [order]);
+    return order;
+  }
+
+  /** Admin-only: findOrder/listOrders are shared with the dealer-facing routes
+   *  (worker/routes/orders.ts), which forward the whole OrderRecord to the dealer via
+   *  a shallow spread. The audit trail carries KITCO staff emails and internal
+   *  hold/decision detail that must never reach a dealer response. */
+  private async attachAudit(session: SessionIdentity, orders: OrderRecord[]): Promise<void> {
+    if (orders.length === 0 || !isAdminRole(session.role)) return;
+    const audit = await loadOrderAudit(this.client, session.organisationId, orders.map((order) => order.id));
+    for (const order of orders) order.audit = audit.get(order.id) ?? [];
   }
 
   async listDealerLocations(session: SessionIdentity): Promise<DealerLocationRecord[]> {

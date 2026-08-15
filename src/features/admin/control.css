@@ -40,7 +40,9 @@
 @media (max-width: 420px) { .decision-card-grid { grid-template-columns: 1fr; } }
 .audit-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
 .audit-list li { display: grid; gap: 3px; font-size: 11px; }
+.audit-list li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
 .audit-list span { color: var(--mute); font-family: var(--font-ui); }
+.audit-list p { margin: 0; font-size: 12px; color: var(--ink); }
 .control-message { margin: 14px 0 0; padding: 12px; border-left: 3px solid var(--ink); background: var(--canvas); font-size: 13px; font-weight: 500; }
 .dealer-fulfilment { display: grid; gap: 10px; border: 1px solid var(--hairline); padding: 16px; background: var(--canvas); font-family: var(--font-ui); }
 .dealer-fulfilment div { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -49,5 +51,5 @@
 .control-detail-grid dt { margin: 0 0 3px; color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .control-detail-grid dd { margin: 0; font-size: 14px; font-weight: 500; }
 .control-actions-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-@media (max-width: 760px) { .control-layout { grid-template-columns: minmax(0, 1fr); } .control-nav { min-width: 0; border-right: 0; border-bottom: 1px solid #d8d8d8; } .control-nav nav { display: flex; max-width: 100%; overflow-x: auto; } .control-nav a { flex: 0 0 auto; } .control-nav span, .control-nav nav a:nth-of-type(n+7) { display: none; } .control-actions { grid-template-columns: minmax(0, 1fr); } .control-heading { align-items: flex-start; flex-direction: column; } .control-table-wrap { max-width: 100%; } }
+@media (max-width: 760px) { .control-layout { grid-template-columns: minmax(0, 1fr); } .control-nav { min-width: 0; border-right: 0; border-bottom: 1px solid #d8d8d8; } .control-nav nav { display: flex; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; } .control-nav a { flex: 0 0 auto; padding: 11px 14px; font-size: 13px; } .control-nav span { display: none; } .control-actions { grid-template-columns: minmax(0, 1fr); } .control-heading { align-items: flex-start; flex-direction: column; } .control-table-wrap, .control-layout .table-wrap { max-width: 100%; } .control-detail-grid { grid-template-columns: minmax(0, 1fr); } .control-layout .data-table th, .control-layout .data-table td, .control-layout .control-table-wrap th, .control-layout .control-table-wrap td { min-width: 84px; padding: 12px 10px; } }
 @media (prefers-reduced-motion: reduce) { .control-nav a { transition: none; } }
