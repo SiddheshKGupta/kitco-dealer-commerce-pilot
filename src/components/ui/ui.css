@@ -87,21 +87,26 @@
 
 /* ---------------------------------------------------------- BottomSheet (mobile) */
 .ui-sheet-scrim { position: fixed; z-index: 60; inset: 0; display: grid; align-items: end; background: rgb(0 0 0 / .4); }
-.ui-sheet { max-height: 88vh; overflow: auto; background: var(--canvas); border-radius: var(--radius) var(--radius) 0 0; padding-bottom: env(safe-area-inset-bottom, 0); animation: ui-sheet-rise var(--motion-standard) var(--ease-standard) both; }
+.ui-sheet { max-height: 88vh; overflow: auto; background: var(--canvas); border-radius: var(--radius) var(--radius) 0 0; padding-bottom: env(safe-area-inset-bottom, 0); opacity: 1; animation: ui-sheet-rise var(--motion-standard) var(--ease-standard); }
 .ui-sheet-head { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-5) var(--space-5) var(--space-4); background: var(--canvas); border-bottom: 1px solid var(--line); }
 .ui-sheet-head p { margin: 0; font-size: 18px; font-weight: 700; }
 .ui-sheet-body { padding: var(--space-5); }
 .ui-sheet-footer { position: sticky; bottom: 0; padding: var(--space-4) var(--space-5); background: var(--canvas); border-top: 1px solid var(--line); }
-@keyframes ui-sheet-rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+/* Only the entrance motion is animated -- opacity stays 1 unconditionally so the
+   sheet's content is never hidden if the animation fails to start or complete
+   (observed: a fresh-mounted element can get stuck at its `from` keyframe in
+   some engines when `animation-fill-mode: both` gates opacity on playback). */
+@keyframes ui-sheet-rise { from { transform: translateY(24px); } to { transform: translateY(0); } }
 
 /* ---------------------------------------------------------- Modal (desktop) */
 .ui-modal-scrim { position: fixed; z-index: 60; inset: 0; display: grid; place-items: center; padding: var(--space-4); background: rgb(0 0 0 / .4); }
-.ui-modal { width: min(100%, 560px); max-height: 88vh; overflow: auto; background: var(--canvas); border-radius: var(--radius); box-shadow: var(--shadow); animation: ui-modal-in var(--motion-standard) var(--ease-standard) both; }
+.ui-modal { width: min(100%, 560px); max-height: 88vh; overflow: auto; background: var(--canvas); border-radius: var(--radius); box-shadow: var(--shadow); opacity: 1; animation: ui-modal-in var(--motion-standard) var(--ease-standard); }
 .ui-modal-head { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-bottom: 1px solid var(--line); }
 .ui-modal-head p { margin: 0; font-size: 18px; font-weight: 700; }
 .ui-modal-body { padding: var(--space-5); }
 .ui-modal-footer { display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); }
-@keyframes ui-modal-in { from { opacity: 0; transform: scale(.98); } to { opacity: 1; transform: scale(1); } }
+/* Same fix as .ui-sheet above: opacity is never gated on animation playback. */
+@keyframes ui-modal-in { from { transform: scale(.98); } to { transform: scale(1); } }
 
 /* ---------------------------------------------------------- EmptyState */
 .ui-empty { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-5); text-align: center; color: var(--muted); }
