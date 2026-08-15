@@ -27,10 +27,11 @@ export interface FulfilmentAllocation {
 export function summarizeFulfilment(allocations: FulfilmentAllocation[]) {
 	return allocations.reduce((summary, allocation) => ({
 		orderedPairs: summary.orderedPairs + (allocation.orderedPairs ?? allocation.approvedPairs),
+		approvedPairs: summary.approvedPairs + allocation.approvedPairs,
 		dispatchedPairs: summary.dispatchedPairs + allocation.dispatchedPairs,
 		heldPairs: summary.heldPairs + allocation.heldPairs,
 		pendingPairs: summary.pendingPairs + allocation.approvedPairs - allocation.dispatchedPairs - allocation.heldPairs,
-	}), { orderedPairs: 0, dispatchedPairs: 0, heldPairs: 0, pendingPairs: 0 });
+	}), { orderedPairs: 0, approvedPairs: 0, dispatchedPairs: 0, heldPairs: 0, pendingPairs: 0 });
 }
 
 /** Groups allocations by order line (i.e. by article/size cohort), preserving first-seen order. Shared by the admin and dealer order views. */

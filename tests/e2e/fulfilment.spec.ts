@@ -21,7 +21,7 @@ describe("connected fulfilment smoke", () => {
 		expect(dealerOrder.status).toBe(200);
 		const { order: scoped } = await dealerOrder.json() as { order: { status: string; allocations: unknown[] } };
 		expect(scoped.status).toBe("PARTIALLY_APPROVED");
-		expect(summarizeFulfilment(scoped.allocations as never)).toEqual({ orderedPairs: 4, dispatchedPairs: 0, heldPairs: 1, pendingPairs: 2 });
+		expect(summarizeFulfilment(scoped.allocations as never)).toEqual({ orderedPairs: 4, approvedPairs: 3, dispatchedPairs: 0, heldPairs: 1, pendingPairs: 2 });
 		const [[, sizeRows]] = groupByArticle(scoped.allocations as never);
 		expect(sizeRows).toEqual([expect.objectContaining({ orderedPairs: 4, approvedPairs: 3, heldPairs: 1, holdReason: "CREDIT_HOLD" })]);
 		expect(repo.auditEvents.map((event) => event.correlationId)).toContain("corr-decide");
@@ -40,7 +40,7 @@ describe("connected fulfilment smoke", () => {
 		const dealerOrder = await app.request(`/api/orders/${order.id}`, { headers: headers("dealer") });
 		expect(dealerOrder.status).toBe(200);
 		const { order: scoped } = await dealerOrder.json() as { order: { allocations: unknown[] } };
-		expect(summarizeFulfilment(scoped.allocations as never)).toEqual({ orderedPairs: 4, dispatchedPairs: 2, heldPairs: 1, pendingPairs: 1 });
+		expect(summarizeFulfilment(scoped.allocations as never)).toEqual({ orderedPairs: 4, approvedPairs: 4, dispatchedPairs: 2, heldPairs: 1, pendingPairs: 1 });
 		expect(repo.auditEvents.map((event) => event.correlationId)).toEqual(expect.arrayContaining(["corr-approve", "corr-hold", "corr-dispatch"]));
 	});
 });

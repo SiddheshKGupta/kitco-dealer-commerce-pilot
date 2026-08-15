@@ -236,8 +236,7 @@ function OrdersSection() {
 							<td>{number(summary.orderedPairs)}</td>
 							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
 							<td><StatusPill value={order.status} /></td>
-							{/* Approved == ordered until Task 5's partial-approval decision exists */}
-							<td>{number(summary.orderedPairs)}</td>
+							<td>{number(summary.approvedPairs)}</td>
 							<td>{number(summary.heldPairs)}</td>
 							<td>{number(summary.dispatchedPairs)}</td>
 							<td>{number(summary.pendingPairs)}</td>
