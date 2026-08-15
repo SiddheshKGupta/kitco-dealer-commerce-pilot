@@ -94,6 +94,10 @@ export function registerActivationRoutes(app: Hono<any>, dependencies: Activatio
     return context.json({ dealers: dealers.map(({ id, name, city }) => ({ id, name, city })) });
   });
 
+  // This endpoint is unauthenticated by design (a dealer hasn't proven anything yet at
+  // lookup time -- OTP verification happens later in the flow). It must therefore never
+  // return real PII: GSTIN/address/contact/mobile are collected fresh from the dealer on
+  // the "Confirm business" step instead of pre-filled from this call.
   app.get("/api/activation/dealers/:id", async (context) => {
     const dealer = await dependencies.store.get(context.req.param("id"));
     if (!dealer) return context.json({ error: "DEALER_NOT_FOUND" }, 404);
@@ -101,8 +105,6 @@ export function registerActivationRoutes(app: Hono<any>, dependencies: Activatio
     return context.json({
       id: dealer.id, name: dealer.name, city: dealer.city,
       maskedMasterEmail: dealer.masterEmail ? maskEmail(dealer.masterEmail) : null,
-      gstin: dealer.gstin, addressLine1: dealer.addressLine1, addressLine2: dealer.addressLine2,
-      state: dealer.state, pinCode: dealer.pinCode, contactPerson: dealer.contactPerson, mobile: dealer.mobile,
     });
   });
 

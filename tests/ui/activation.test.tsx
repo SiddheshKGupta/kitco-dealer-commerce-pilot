@@ -116,25 +116,21 @@ describe("dealer activation", () => {
 		await screen.findByLabelText("Your email");
 	});
 
-	it("requires GSTIN and address before continuing, pre-filled from the dealer record where known", async () => {
+	it("requires GSTIN and address before continuing -- the pre-OTP dealer lookup never returns real GSTIN/address/mobile, only name/city/masked email, so the business step always starts blank", async () => {
 		window.history.replaceState({}, "", "/activate");
 		vi.stubGlobal("fetch", vi.fn(async (input: string) => {
 			if (input === "/api/activation/dealers?q=VLC") return response({ dealers: [{ id: "d-1", name: "VLCO", city: "Patna" }] });
-			if (input === "/api/activation/dealers/d-1") return response({
-				id: "d-1", name: "VLCO", city: "Patna", maskedMasterEmail: null,
-				gstin: "22AAAAA0000A1Z5", addressLine1: "12 MG Road", addressLine2: null,
-				state: "Bihar", pinCode: "800001", contactPerson: "Asha Rao", mobile: "9800000000",
-			});
+			if (input === "/api/activation/dealers/d-1") return response({ id: "d-1", name: "VLCO", city: "Patna", maskedMasterEmail: null });
 			throw new Error(`unexpected fetch ${input}`);
 		}));
 		render(<App />);
 		fireEvent.change(screen.getByLabelText("Search for your shop"), { target: { value: "VLC" } });
 		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
 		await screen.findByText("A few business details");
-		expect(await screen.findByLabelText("GSTIN")).toHaveValue("22AAAAA0000A1Z5");
-		expect(screen.getByLabelText("Contact person")).toHaveValue("Asha Rao");
-		expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
-		fireEvent.change(screen.getByLabelText("Mobile"), { target: { value: "" } });
+		expect(await screen.findByLabelText("GSTIN")).toHaveValue("");
+		expect(screen.getByLabelText("Contact person")).toHaveValue("");
 		expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+		fillBusinessStep();
+		await screen.findByText("Where should we send your code?");
 	});
 });
