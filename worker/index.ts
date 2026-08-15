@@ -24,6 +24,9 @@ export function createProductionCommerceApp(env: Env) {
   return createCommerceApp({
     repository: new SupabaseCommerceRepository(client),
     verifySession: createVerifiedSessionVerifier(client, sessions),
+    refreshSessionCookie: async (session) => sessions.applicationCookie(await sessions.sealApplication({
+      authUserId: session.userId, dealerId: session.dealerId, organisationId: session.organisationId, email: session.email ?? "",
+    })),
     verifyOrderOtp: async (session, challengeId, code) => {
       try {
         const pending = await otpStore.get(challengeId);

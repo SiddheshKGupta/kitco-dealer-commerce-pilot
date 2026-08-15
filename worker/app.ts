@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { requireAdmin, requireDealer, requireSession, type AuthVariables, type SessionVerifier } from "./middleware/auth";
+import { requireAdmin, requireDealer, requireSession, type AuthVariables, type SessionIdentity, type SessionVerifier } from "./middleware/auth";
 import { correlation } from "./middleware/correlation";
 import { handleApiError } from "./middleware/errors";
 import type { CommerceRepository } from "./repository";
@@ -23,6 +23,10 @@ export interface CommerceAppDependencies {
   repository: CommerceRepository;
   verifySession: SessionVerifier;
   verifyOrderOtp?: (session: import("./middleware/auth").SessionIdentity, challengeId: string, code: string) => Promise<void>;
+  /** Re-issues the session cookie with a fresh expiry on every authenticated request --
+   *  a sliding 1-hour idle window (not a hard cutoff from login) so an active dealer/admin
+   *  is never signed out mid-task, but a genuinely idle session still expires. */
+  refreshSessionCookie?: (session: SessionIdentity) => Promise<string>;
   mediaStore?: MediaStore;
   adminConsole?: AdminConsoleReader;
   ordersExporter?: OrdersExporter;
@@ -34,6 +38,12 @@ export interface CommerceAppDependencies {
 export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, dependencies: CommerceAppDependencies) {
   app.use("/api/*", correlation);
   app.use("/api/*", requireSession(dependencies.verifySession));
+  if (dependencies.refreshSessionCookie) {
+    app.use("/api/*", async (context, next) => {
+      context.header("Set-Cookie", await dependencies.refreshSessionCookie!(context.get("session")), { append: true });
+      await next();
+    });
+  }
   app.use("/api/catalogue", requireDealer());
   app.use("/api/drafts/*", requireDealer());
   app.use("/api/orders", requireDealer());

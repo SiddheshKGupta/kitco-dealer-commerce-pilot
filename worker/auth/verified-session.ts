@@ -19,8 +19,9 @@ interface DealerRow {
 
 /** Revalidates every encrypted application session against current app membership state.
  *  There is no Supabase Auth session/password involved -- OTP is the only factor, so the
- *  encrypted cookie itself (8h expiry) plus a fresh app_users/dealers status check on every
- *  request is the full trust boundary. */
+ *  encrypted cookie itself (1h sliding idle expiry, refreshed by CommerceAppDependencies'
+ *  refreshSessionCookie on every authenticated request) plus a fresh app_users/dealers
+ *  status check on every request is the full trust boundary. */
 export function createVerifiedSessionVerifier(client: SupabaseClient, sessions: SessionService): SessionVerifier {
   return async (request) => {
     const sealed = sessions.readCookie(request.headers.get("cookie") ?? undefined, "kitco_session");

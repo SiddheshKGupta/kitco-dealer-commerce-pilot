@@ -75,7 +75,7 @@ export class SessionService {
   }
 
   async sealApplication(value: ApplicationSession): Promise<string> {
-    return this.seal({ value, expiresAt: this.now().getTime() + 8 * 60 * 60_000 });
+    return this.seal({ value, expiresAt: this.now().getTime() + 60 * 60_000 });
   }
 
   async openApplication(token: string): Promise<ApplicationSession | null> {
@@ -87,7 +87,7 @@ export class SessionService {
   }
 
   applicationCookie(token: string): string {
-    return `kitco_session=${token}; Path=/; Max-Age=28800; HttpOnly; Secure; SameSite=Lax`;
+    return `kitco_session=${token}; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax`;
   }
 
   clearApplicationCookie(): string {

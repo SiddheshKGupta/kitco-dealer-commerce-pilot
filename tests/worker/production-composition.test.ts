@@ -124,4 +124,39 @@ describe("production commerce composition", () => {
     expect(response.status).toBe(201);
     expect(verifyOrderOtp).toHaveBeenCalledWith(dealerA, "otp-order-a", "482901");
   });
+
+  it("re-issues the session cookie with a fresh 1h expiry on every authenticated request -- a sliding idle window, not a hard cutoff from login", async () => {
+    const repo = repository();
+    const refreshSessionCookie = vi.fn(async () => "kitco_session=refreshed-token; Path=/; Max-Age=3600; HttpOnly; Secure; SameSite=Lax");
+    const app = createCommerceApp({ repository: repo, verifySession: verifier({ a: dealerA }), refreshSessionCookie });
+    const response = await app.request("/api/orders", { headers: headers("a") });
+
+    expect(response.status).toBe(200);
+    expect(refreshSessionCookie).toHaveBeenCalledWith(dealerA);
+    expect(response.headers.get("set-cookie")).toContain("kitco_session=refreshed-token");
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=3600");
+  });
+
+  it("sets no Set-Cookie header when refreshSessionCookie isn't supplied", async () => {
+    const repo = repository();
+    const app = createCommerceApp({ repository: repo, verifySession: verifier({ a: dealerA }) });
+    const response = await app.request("/api/orders", { headers: headers("a") });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  it("1h application session expiry (SessionService.sealApplication/applicationCookie) is a sliding window: reads at 59 minutes still succeed", async () => {
+    let now = new Date("2026-08-15T10:00:00Z");
+    const sessions = new SessionService("production-session-secret-that-is-long-enough", () => now);
+    const token = await sessions.sealApplication({ authUserId: "user-a", organisationId: "org-1", dealerId: "dealer-a", email: "owner@example.test" });
+
+    now = new Date("2026-08-15T10:59:00Z");
+    await expect(sessions.openApplication(token)).resolves.toMatchObject({ authUserId: "user-a" });
+
+    now = new Date("2026-08-15T11:00:01Z");
+    await expect(sessions.openApplication(token)).resolves.toBeNull();
+
+    expect(sessions.applicationCookie("x")).toContain("Max-Age=3600");
+  });
 });
