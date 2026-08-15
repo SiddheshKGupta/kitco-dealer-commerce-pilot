@@ -66,18 +66,18 @@ export function RegisterPage() {
 
 	if (stage === "verify") return <section className="auth-page">
 		<div className="auth-kicker">New dealer registration <span>02 / 02</span></div>
-		<h1>Verify your email</h1>
-		<p className="auth-intro">We sent a verification code to {form.primaryEmail}.</p>
+		<h1>Enter your code.</h1>
+		<p className="auth-intro">We just emailed a 6-digit code to {form.primaryEmail}.</p>
 		<OTPInput value={code} onChange={setCode} />
-		<Button full disabled={code.length !== 6 || pending} onClick={() => void verify()}>{pending ? "Verifying…" : "Activate and continue"}</Button>
-		<button className="text-action" type="button" disabled={resendIn > 0} onClick={() => void resend()}>{resendIn > 0 ? `Resend available in ${resendIn}s` : "Resend code"}</button>
+		<Button full disabled={code.length !== 6 || pending} onClick={() => void verify()}>{pending ? "Confirming…" : "Confirm and start ordering"}</Button>
+		<button className="text-action" type="button" disabled={resendIn > 0} onClick={() => void resend()}>{resendIn > 0 ? `You can ask for a new code in ${resendIn}s` : "Send me a new code"}</button>
 		{error && <p className="form-error" role="alert">{error}</p>}
 	</section>;
 
 	return <section className="auth-page auth-page-wide">
 		<div className="auth-kicker">New dealer registration <span>01 / 02</span></div>
-		<h1>Tell us about your dealership.</h1>
-		<p className="auth-intro">KITCO doesn't have this dealership on file yet. Submit your details to get started.</p>
+		<h1>Tell us about your shop.</h1>
+		<p className="auth-intro">We don't have your shop on file yet — fill in a few details below and we'll get you set up.</p>
 		<div className="auth-form-grid">
 			<FormField label="Business name" htmlFor="reg-business"><Input id="reg-business" value={form.businessName} onChange={set("businessName")} /></FormField>
 			<FormField label="GSTIN" htmlFor="reg-gstin" hint="15 characters"><Input id="reg-gstin" value={form.gstin} onChange={(event) => setForm((current) => ({ ...current, gstin: event.target.value.toUpperCase() }))} maxLength={15} /></FormField>
@@ -87,11 +87,11 @@ export function RegisterPage() {
 			<FormField label="State" htmlFor="reg-state"><Input id="reg-state" value={form.state} onChange={set("state")} /></FormField>
 			<FormField label="PIN code" htmlFor="reg-pin"><Input id="reg-pin" value={form.pinCode} onChange={set("pinCode")} maxLength={10} /></FormField>
 			<FormField label="Contact person" htmlFor="reg-contact"><Input id="reg-contact" value={form.contactPerson} onChange={set("contactPerson")} /></FormField>
-			<FormField label="Primary email" htmlFor="reg-email"><Input id="reg-email" type="email" value={form.primaryEmail} onChange={set("primaryEmail")} /></FormField>
-			<FormField label="Secondary email (optional)" htmlFor="reg-email2" hint="In case the primary email isn't checked regularly"><Input id="reg-email2" type="email" value={form.secondaryEmail} onChange={set("secondaryEmail")} /></FormField>
-			<FormField label="Mobile" htmlFor="reg-mobile"><Input id="reg-mobile" value={form.mobile} onChange={set("mobile")} /></FormField>
+			<FormField label="Your email" htmlFor="reg-email"><Input id="reg-email" type="email" value={form.primaryEmail} onChange={set("primaryEmail")} /></FormField>
+			<FormField label="A second email (optional)" htmlFor="reg-email2" hint="In case you don't check the first one often"><Input id="reg-email2" type="email" value={form.secondaryEmail} onChange={set("secondaryEmail")} /></FormField>
+			<FormField label="Mobile number" htmlFor="reg-mobile"><Input id="reg-mobile" value={form.mobile} onChange={set("mobile")} /></FormField>
 		</div>
-		<Button full disabled={!canSubmit || pending} onClick={() => void submitApplication()}>{pending ? "Submitting…" : "Continue"}</Button>
+		<Button full disabled={!canSubmit || pending} onClick={() => void submitApplication()}>{pending ? "Sending…" : "Continue"}</Button>
 		{error && <p className="form-error" role="alert">{error}</p>}
 	</section>;
 }

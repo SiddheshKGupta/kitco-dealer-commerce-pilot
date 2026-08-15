@@ -211,7 +211,7 @@ function OrdersSection() {
 					</div>
 				</div>
 				<div className="table-wrap"><table className="data-table">
-					<thead><tr><th>Order</th><th>Dealer</th><th>City</th><th>State</th><th>Submitted</th><th>Articles</th><th>Pairs</th><th>Retail Value</th><th>Status</th><th>Approved</th><th>Held</th><th>Dispatched</th><th>Pending</th><th /></tr></thead>
+					<thead><tr><th>Order No</th><th>Dealer</th><th>City</th><th>State</th><th>Submitted</th><th>Articles</th><th>Pairs</th><th>Retail Value</th><th>Status</th><th>Approved</th><th>Held</th><th>Dispatched</th><th>Pending</th><th /></tr></thead>
 					<tbody>{rows.map((order) => {
 						const summary = summarizeFulfilment(order.allocations);
 						return <tr key={order.id}>
@@ -224,6 +224,7 @@ function OrdersSection() {
 							<td>{number(summary.orderedPairs)}</td>
 							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
 							<td><StatusPill value={order.status} /></td>
+							{/* Approved == ordered until Task 5's partial-approval decision exists */}
 							<td>{number(summary.orderedPairs)}</td>
 							<td>{number(summary.heldPairs)}</td>
 							<td>{number(summary.dispatchedPairs)}</td>

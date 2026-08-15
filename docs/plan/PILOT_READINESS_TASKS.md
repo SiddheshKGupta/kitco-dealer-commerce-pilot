@@ -6,16 +6,33 @@ Each task below is an independently deployable gap-fix. Base commit for this pla
 ## Global Constraints (binding on every task)
 
 - **Mobile is the priority surface.** Every UI change must be built and verified at
-  360 / 390 / 430px first — no horizontal scroll, touch targets ≥44px (48px preferred).
-  Desktop is secondary; it must not break, but mobile correctness is the bar.
+  360 / 390 / 430px first — no horizontal scroll, touch targets ≥48px (52-56px preferred for
+  primary actions). Desktop is secondary; it must not break, but mobile correctness is the bar.
+- **The dealer user is 40-50 years old, on a phone, in a shop.** This is the single governing
+  design constraint for every dealer-facing screen — not a nice-to-have. Concretely:
+  - Body text ≥16px, never smaller for anything the dealer must read to act (labels, amounts,
+    button text). Secondary/meta text can drop slightly but must stay easily legible, never a
+    faint 11-12px grey caption for anything load-bearing.
+  - High contrast text everywhere — no light/thin grey-on-white for primary content. Reserve
+    muted grey strictly for genuinely secondary meta (timestamps, hints), never for the thing
+    the dealer needs to read or act on.
+  - Buttons and tappable rows are big and unambiguous: generous padding, a clearly bounded hit
+    area, obvious as a button (not a subtle text link doing button duty). One unmistakable
+    primary action per screen.
+  - No dense multi-column tables or small icon-only controls on the dealer-facing mobile
+    surface — stack, use full words on buttons, not icons alone.
+  - This applies to admin (KITCO Control) too where admins may check on a phone, though admin
+    density can be a little higher than dealer screens per the existing brief allowance.
 - **Think from the user's side.** A dealer or admin using this on a phone in a shop should
   never wonder "did that work?" — every save/submit/approve shows a visible busy state and a
   clear result. Minimize steps. Don't surface a screen that requires scrolling to discover
   its own primary action.
-- **Plain language only.** All user-facing copy (dealer and admin) must be simple, everyday
-  English — no internal jargon, no technical identifiers (UUIDs, correlation IDs, "V1/V2",
-  status enum names) ever shown to a dealer. Admin copy can be a little more operational but
-  still plain — no raw enum values without a human label.
+- **Plain, warm, simple language — not just jargon-free.** This means more than avoiding
+  internal terms (UUIDs, correlation IDs, "V1/V2", status enum names, "on file", "submit your
+  details", "dealer record") — it means writing the way you'd actually talk to a shop owner,
+  not a form. Prefer short, direct sentences over formal/bureaucratic phrasing. When rewriting
+  copy, read it aloud — if it sounds like an office memo, rewrite it. Admin copy can be a
+  little more operational but still plain — no raw enum values without a human label.
 - **No dealer price/margin/GST estimate/payable/numeric stock anywhere dealer-facing** (v3.0
   §24/§26 — do not regress). Retail Value (MRP-based) is the only figure a dealer ever sees.
 - **Every DB query must be scoped by `organisation_id` / `dealer_id` taken from the session**

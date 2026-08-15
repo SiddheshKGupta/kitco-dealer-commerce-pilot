@@ -24,13 +24,13 @@ describe("dealer login", () => {
 		});
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dealer@example.test" } });
+		fireEvent.change(screen.getByLabelText("Your email"), { target: { value: "dealer@example.test" } });
 		expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
-		await screen.findByText("Confirm your sign-in");
-		expect(screen.getByText(/Resend available in/)).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Send me a code" }));
+		await screen.findByText("Enter your code.");
+		expect(screen.getByText(/You can ask for a new code in/)).toBeInTheDocument();
 		fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
-		fireEvent.click(screen.getByRole("button", { name: "Confirm sign-in" }));
+		fireEvent.click(screen.getByRole("button", { name: "Confirm and sign in" }));
 		await screen.findByRole("tablist", { name: "Catalogue sections" });
 	});
 
@@ -38,8 +38,8 @@ describe("dealer login", () => {
 		window.history.replaceState({}, "", "/login");
 		vi.stubGlobal("fetch", vi.fn(async () => response({ error: "EMAIL_DELIVERY_FAILED" }, 502)));
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Email"), { target: { value: "dealer@example.test" } });
-		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+		fireEvent.change(screen.getByLabelText("Your email"), { target: { value: "dealer@example.test" } });
+		fireEvent.click(screen.getByRole("button", { name: "Send me a code" }));
 		await screen.findByText("We could not send your verification code. Try again shortly.");
 	});
 });

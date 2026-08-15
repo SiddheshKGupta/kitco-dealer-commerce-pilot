@@ -57,9 +57,9 @@ export function ActivationPage() {
 	async function resend() {
 		setError(""); try { const response = await postJson<{ challengeId: string }>("/api/otp/resend", { challengeId }); setChallengeId(response.challengeId); setResendIn(30); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
-	return <section className={stage === "business" ? "auth-page auth-page-wide" : "auth-page"}><div className="auth-kicker">Dealer activation <span>01 / 03</span></div><h1>Start with your dealership.</h1><p className="auth-intro">Confirm your dealer record, then verify your email to activate.</p>
-		{stage === "lookup" && <><label htmlFor="dealer-lookup">Find your dealership</label><Input id="dealer-lookup" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type at least 3 characters" autoComplete="off" />{query.length > 0 && query.length < 3 && <p className="field-note">Enter at least 3 characters to search.</p>}<div className="dealer-results">{dealers.map((item) => <button className="dealer-result" type="button" key={item.id} onClick={() => selectDealer(item)}>{item.name} · {item.city ?? "City unavailable"}</button>)}</div>{query.trim().length >= 3 && <p className="field-note">Can't find your dealership? <a href="/register">Register as a new dealer</a></p>}</>}
-		{stage === "business" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Confirm your business details</h2><p className="field-note">We need your GSTIN and address on file before you can continue.</p>
+	return <section className={stage === "business" ? "auth-page auth-page-wide" : "auth-page"}><div className="auth-kicker">Dealer activation <span>01 / 03</span></div><h1>Let's find your shop.</h1><p className="auth-intro">Search for your shop below, confirm a few details, then check your email. That's it.</p>
+		{stage === "lookup" && <><label htmlFor="dealer-lookup">Search for your shop</label><Input id="dealer-lookup" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Type your shop's name" autoComplete="off" />{query.length > 0 && query.length < 3 && <p className="field-note">Type at least 3 letters to search.</p>}<div className="dealer-results">{dealers.map((item) => <button className="dealer-result" type="button" key={item.id} onClick={() => selectDealer(item)}>{item.name} · {item.city ?? "City unavailable"}</button>)}</div>{query.trim().length >= 3 && <p className="field-note">Don't see your shop? <a href="/register">Register as a new dealer</a></p>}</>}
+		{stage === "business" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>A few business details</h2><p className="field-note">We need your GSTIN and address to activate your account.</p>
 			<div className="auth-form-grid">
 				<FormField label="GSTIN" htmlFor="act-gstin" hint="15 characters"><Input id="act-gstin" value={business.gstin} onChange={(event) => setBusiness((current) => ({ ...current, gstin: event.target.value.toUpperCase() }))} maxLength={15} /></FormField>
 				<FormField label="Address line 1" htmlFor="act-address1"><Input id="act-address1" value={business.addressLine1} onChange={setBusinessField("addressLine1")} /></FormField>
@@ -72,18 +72,18 @@ export function ActivationPage() {
 			</div>
 			<Button full disabled={!businessComplete} onClick={() => setStage("email")}>Continue</Button>
 		</>}
-		{stage === "email" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Choose an email</h2>
+		{stage === "email" && <><p className="selection-label">{dealer?.name} · {dealer?.city}</p><h2>Where should we send your code?</h2>
 			{maskedMasterEmail && !useAlternate ? <>
-				<p className="field-note">Registered email: <strong>{maskedMasterEmail}</strong></p>
-				<Button full onClick={() => void requestCode(true)}>Send code</Button>
-				<button className="text-action" type="button" onClick={() => setUseAlternate(true)}>Can't access this email? Use another email</button>
+				<p className="field-note">We have this email on file: <strong>{maskedMasterEmail}</strong></p>
+				<Button full onClick={() => void requestCode(true)}>Send my code</Button>
+				<button className="text-action" type="button" onClick={() => setUseAlternate(true)}>Can't get to that inbox? Use a different email</button>
 			</> : <>
-				<p className="field-note">Registered email stays private. Enter the email you want to use for this controlled pilot.</p>
-				<label htmlFor="activation-email">Email for this activation</label><Input id="activation-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
-				<Button full disabled={!email} onClick={() => void requestCode(false)}>Send code</Button>
-				{maskedMasterEmail && <button className="text-action" type="button" onClick={() => setUseAlternate(false)}>Use registered email instead</button>}
+				<p className="field-note">We'll keep your email on file private. Enter the one you'd like to use instead.</p>
+				<label htmlFor="activation-email">Your email</label><Input id="activation-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+				<Button full disabled={!email} onClick={() => void requestCode(false)}>Send my code</Button>
+				{maskedMasterEmail && <button className="text-action" type="button" onClick={() => setUseAlternate(false)}>Use the email on file instead</button>}
 			</>}</>}
-		{stage === "verify" && <><h2>Enter the 6-digit code</h2><p className="field-note">We sent a verification code to your selected email.</p><OTPInput value={code} onChange={setCode} /><Button full disabled={code.length !== 6} onClick={verify}>Verify and activate</Button><button className="text-action" type="button" disabled={resendIn > 0} onClick={resend}>{resendIn > 0 ? `Resend available in ${resendIn}s` : "Resend code"}</button></>}
-		{stage === "complete" && <div className="success-state"><p className="auth-kicker">Ready</p><h2>Activation complete</h2><p>Your dealer account is ready. Continue to the catalogue.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/products">View products</a></div>}
+		{stage === "verify" && <><h2>Enter your code.</h2><p className="field-note">We just emailed you a 6-digit code.</p><OTPInput value={code} onChange={setCode} /><Button full disabled={code.length !== 6} onClick={verify}>Confirm and activate</Button><button className="text-action" type="button" disabled={resendIn > 0} onClick={resend}>{resendIn > 0 ? `You can ask for a new code in ${resendIn}s` : "Send me a new code"}</button></>}
+		{stage === "complete" && <div className="success-state"><p className="auth-kicker">You're all set</p><h2>Your account is ready.</h2><p>You can start browsing and ordering right away.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/products">Browse products</a></div>}
 		{error && <p className="form-error" role="alert">{error}</p>}</section>;
 }

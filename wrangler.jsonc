@@ -9,7 +9,7 @@
     { "pattern": "partners.kitco.co.in", "custom_domain": true }
   ],
   "vars": {
-    "OTP_FROM_EMAIL": "KITCO <onboarding@resend.dev>"
+    "OTP_FROM_EMAIL": "KITCO <otp@notify.kitco.co.in>"
   },
   "assets": {
     "not_found_handling": "single-page-application",

@@ -41,19 +41,19 @@ describe("dealer activation", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);
 
-		const lookup = screen.getByLabelText("Find your dealership");
+		const lookup = screen.getByLabelText("Search for your shop");
 		fireEvent.change(lookup, { target: { value: "VL" } });
 		expect(fetchMock).not.toHaveBeenCalled();
 		fireEvent.change(lookup, { target: { value: "VLC" } });
 		await screen.findByRole("button", { name: "VLCO · Patna" });
 		expect(screen.getByRole("button", { name: "VLCO · Gaya" })).toBeInTheDocument();
 		fireEvent.click(screen.getByRole("button", { name: "VLCO · Patna" }));
-		await screen.findByText("Confirm your business details");
+		await screen.findByText("A few business details");
 		fillBusinessStep();
-		expect(screen.getByText(/Registered email stays private/)).toBeInTheDocument();
-		fireEvent.change(screen.getByLabelText("Email for this activation"), { target: { value: "pilot@example.test" } });
-		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
-		await screen.findByText("Enter the 6-digit code");
+		expect(screen.getByText(/We'll keep your email on file private/)).toBeInTheDocument();
+		fireEvent.change(screen.getByLabelText("Your email"), { target: { value: "pilot@example.test" } });
+		fireEvent.click(screen.getByRole("button", { name: "Send my code" }));
+		await screen.findByText("Enter your code.");
 	});
 
 	it("verifies activation on OTP alone -- no password -- and keeps keyboard focus in the OTP field", async () => {
@@ -64,18 +64,18 @@ describe("dealer activation", () => {
 			return response({ authenticated: true });
 		}));
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
+		fireEvent.change(screen.getByLabelText("Search for your shop"), { target: { value: "VLC" } });
 		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
-		await screen.findByText("Confirm your business details");
+		await screen.findByText("A few business details");
 		fillBusinessStep();
-		fireEvent.change(screen.getByLabelText("Email for this activation"), { target: { value: "pilot@example.test" } });
-		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
+		fireEvent.change(screen.getByLabelText("Your email"), { target: { value: "pilot@example.test" } });
+		fireEvent.click(screen.getByRole("button", { name: "Send my code" }));
 		const otp = await screen.findByLabelText("Verification code");
 		expect(otp).toHaveFocus();
 		expect(screen.queryByLabelText("Create password")).not.toBeInTheDocument();
 		fireEvent.change(otp, { target: { value: "123456" } });
-		fireEvent.click(screen.getByRole("button", { name: "Verify and activate" }));
-		await screen.findByText("Activation complete");
+		fireEvent.click(screen.getByRole("button", { name: "Confirm and activate" }));
+		await screen.findByText("Your account is ready.");
 	});
 
 	it("offers the registered email masked, sends via emailChoice=MASTER, and lets the dealer switch to an alternate", async () => {
@@ -91,14 +91,14 @@ describe("dealer activation", () => {
 		});
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
+		fireEvent.change(screen.getByLabelText("Search for your shop"), { target: { value: "VLC" } });
 		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
-		await screen.findByText("Confirm your business details");
+		await screen.findByText("A few business details");
 		fillBusinessStep();
 		await screen.findByText("s****h@vlconsultants.in");
-		expect(screen.queryByLabelText("Email for this activation")).not.toBeInTheDocument();
-		fireEvent.click(screen.getByRole("button", { name: "Send code" }));
-		await screen.findByText("Enter the 6-digit code");
+		expect(screen.queryByLabelText("Your email")).not.toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Send my code" }));
+		await screen.findByText("Enter your code.");
 	});
 
 	it("falls back to manual email entry when a dealer has no registered email on file", async () => {
@@ -109,11 +109,11 @@ describe("dealer activation", () => {
 			throw new Error(`unexpected fetch ${input}`);
 		}));
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
+		fireEvent.change(screen.getByLabelText("Search for your shop"), { target: { value: "VLC" } });
 		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
-		await screen.findByText("Confirm your business details");
+		await screen.findByText("A few business details");
 		fillBusinessStep();
-		await screen.findByLabelText("Email for this activation");
+		await screen.findByLabelText("Your email");
 	});
 
 	it("requires GSTIN and address before continuing, pre-filled from the dealer record where known", async () => {
@@ -128,9 +128,9 @@ describe("dealer activation", () => {
 			throw new Error(`unexpected fetch ${input}`);
 		}));
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Find your dealership"), { target: { value: "VLC" } });
+		fireEvent.change(screen.getByLabelText("Search for your shop"), { target: { value: "VLC" } });
 		fireEvent.click(await screen.findByRole("button", { name: "VLCO · Patna" }));
-		await screen.findByText("Confirm your business details");
+		await screen.findByText("A few business details");
 		expect(await screen.findByLabelText("GSTIN")).toHaveValue("22AAAAA0000A1Z5");
 		expect(screen.getByLabelText("Contact person")).toHaveValue("Asha Rao");
 		expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();

@@ -28,11 +28,11 @@ export function AuthLandingPage({ pathname }: { pathname: string }) {
 			<div className="auth-landing-primary"><LoginPage /></div>
 			<aside className="auth-landing-promo">
 				<p className="auth-kicker">First time here?</p>
-				<h2>Activate your dealership</h2>
-				<p className="field-note">If KITCO already has your dealership on file, activate it in a few steps. No access code needed.</p>
-				<Button full onClick={() => navigate("/activate")}>Activate Dealership</Button>
-				<p className="field-note">New to KITCO?</p>
-				<Button full variant="secondary" onClick={() => navigate("/register")}>Register Dealership</Button>
+				<h2>Set up your account</h2>
+				<p className="field-note">Already work with KITCO? Activate your account in a few quick steps.</p>
+				<Button full onClick={() => navigate("/activate")}>Activate my account</Button>
+				<p className="field-note">Brand new to KITCO?</p>
+				<Button full variant="secondary" onClick={() => navigate("/register")}>Register my shop</Button>
 			</aside>
 		</div>
 	</div>;

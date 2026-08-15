@@ -54,8 +54,8 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .auth-page h2 { margin: var(--space-6) 0 var(--space-2); font-size: 24px; letter-spacing: -0.04em; }
 .auth-kicker { display: flex; justify-content: space-between; margin: 0 0 var(--space-4); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .auth-kicker span { color: var(--text); }
-.auth-intro { max-width: 410px; margin: var(--space-4) 0 var(--space-6); color: var(--text-muted); font-size: 16px; line-height: 1.5; }
-.auth-page label { display: block; margin: var(--space-5) 0 var(--space-2); font-size: 13px; font-weight: 700; }
+.auth-intro { max-width: 410px; margin: var(--space-4) 0 var(--space-6); color: var(--text); font-size: 17px; line-height: 1.5; }
+.auth-page label { display: block; margin: var(--space-5) 0 var(--space-2); font-size: 15px; font-weight: 700; }
 .auth-page .ui-btn-full { margin-top: var(--space-6); }
 .auth-page-wide { width: min(100%, 720px); }
 .auth-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4) var(--space-5); margin: var(--space-5) 0; }
@@ -65,7 +65,7 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .dealer-results { display: grid; gap: 1px; margin-top: var(--space-3); border: 1px solid var(--text); }
 .dealer-result { display: flex; width: 100%; border: 0; background: var(--canvas); padding: 15px var(--space-3); font: inherit; font-weight: 700; text-align: left; cursor: pointer; transition: background var(--motion-standard) var(--ease-standard), transform var(--motion-standard) var(--ease-standard); }
 .dealer-result:hover { transform: translateX(4px); background: var(--surface-subtle); }
-.field-note, .selection-label { margin: var(--space-3) 0 0; color: var(--text-muted); font-size: 13px; line-height: 1.45; }
+.field-note, .selection-label { margin: var(--space-3) 0 0; color: var(--text-muted); font-size: 14px; line-height: 1.5; }
 .selection-label { color: var(--text); font-weight: 700; }
 .text-action { display: block; width: 100%; margin-top: var(--space-3); border: 0; background: transparent; color: var(--text); font: inherit; font-size: 13px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .form-error { margin: var(--space-4) 0 0; border-left: 3px solid var(--text); background: var(--surface-subtle); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
