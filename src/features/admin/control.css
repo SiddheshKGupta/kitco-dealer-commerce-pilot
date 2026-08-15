@@ -7,6 +7,12 @@
 .control-nav span { margin: 18px 10px 5px; color: var(--mute); font-size: 10px; font-weight: 500; letter-spacing: .11em; text-transform: uppercase; }
 .control-main { min-width: 0; padding: clamp(24px, 4vw, 56px); }
 .control-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+/* Filter/export controls above a queue table: compact and inline (auto width, not the
+   shared 48px/full-width ui-input/ui-select sizing meant for dealer touch targets) so
+   several fit per row instead of each stacking as its own full-width line. */
+.control-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.control-filter-row .ui-select, .control-filter-row .ui-input { width: auto; min-width: 130px; min-height: 34px; font-size: 12px; }
+.control-filter-row .ui-btn { min-height: 34px; padding: 0 var(--space-4); font-size: 12px; }
 .control-heading p { margin: 0 0 8px; color: var(--mute); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
 .control-heading h1 { margin: 0; font-size: 32px; font-weight: 500; line-height: 1.2; letter-spacing: 0; }
 .control-status { border-radius: var(--radius-lg); border: 1px solid var(--ink); padding: 7px 12px; font-size: 11px; font-weight: 500; letter-spacing: .08em; }
@@ -28,10 +34,17 @@
 .control-article { border: 1px solid var(--hairline); background: var(--canvas); padding: 16px; }
 .control-article-title { margin: 0 0 12px; font-size: 15px; font-weight: 500; }
 .control-size-cards { display: grid; gap: 12px; }
-.control-size-card { display: grid; gap: 12px; border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); padding: 14px; background: var(--soft-cloud); }
-.control-size-card-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 12px; }
+/* Collapsed by default (native <details>, no open attribute) -- most sizes just get
+   approved/dispatched as ordered, so a scannable tile beats an always-open form per
+   size. Clicking a tile reveals the approve/hold/dispatch controls; no JS needed. */
+.control-size-card { border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); background: var(--soft-cloud); overflow: hidden; }
+.control-size-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 14px; cursor: pointer; list-style: none; }
+.control-size-card-head::-webkit-details-marker { display: none; }
+.control-size-card-head::after { content: "+"; margin-left: 8px; font-size: 20px; font-weight: 400; color: var(--mute); line-height: 1; flex-shrink: 0; }
+.control-size-card[open] .control-size-card-head::after { content: "\2212"; }
 .control-size-card-head strong { font-size: 16px; font-weight: 600; }
 .control-size-card-head span { color: var(--mute); font-size: 14px; }
+.control-size-card-body { display: grid; gap: 12px; padding: 12px 14px 14px; border-top: 1px solid var(--hairline-soft); }
 .decision-card { display: grid; gap: 10px; border-top: 1px solid var(--hairline-soft); padding-top: 12px; }
 .decision-card-ordered { margin: 0; font-size: 14px; font-weight: 500; color: var(--mute); }
 .decision-card-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }

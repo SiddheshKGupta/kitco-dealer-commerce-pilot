@@ -204,7 +204,7 @@ function OrdersSection() {
 			: <section className="panel">
 				<div className="panel-head">
 					<h3>{number(rows.length)} orders</h3>
-					<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+					<div className="control-filter-row">
 						<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
 							<option value="">All statuses</option>
 							{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
@@ -223,7 +223,7 @@ function OrdersSection() {
 					</div>
 				</div>
 				<div className="table-wrap"><table className="data-table">
-					<thead><tr><th>Order No</th><th>Dealer</th><th>City</th><th>State</th><th>Submitted</th><th>Articles</th><th>Pairs</th><th>Retail Value</th><th>Status</th><th>Approved</th><th>Held</th><th>Dispatched</th><th>Pending</th><th /></tr></thead>
+					<thead><tr><th>Order No</th><th>Dealer</th><th>City</th><th>State</th><th>Submitted</th><th>Articles</th><th>Pairs</th><th>Retail Value</th><th>Status</th><th>Approved</th><th>Pending</th><th /></tr></thead>
 					<tbody>{rows.map((order) => {
 						const summary = summarizeFulfilment(order.allocations);
 						return <tr key={order.id}>
@@ -237,8 +237,6 @@ function OrdersSection() {
 							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
 							<td><StatusPill value={order.status} /></td>
 							<td>{number(summary.approvedPairs)}</td>
-							<td>{number(summary.heldPairs)}</td>
-							<td>{number(summary.dispatchedPairs)}</td>
 							<td>{number(summary.pendingPairs)}</td>
 							<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenOrderId(order.id)}>Review</Button></td>
 						</tr>;
@@ -306,7 +304,7 @@ function ReportsSection() {
 				<section className="panel">
 					<div className="panel-head">
 						<h3>Order list</h3>
-						<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+						<div className="control-filter-row">
 							<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
 								<option value="">All statuses</option>
 								{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
