@@ -58,6 +58,12 @@ export interface OrderRecord {
   status: "SUBMITTED" | "APPROVED" | "CANCELLED";
   versions: OrderVersionRecord[];
   allocations: FulfilmentAllocation[];
+  dealerName?: string;
+  dealerCity?: string;
+  dealerState?: string;
+  submittedAt?: string;
+  version?: number;
+  retailValueMinor?: number;
 }
 export interface AuditEvent { correlationId: string; action: string; organisationId: string; dealerId: string | null; actorUserId: string; entityId: string }
 export interface DealerLocationRecord { id: string; name: string; locationType: "BILL_TO" | "SHIP_TO" | "BOTH" }

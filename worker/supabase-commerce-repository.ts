@@ -119,9 +119,16 @@ function orderFromRow(row: Row): OrderRecord {
       };
     });
   }) : [];
+  const dealer = one(row.dealers);
   return {
     id: String(row.id), orderNumber: String(row.order_number), organisationId: String(row.organisation_id), dealerId: String(row.dealer_id),
     status: row.status, versions, allocations,
+    dealerName: dealer?.name ? String(dealer.name) : undefined,
+    dealerCity: dealer?.city ? String(dealer.city) : undefined,
+    dealerState: dealer?.state ? String(dealer.state) : undefined,
+    submittedAt: row.submitted_at ? String(row.submitted_at) : undefined,
+    version: latest ? Number(latest.version_no) : undefined,
+    retailValueMinor: latest ? Number(latest.retail_value_minor) : undefined,
   };
 }
 
@@ -136,7 +143,8 @@ const CATALOGUE_SELECT = `
   )`;
 
 const ORDER_SELECT = `
-  id,organisation_id,dealer_id,status,current_version_no,order_number,idempotency_key,
+  id,organisation_id,dealer_id,status,current_version_no,order_number,idempotency_key,submitted_at,
+  dealers(name,city,state),
   order_versions(version_no,version_status,retail_value_minor,
     order_lines(id,commercial_offering_id,mrp_minor,approved_quantity_pairs,
       product_colourways!inner(article_no,colour,product_families(name,brands(name))),

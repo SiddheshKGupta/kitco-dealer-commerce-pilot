@@ -174,9 +174,10 @@ function OrdersSection() {
 			: <section className="panel">
 				<div className="panel-head"><h3>{number(orders.length)} orders</h3></div>
 				<div className="table-wrap"><table className="data-table">
-					<thead><tr><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th><th /></tr></thead>
+					<thead><tr><th>Dealer</th><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th><th /></tr></thead>
 					<tbody>{orders.map((order) => <tr key={order.id}>
-						<td><b>{order.orderNumber ?? order.id.slice(0, 8)}</b></td>
+						<td><b>{order.dealerName ?? "—"}</b></td>
+						<td>{order.orderNumber ?? order.id.slice(0, 8)}</td>
 						<td>V{order.version ?? 1}</td>
 						<td>{number(order.allocations.length)}</td>
 						<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
@@ -218,9 +219,10 @@ function ReportsSection() {
 						</Select>
 					</div>
 					<div className="table-wrap"><table className="data-table">
-						<thead><tr><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th></tr></thead>
+						<thead><tr><th>Dealer</th><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th></tr></thead>
 						<tbody>{rows.map((order) => <tr key={order.id}>
-							<td><b>{order.orderNumber ?? order.id.slice(0, 8)}</b></td>
+							<td><b>{order.dealerName ?? "—"}</b></td>
+							<td>{order.orderNumber ?? order.id.slice(0, 8)}</td>
 							<td>V{order.version ?? 1}</td>
 							<td>{number((order.allocations ?? []).length)}</td>
 							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>

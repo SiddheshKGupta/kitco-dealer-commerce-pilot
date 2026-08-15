@@ -33,7 +33,7 @@ export function App() {
 	</>;
 	return <div className="app-shell"><KitcoHeader showSignOut={!authPage} />
 		{authPage ? <main className="auth-shell"><RouteTransition>{authPage}</RouteTransition></main> : isControl ? <RouteTransition><ControlSurface /></RouteTransition> : <><nav className="dealer-nav" aria-label="Dealer navigation">{dealerNavigation.map(({ label, route }) => <a key={route} href={routeHref(route)} className={pathname.startsWith(routeHref(route)) ? "is-current" : undefined}>{navLink(label, route)}</a>)}</nav><RouteTransition>{dealerPage}</RouteTransition></>}
-		<footer><p>Developed by V L &amp; CO · {SUPPORT_EMAIL}</p><p>© KITCO. Pilot Environment.</p></footer>
+		<footer><p>Developed by V L &amp; CO</p><p>Contact: {SUPPORT_EMAIL}</p><p>© KITCO. Pilot Environment.</p></footer>
 		{!authPage && !isControl && <nav className="ui-bottom-nav" aria-label="Dealer navigation (mobile)">
 			<ul className="ui-bottom-nav-list">{dealerNavigation.map(({ label, route }) => <li key={route} className="ui-bottom-nav-item">
 				<a href={routeHref(route)} className={`ui-bottom-nav-link${pathname.startsWith(routeHref(route)) ? " is-current" : ""}`} aria-current={pathname.startsWith(routeHref(route)) ? "page" : undefined}>{navLink(label, route)}</a>
