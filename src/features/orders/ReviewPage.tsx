@@ -24,9 +24,9 @@ export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "OR
 	const [stage, setStage] = useState<Stage>("review");
 	const [challengeId, setChallengeId] = useState("");
 	const [otp, setOtp] = useState("");
-	const [version, setVersion] = useState<number | null>(null);
 	const [error, setError] = useState("");
 	const [pending, setPending] = useState<"otp" | "submit" | null>(null);
+	const [resendIn, setResendIn] = useState(60);
 	const idempotencyKey = useRef<string | null>(null);
 
 	useEffect(() => {
@@ -35,6 +35,7 @@ export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "OR
 		void fetchDealerLocations().then((items) => { if (active) { setLocations((items ?? []).filter((item) => item.locationType !== "BILL_TO")); setLocationsStatus("ready"); } }, () => { if (active) setLocationsStatus("error"); });
 		return () => { active = false; };
 	}, []);
+	useEffect(() => { if (stage !== "otp" || resendIn <= 0) return; const timer = window.setTimeout(() => setResendIn((value) => value - 1), 1000); return () => window.clearTimeout(timer); }, [stage, resendIn]);
 
 	const totalPairs = useMemo(() => (lines ?? []).reduce((sum, line) => sum + pairs(line.quantities), 0), [lines]);
 	const totalValue = useMemo(() => (lines ?? []).reduce((sum, line) => sum + line.retailValueMinor, 0), [lines]);
@@ -42,17 +43,22 @@ export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "OR
 
 	async function issueOtp() {
 		setError(""); setPending("otp");
-		try { setChallengeId(await requestOrderOtp("ORDER_SUBMISSION")); setStage("otp"); }
+		try { setChallengeId(await requestOrderOtp("ORDER_SUBMISSION")); setStage("otp"); setResendIn(60); }
 		catch (caught) { setError(caught instanceof Error ? caught.message : "The order code could not be sent. Try again."); }
 		finally { setPending(null); }
+	}
+	async function resendOtp() {
+		setError("");
+		try { setChallengeId(await requestOrderOtp("ORDER_SUBMISSION")); setResendIn(60); }
+		catch (caught) { setError(caught instanceof Error ? caught.message : "The order code could not be sent. Try again."); }
 	}
 	async function submit() {
 		if (otp.length !== 6 || !challengeId) return;
 		setError(""); setPending("submit");
 		idempotencyKey.current ??= crypto.randomUUID();
 		try {
-			const result = await submitOrder({ otpChallengeId: challengeId, otpCode: otp, idempotencyKey: idempotencyKey.current });
-			setVersion(result.order.version); setStage("submitted");
+			await submitOrder({ otpChallengeId: challengeId, otpCode: otp, idempotencyKey: idempotencyKey.current });
+			setStage("submitted");
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Order could not be submitted"); }
 		finally { setPending(null); }
 	}
@@ -62,7 +68,7 @@ export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "OR
 	if (stage === "submitted") {
 		return <main className="commerce-page">
 			<section className="commerce-submitted"><span aria-hidden="true">✓</span><div>
-				<strong>Order submitted{version ? ` · Version ${version}` : ""}</strong>
+				<strong>Order submitted</strong>
 				<p>KITCO has received your order and will confirm approved and held quantities shortly.</p>
 				<a className="ui-btn ui-btn-primary ui-btn-md" href="/orders">Track your order</a>
 			</div></section>
@@ -122,6 +128,7 @@ export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "OR
 			<p className="field-note">We sent a 6-digit code to your registered email.</p>
 			<OTPInput value={otp} onChange={setOtp} />
 			<Button full disabled={otp.length !== 6 || pending !== null} onClick={() => void submit()}>{pending === "submit" ? "Submitting…" : "Confirm Order"}</Button>
+			<Button variant="ghost" size="md" disabled={resendIn > 0} onClick={() => void resendOtp()}>{resendIn > 0 ? `Send me a new code in ${resendIn}s` : "Send me a new code"}</Button>
 		</div>}
 		{error && <p className="commerce-validation" role="alert">{error}</p>}
 	</main>;
