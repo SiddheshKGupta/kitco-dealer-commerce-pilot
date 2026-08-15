@@ -55,7 +55,7 @@
 .commerce-colourway-swatch:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .commerce-mrp { margin: 10px 0 26px; font-size: 18px; }
 .commerce-policy { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
-.commerce-policy span { border: 1px solid var(--hairline); border-radius: 999px; padding: 8px 11px; font-size: 11px; font-weight: 700; }
+.commerce-policy span { border: 1px solid var(--hairline); border-radius: 999px; padding: 8px 12px; font-size: 16px; font-weight: 700; }
 /* One row per size, not a dense grid of small boxes: a proper QuantityStepper (48px
    +/- buttons either side of the value) doesn't fit in a compact multi-column cell,
    and a stacked list reads easier at a glance regardless of screen width. */
@@ -64,7 +64,7 @@
 .commerce-size-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; border: 1px solid var(--hairline); padding: 8px 14px; }
 .commerce-size-row:focus-within { border-color: var(--commerce-ink); }
 .commerce-size-row span { font-size: 16px; font-weight: 700; color: var(--commerce-ink); }
-.commerce-validation { border-left: 3px solid var(--commerce-ink); background: var(--commerce-soft); padding: 12px 14px; font-size: 13px; }
+.commerce-validation { border-left: 3px solid var(--commerce-ink); background: var(--commerce-soft); padding: 12px 14px; font-size: 16px; }
 .commerce-order-tray { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; border: 1px solid var(--hairline); background: var(--commerce-soft); padding: 18px; }
 .commerce-order-tray > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 .commerce-order-tray span { color: var(--commerce-mid); font-size: 12px; }
