@@ -85,7 +85,7 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
       }
 
       const created = await dependencies.identity.createUser(pending.email);
-      if (!(await dependencies.activationStore.activate(pending.dealerId, created.authUserId))) {
+      if (!(await dependencies.activationStore.activate(pending.dealerId, created.authUserId, pending.business))) {
         return context.json({ error: "DEALER_ALREADY_ACTIVE" }, 409);
       }
       const token = await dependencies.sessions.sealApplication({

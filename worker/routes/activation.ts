@@ -12,6 +12,26 @@ export interface DealerRecord {
   pilotEmailSource?: "MASTER" | "SELF_DECLARED_PILOT" | null;
   activationStatus: string;
   authUserId: string | null;
+  gstin: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  state: string | null;
+  pinCode: string | null;
+  contactPerson: string | null;
+  mobile: string | null;
+}
+
+/** GSTIN + address, required to proceed but explicitly unvalidated beyond
+ *  presence (v4.0 §13/§14, D5/D6) -- same posture as RegisterPage's GSTIN field. */
+export interface DealerBusinessDetails {
+  gstin: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  state: string;
+  pinCode: string;
+  contactPerson: string;
+  mobile: string;
 }
 
 export interface ActivationStore {
@@ -19,7 +39,7 @@ export interface ActivationStore {
   get(id: string): Promise<DealerRecord | null>;
   begin(id: string, pilotEmail: string, source?: "MASTER" | "SELF_DECLARED_PILOT"): Promise<boolean>;
   release?(id: string, pilotEmail: string | null, source: "MASTER" | "SELF_DECLARED_PILOT" | null): Promise<void>;
-  activate(id: string, authUserId: string): Promise<boolean>;
+  activate(id: string, authUserId: string, business: DealerBusinessDetails): Promise<boolean>;
 }
 
 interface ActivationDependencies {
@@ -30,6 +50,31 @@ interface ActivationDependencies {
 
 function isEmail(value: unknown): value is string {
   return typeof value === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value) && value.length <= 254;
+}
+
+function nonEmptyString(value: unknown, max = 200): value is string {
+  return typeof value === "string" && value.trim().length > 0 && value.length <= max;
+}
+
+function parseBusiness(value: unknown): DealerBusinessDetails | null {
+  if (!value || typeof value !== "object") return null;
+  const b = value as Record<string, unknown>;
+  if (
+    !nonEmptyString(b.gstin, 15) || !nonEmptyString(b.addressLine1) ||
+    !nonEmptyString(b.city, 100) || !nonEmptyString(b.state, 100) || !nonEmptyString(b.pinCode, 10) ||
+    !nonEmptyString(b.contactPerson) || !nonEmptyString(b.mobile, 20) ||
+    (b.addressLine2 !== undefined && typeof b.addressLine2 !== "string")
+  ) return null;
+  return {
+    gstin: (b.gstin as string).toUpperCase().replaceAll(/\s+/g, ""),
+    addressLine1: b.addressLine1 as string,
+    addressLine2: (b.addressLine2 as string | undefined) || undefined,
+    city: b.city as string,
+    state: b.state as string,
+    pinCode: b.pinCode as string,
+    contactPerson: b.contactPerson as string,
+    mobile: b.mobile as string,
+  };
 }
 
 /** Never expose a dealer's registered email in full -- only enough to let the
@@ -56,6 +101,8 @@ export function registerActivationRoutes(app: Hono<any>, dependencies: Activatio
     return context.json({
       id: dealer.id, name: dealer.name, city: dealer.city,
       maskedMasterEmail: dealer.masterEmail ? maskEmail(dealer.masterEmail) : null,
+      gstin: dealer.gstin, addressLine1: dealer.addressLine1, addressLine2: dealer.addressLine2,
+      state: dealer.state, pinCode: dealer.pinCode, contactPerson: dealer.contactPerson, mobile: dealer.mobile,
     });
   });
 
@@ -64,10 +111,13 @@ export function registerActivationRoutes(app: Hono<any>, dependencies: Activatio
       dealerId?: unknown;
       email?: unknown;
       emailChoice?: unknown;
+      business?: unknown;
     } | null;
     if (!body || typeof body.dealerId !== "string") {
       return context.json({ error: "INVALID_ACTIVATION_REQUEST" }, 400);
     }
+    const business = parseBusiness(body.business);
+    if (!business) return context.json({ error: "INVALID_ACTIVATION_REQUEST" }, 400);
     const dealer = await dependencies.store.get(body.dealerId);
     if (!dealer) return context.json({ error: "DEALER_NOT_FOUND" }, 404);
     if (dealer.authUserId || dealer.activationStatus === "ACTIVE") return context.json({ error: "DEALER_ALREADY_ACTIVE" }, 409);
@@ -90,6 +140,7 @@ export function registerActivationRoutes(app: Hono<any>, dependencies: Activatio
         organisationId: dealer.organisationId,
         dealerId: dealer.id,
         email,
+        business,
       });
       context.header("Set-Cookie", dependencies.sessions.pendingCookie(pending));
       return context.json({ otpRequired: true, challengeId: challenge.id }, 202);

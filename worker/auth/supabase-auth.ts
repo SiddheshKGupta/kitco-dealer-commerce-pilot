@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AppRole } from "../middleware/auth";
-import type { ActivationStore, DealerRecord } from "../routes/activation";
+import type { ActivationStore, DealerBusinessDetails, DealerRecord } from "../routes/activation";
 import type { LoginIdentity, LoginIdentityResolver } from "../routes/login";
 import type { OtpChallengeStore, StoredOtpChallenge } from "./otp-service";
 
@@ -13,7 +13,16 @@ interface DealerRow {
   pilot_email: string | null;
   pilot_email_source: "MASTER" | "SELF_DECLARED_PILOT" | null;
   activation_status: string;
+  gstin: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  state: string | null;
+  pin_code: string | null;
+  contact_person: string | null;
+  mobile: string | null;
 }
+
+const DEALER_COLUMNS = "id,organisation_id,name,city,master_email,pilot_email,pilot_email_source,activation_status,gstin,address_line1,address_line2,state,pin_code,contact_person,mobile";
 
 function dealerRecord(row: DealerRow, authUserId: string | null): DealerRecord {
   return {
@@ -26,6 +35,13 @@ function dealerRecord(row: DealerRow, authUserId: string | null): DealerRecord {
     pilotEmailSource: row.pilot_email_source,
     activationStatus: row.activation_status,
     authUserId,
+    gstin: row.gstin,
+    addressLine1: row.address_line1,
+    addressLine2: row.address_line2,
+    state: row.state,
+    pinCode: row.pin_code,
+    contactPerson: row.contact_person,
+    mobile: row.mobile,
   };
 }
 
@@ -37,7 +53,7 @@ export class SupabaseActivationStore implements ActivationStore {
     if (escaped.length < 3) return [];
     const { data, error } = await this.client
       .from("dealers")
-      .select("id,organisation_id,name,city,master_email,pilot_email,pilot_email_source,activation_status")
+      .select(DEALER_COLUMNS)
       .ilike("name", `%${escaped}%`)
       .eq("activation_status", "UNACTIVATED")
       .limit(10);
@@ -48,7 +64,7 @@ export class SupabaseActivationStore implements ActivationStore {
   async get(id: string): Promise<DealerRecord | null> {
     const { data, error } = await this.client
       .from("dealers")
-      .select("id,organisation_id,name,city,master_email,pilot_email,pilot_email_source,activation_status")
+      .select(DEALER_COLUMNS)
       .eq("id", id)
       .maybeSingle();
     if (error) throw new Error("DEALER_LOOKUP_FAILED");
@@ -85,13 +101,24 @@ export class SupabaseActivationStore implements ActivationStore {
     if (error) throw new Error("ACTIVATION_RELEASE_FAILED");
   }
 
-  async activate(id: string, authUserId: string): Promise<boolean> {
+  async activate(id: string, authUserId: string, business: DealerBusinessDetails): Promise<boolean> {
     const dealer = await this.get(id);
     if (!dealer || dealer.authUserId || dealer.activationStatus !== "EMAIL_OTP_PENDING") return false;
     const now = new Date().toISOString();
     const { data, error } = await this.client
       .from("dealers")
-      .update({ activation_status: "ACTIVE", activated_at: now })
+      .update({
+        activation_status: "ACTIVE",
+        activated_at: now,
+        gstin: business.gstin,
+        address_line1: business.addressLine1,
+        address_line2: business.addressLine2 ?? null,
+        city: business.city,
+        state: business.state,
+        pin_code: business.pinCode,
+        contact_person: business.contactPerson,
+        mobile: business.mobile,
+      })
       .eq("id", id)
       .eq("activation_status", "EMAIL_OTP_PENDING")
       .is("activated_at", null)

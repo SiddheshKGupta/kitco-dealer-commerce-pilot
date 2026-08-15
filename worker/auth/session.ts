@@ -1,4 +1,5 @@
 import type { AppRole } from "../middleware/auth";
+import type { DealerBusinessDetails } from "../routes/activation";
 
 export interface PendingLoginSession {
   kind: "login";
@@ -16,6 +17,7 @@ export interface PendingActivationSession {
   dealerId: string;
   organisationId: string;
   email: string;
+  business: DealerBusinessDetails;
 }
 
 export interface PendingRegistrationSession {

@@ -6,11 +6,22 @@ import {
   type OtpPurpose,
 } from "../../worker/auth/otp-service";
 import { SessionService } from "../../worker/auth/session";
-import { registerActivationRoutes, type ActivationStore, type DealerRecord } from "../../worker/routes/activation";
+import { registerActivationRoutes, type ActivationStore, type DealerBusinessDetails, type DealerRecord } from "../../worker/routes/activation";
 import { registerLoginRoutes, type LoginIdentityResolver } from "../../worker/routes/login";
 import { registerOtpRoutes } from "../../worker/routes/otp";
 
 const NOW = new Date("2026-08-13T12:00:00.000Z");
+
+const BUSINESS = {
+  gstin: "22AAAAA0000A1Z5",
+  addressLine1: "12 MG Road",
+  addressLine2: "",
+  city: "Patna",
+  state: "Bihar",
+  pinCode: "800001",
+  contactPerson: "Asha Rao",
+  mobile: "9800000000",
+};
 
 class MemoryActivationStore implements ActivationStore {
   dealers: DealerRecord[] = [
@@ -23,6 +34,13 @@ class MemoryActivationStore implements ActivationStore {
       pilotEmail: null,
       activationStatus: "UNACTIVATED",
       authUserId: null,
+      gstin: null,
+      addressLine1: null,
+      addressLine2: null,
+      state: null,
+      pinCode: null,
+      contactPerson: null,
+      mobile: null,
     },
   ];
 
@@ -42,11 +60,19 @@ class MemoryActivationStore implements ActivationStore {
     return true;
   }
 
-  async activate(id: string, authUserId: string) {
+  async activate(id: string, authUserId: string, business: DealerBusinessDetails) {
     const dealer = await this.get(id);
     if (!dealer || dealer.authUserId || dealer.activationStatus === "ACTIVE") return false;
     dealer.authUserId = authUserId;
     dealer.activationStatus = "ACTIVE";
+    dealer.gstin = business.gstin;
+    dealer.addressLine1 = business.addressLine1;
+    dealer.addressLine2 = business.addressLine2 ?? null;
+    dealer.city = business.city;
+    dealer.state = business.state;
+    dealer.pinCode = business.pinCode;
+    dealer.contactPerson = business.contactPerson;
+    dealer.mobile = business.mobile;
     return true;
   }
 
@@ -112,7 +138,7 @@ describe("Worker activation and authentication", () => {
     const first = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", business: BUSINESS }),
     });
     expect(first.status).toBe(202);
     expect(store.dealers[0]?.masterEmail).toBe("owner@dealer.test");
@@ -123,7 +149,7 @@ describe("Worker activation and authentication", () => {
     const second = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "another@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "another@dealer.test", business: BUSINESS }),
     });
     expect(second.status).toBe(409);
     expect(store.dealers[0]?.pilotEmail).toBe("pilot@dealer.test");
@@ -134,7 +160,7 @@ describe("Worker activation and authentication", () => {
     const response = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", emailChoice: "MASTER" }),
+      body: JSON.stringify({ dealerId: "dealer-1", emailChoice: "MASTER", business: BUSINESS }),
     });
     expect(response.status).toBe(202);
     expect(provider.deliveries[0]?.to).toBe("owner@dealer.test");
@@ -159,7 +185,7 @@ describe("Worker activation and authentication", () => {
     const response = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", business: BUSINESS }),
     });
     expect(response.status).toBe(502);
     expect(store.dealers[0]).toMatchObject({
@@ -271,7 +297,7 @@ describe("Worker activation and authentication", () => {
     const requested = await app.request("/api/activation/request-otp", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test" }),
+      body: JSON.stringify({ dealerId: "dealer-1", email: "pilot@dealer.test", business: BUSINESS }),
     });
     const pendingCookie = requested.headers.get("set-cookie")!.split(";")[0]!;
     const completed = await app.request("/api/otp/verify", {
@@ -283,6 +309,7 @@ describe("Worker activation and authentication", () => {
     expect(completed.status).toBe(200);
     expect(store.dealers[0]?.masterEmail).toBe("owner@dealer.test");
     expect(store.dealers[0]?.authUserId).toBe("user-created");
+    expect(store.dealers[0]).toMatchObject({ gstin: BUSINESS.gstin, addressLine1: BUSINESS.addressLine1, contactPerson: BUSINESS.contactPerson, mobile: BUSINESS.mobile });
     expect(identity.created).toBe(1);
     expect(identity.createdEmail).toBe("pilot@dealer.test");
     const applicationCookie = completed.headers.get("set-cookie")?.match(/kitco_session=([^;]+)/u)?.[1];
