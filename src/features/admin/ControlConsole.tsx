@@ -192,7 +192,7 @@ function OrdersSection() {
 	if (open) return <>
 		<PageHead eyebrow="Order governance" title="Order review" actions={<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
 			<a className="ui-btn ui-btn-secondary ui-btn-md" href={`/api/admin/orders/${open.id}/export-products.csv`}>Download this order</a>
-			<Button variant="secondary" onClick={() => setOpenOrderId(null)}>Back to all orders</Button>
+			<Button variant="secondary" onClick={() => { setOpenOrderId(null); reload(); }}>Back to all orders</Button>
 		</div>} />
 		<AdminOrderPanel order={open} />
 	</>;

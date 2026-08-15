@@ -31,6 +31,22 @@ describe("KITCO Control order operations", () => {
 		expect(api).toHaveBeenLastCalledWith("/api/admin/dispatches", expect.objectContaining({ pairs: 2, size: "7", orderLineId: "order-1:offer-1" }));
 	});
 
+	it("updates the tile summary and order-total table live from the dispatch response, instead of staying stale until a reload", async () => {
+		const api = vi.fn(async (path: string) => {
+			if (path.includes("dispatches")) return { status: "FINALISED", order: { status: "APPROVED", allocations: [{ ...order.allocations[0], dispatchedPairs: 2 }] } };
+			throw new Error(`unexpected path ${path}`);
+		});
+		render(<AdminOrderPanel order={order} api={api} />);
+		expect(screen.getByText("0 dispatched · 0 on hold · 6 pending")).toBeInTheDocument();
+
+		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "2" } });
+		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
+		await screen.findByText("Dispatch recorded");
+
+		expect(screen.getByText("2 dispatched · 0 on hold · 4 pending")).toBeInTheDocument();
+		expect(screen.getByLabelText("Dispatch pairs")).toHaveValue(null);
+	});
+
 	it("blocks saving a decision that exceeds ordered pairs or is missing a hold reason", () => {
 		render(<AdminOrderPanel order={order} api={vi.fn()} />);
 		fireEvent.change(screen.getByLabelText("Approve pairs"), { target: { value: "5" } });

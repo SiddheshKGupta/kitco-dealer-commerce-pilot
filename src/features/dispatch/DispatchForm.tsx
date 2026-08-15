@@ -2,13 +2,21 @@ import { useId, useState } from "react";
 import { Button, FormField, Input } from "../../components/ui";
 import type { FulfilmentAllocation } from "./fulfilment";
 
-export function DispatchForm({ orderId, allocation, request, onMessage }: { orderId: string; allocation: FulfilmentAllocation; request: (path: string, body: object) => Promise<unknown>; onMessage: (message: string) => void }) {
+export function DispatchForm({ orderId, allocation, request, onMessage, onDispatched }: {
+	orderId: string; allocation: FulfilmentAllocation; request: (path: string, body: object) => Promise<unknown>; onMessage: (message: string) => void;
+	onDispatched?: (order: { status: string; allocations: FulfilmentAllocation[] }) => void;
+}) {
 	const [pairs, setPairs] = useState("");
 	const [sending, setSending] = useState(false);
 	const fieldId = useId();
 	async function dispatch() {
 		setSending(true);
-		try { await request("/api/admin/dispatches", { orderId, orderLineId: allocation.orderLineId, size: allocation.size, pairs: Number(pairs) }); onMessage("Dispatch recorded"); }
+		try {
+			const result = await request("/api/admin/dispatches", { orderId, orderLineId: allocation.orderLineId, size: allocation.size, pairs: Number(pairs) }) as { order?: { status: string; allocations: FulfilmentAllocation[] } };
+			onMessage("Dispatch recorded");
+			setPairs("");
+			if (result.order) onDispatched?.(result.order);
+		}
 		catch (error) { onMessage(error instanceof Error && error.message === "DISPATCH_EXCEEDS_PENDING" ? "Dispatch exceeds the approved pending quantity." : "Dispatch could not be recorded."); }
 		finally { setSending(false); }
 	}

@@ -417,7 +417,7 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     if (!order) throw new ApiError(409, "ORDER_LINE_DECISION_FAILED", "The decided order could not be loaded");
     return order;
   }
-  async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<void> {
+  async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<OrderRecord> {
     if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
     const { data, error } = await this.client.rpc("create_kitco_dispatch", {
       p_organisation_id: session.organisationId,
@@ -431,6 +431,9 @@ export class SupabaseCommerceRepository implements CommerceRepository {
       p_correlation_id: correlationId,
     });
     if (error || !data) fail(error, "DISPATCH_FAILED");
+    const order = await this.findOrder(session, input.orderId);
+    if (!order) throw new ApiError(409, "DISPATCH_FAILED", "The dispatched order could not be loaded");
+    return order;
   }
   async stageImport(): Promise<{ id: string; status: "UPLOADED" }> { throw new ApiError(409, "IMPORT_COMMIT_UNAVAILABLE", "Import commit is disabled until a staged source file is ready"); }
 

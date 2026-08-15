@@ -47,7 +47,7 @@ export function AdminOrderPanel({ order, api = defaultApi }: { order: ControlOrd
 						<summary className="control-size-card-head"><strong>Size {item.size}</strong><span>{item.dispatchedPairs} dispatched · {item.heldPairs} on hold · {pendingPairs} pending</span></summary>
 						<div className="control-size-card-body">
 							<OrderLineDecision orderId={order.id} allocation={item} request={api} onDecided={handleDecided} />
-							<DispatchForm orderId={order.id} allocation={item} request={api} onMessage={setMessage} />
+							<DispatchForm orderId={order.id} allocation={item} request={api} onMessage={setMessage} onDispatched={handleDecided} />
 						</div>
 					</details>;
 				})}</div>

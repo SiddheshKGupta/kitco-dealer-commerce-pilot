@@ -8,7 +8,7 @@ const schema = z.object({ orderId: z.string().min(1), orderLineId: z.string().mi
 export function registerDispatchRoutes(app: Hono<{ Variables: AuthVariables }>, repository: CommerceRepository) {
   app.post("/api/admin/dispatches", async (context) => {
     const input = await parseBody(context, schema);
-    await repository.createDispatch(context.get("session"), input, context.get("correlationId"));
-    return context.json({ status: "FINALISED" }, 201);
+    const order = await repository.createDispatch(context.get("session"), input, context.get("correlationId"));
+    return context.json({ status: "FINALISED", order }, 201);
   });
 }

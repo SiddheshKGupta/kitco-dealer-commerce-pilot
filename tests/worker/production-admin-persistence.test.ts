@@ -23,6 +23,7 @@ describe("production admin persistence", () => {
   it("persists scoped partial holds and dispatches through atomic server functions", async () => {
     const rpc = vi.fn(async () => ({ data: { ok: true }, error: null }));
     const repo = new SupabaseCommerceRepository({ rpc } as unknown as SupabaseClient);
+    vi.spyOn(repo, "findOrder").mockResolvedValue(order);
 
     await repo.applyHold(admin, { orderId: "order-1", orderLineId: "line-1", size: "7", pairs: 2, reason: "Credit review" }, "corr-hold");
     await repo.createDispatch(admin, { orderId: "order-1", orderLineId: "line-1", size: "7", pairs: 1, dealerLocationId: "location-1" }, "corr-dispatch");
