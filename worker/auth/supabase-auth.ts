@@ -148,7 +148,7 @@ export class SupabaseLoginIdentityResolver implements LoginIdentityResolver {
       .from("dealers")
       .select("id,organisation_id")
       .eq("activation_status", "ACTIVE")
-      .or(`pilot_email.ilike.${email},master_email.ilike.${email}`)
+      .or(`pilot_email.ilike.${email},master_email.ilike.${email},secondary_email.ilike.${email}`)
       .limit(1)
       .maybeSingle();
     return data ?? null;
