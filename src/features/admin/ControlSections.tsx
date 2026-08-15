@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
-import { Button, SearchField } from "../../components/ui";
+import { Button, FormField, Input, SearchField, Select } from "../../components/ui";
+import { SizeChartSheet } from "../../components/SizeChartSheet";
 import { formatRetailValue } from "../catalogue/types";
 import { useAdminSection, type SectionStatus } from "./useAdminSection";
 
@@ -197,20 +198,203 @@ export function MediaSection() {
 }
 
 /* ---------------------------------------------------------------- Size sets */
-interface SizeSetRow { id: string; code: string; name: string; values: string[] }
+interface SizeValueRow { id: string; label: string; sortOrder: number; inUseCount: number }
+interface SizeSetRow { id: string; code: string; name: string; values: SizeValueRow[] }
+interface FamilyOptionRow { id: string; brandId: string; brandName: string; gender: string; name: string }
+interface SizeSetAssignmentRow { brandName: string; gender: string; sizeSetCode: string | null; sizeSetName: string | null; colourwayCount: number }
+interface SizeSetsPayload { sizeSets: SizeSetRow[]; families: FamilyOptionRow[]; assignments: SizeSetAssignmentRow[] }
+
+async function sizeSetsApi<T = unknown>(path: string, init?: RequestInit): Promise<T> {
+	const response = await fetch(path, { credentials: "include", headers: { "content-type": "application/json" }, ...init });
+	const body = await response.json().catch(() => ({}));
+	if (!response.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "That didn't work. Try again.");
+	return body as T;
+}
+
 export function SizeSetsSection() {
-	const { data, status, reload } = useAdminSection<{ sizeSets: SizeSetRow[] }>("/api/admin/console/size-sets");
-	const rows = data?.sizeSets ?? [];
+	const { data, status, reload } = useAdminSection<SizeSetsPayload>("/api/admin/size-sets");
+	const sizeSets = data?.sizeSets ?? [];
+	const families = data?.families ?? [];
+	const assignments = data?.assignments ?? [];
+	const brands = [...new Map(families.map((family) => [family.brandId, family.brandName])).entries()];
+
+	const [error, setError] = useState("");
+	const [showSizeChart, setShowSizeChart] = useState(false);
+
+	const [newSetCode, setNewSetCode] = useState("");
+	const [newSetName, setNewSetName] = useState("");
+	const [creatingSet, setCreatingSet] = useState(false);
+
+	const [valueDrafts, setValueDrafts] = useState<Record<string, { label: string; sortOrder: string }>>({});
+	const [savingValueSetId, setSavingValueSetId] = useState<string | null>(null);
+
+	const [confirmingValueId, setConfirmingValueId] = useState<string | null>(null);
+	const [confirmText, setConfirmText] = useState("");
+	const [removingValueId, setRemovingValueId] = useState<string | null>(null);
+
+	const [assignSetId, setAssignSetId] = useState("");
+	const [assignScope, setAssignScope] = useState<"family" | "brandGender">("family");
+	const [assignFamilyId, setAssignFamilyId] = useState("");
+	const [assignBrandId, setAssignBrandId] = useState("");
+	const [assignGender, setAssignGender] = useState("");
+	const [assigning, setAssigning] = useState(false);
+	const [assignResult, setAssignResult] = useState<string | null>(null);
+	const gendersForBrand = [...new Set(families.filter((family) => family.brandId === assignBrandId).map((family) => family.gender))];
+
+	async function createSet() {
+		setError(""); setCreatingSet(true);
+		try {
+			await sizeSetsApi("/api/admin/size-sets", { method: "POST", body: JSON.stringify({ code: newSetCode.trim(), name: newSetName.trim() }) });
+			setNewSetCode(""); setNewSetName(""); reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size set could not be created"); }
+		finally { setCreatingSet(false); }
+	}
+
+	async function addValue(set: SizeSetRow) {
+		const draft = valueDrafts[set.id] ?? { label: "", sortOrder: "" };
+		if (!draft.label.trim()) return;
+		setError(""); setSavingValueSetId(set.id);
+		try {
+			const parsedOrder = draft.sortOrder.trim() ? Number(draft.sortOrder) : NaN;
+			const sortOrder = Number.isFinite(parsedOrder) ? parsedOrder : Math.max(-1, ...set.values.map((value) => value.sortOrder)) + 1;
+			await sizeSetsApi(`/api/admin/size-sets/${set.id}/values`, { method: "POST", body: JSON.stringify({ label: draft.label.trim(), sortOrder }) });
+			setValueDrafts((current) => ({ ...current, [set.id]: { label: "", sortOrder: "" } }));
+			reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size could not be added"); }
+		finally { setSavingValueSetId(null); }
+	}
+
+	async function removeValue(valueId: string) {
+		setError(""); setRemovingValueId(valueId);
+		try {
+			await sizeSetsApi(`/api/admin/size-sets/values/${valueId}`, { method: "DELETE" });
+			setConfirmingValueId(null); setConfirmText(""); reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size could not be removed"); }
+		finally { setRemovingValueId(null); }
+	}
+
+	async function assign() {
+		if (!assignSetId) return;
+		setError(""); setAssignResult(null); setAssigning(true);
+		try {
+			const body = assignScope === "family"
+				? { sizeSetId: assignSetId, familyId: assignFamilyId }
+				: { sizeSetId: assignSetId, brandId: assignBrandId, gender: assignGender };
+			const result = await sizeSetsApi<{ colourwaysAffected: number }>("/api/admin/size-sets/assign", { method: "POST", body: JSON.stringify(body) });
+			setAssignResult(`Done. Turned this size set on for ${result.colourwaysAffected} product${result.colourwaysAffected === 1 ? "" : "s"}.`);
+			reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size set could not be assigned"); }
+		finally { setAssigning(false); }
+	}
+
+	const assignReady = assignScope === "family" ? Boolean(assignFamilyId) : Boolean(assignBrandId && assignGender);
+
 	return <>
-		<PageHead eyebrow="Catalogue configuration" title="Size Sets" lead="Per-brand size vocabulary and ordering. Products enable only the values they actually run." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No size sets configured yet." /> :
-			<div className="grid-3">{rows.map((row) => <section className="panel" key={row.id}>
-				<div className="panel-head"><h3>{row.name}</h3><span className="tiny">{row.code}</span></div>
-				<div className="panel-body">
-					<div className="toolbar">{row.values.map((value) => <span className="chip" key={value} style={{ cursor: "default" }}>{value}</span>)}</div>
-					{row.values.length === 0 && <p className="tiny">No size values defined.</p>}
+		<PageHead eyebrow="Catalogue configuration" title="Size Sets" lead="Per-brand size vocabulary and ordering. Add sizes, and choose which products offer which sizes." actions={<Button variant="ghost" onClick={() => setShowSizeChart(true)}>Shoe Size Chart</Button>} />
+		{error && <p className="form-error" role="alert">{error}</p>}
+
+		<section className="panel">
+			<div className="panel-head"><h3>Add a size set</h3></div>
+			<div className="panel-body">
+				<div className="grid-2">
+					<FormField label="Code" htmlFor="new-set-code" hint="Letters, numbers and underscores, e.g. REEBOK_7_13">
+						<Input id="new-set-code" value={newSetCode} onChange={(event) => setNewSetCode(event.target.value)} placeholder="BRAND_RANGE" />
+					</FormField>
+					<FormField label="Name" htmlFor="new-set-name">
+						<Input id="new-set-name" value={newSetName} onChange={(event) => setNewSetName(event.target.value)} placeholder="Reebok 7 to 13" />
+					</FormField>
 				</div>
-			</section>)}</div>}
+				<Button style={{ marginTop: 12 }} disabled={!newSetCode.trim() || !newSetName.trim() || creatingSet} onClick={() => void createSet()}>{creatingSet ? "Creating…" : "Create size set"}</Button>
+			</div>
+		</section>
+
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : sizeSets.length === 0 ? <SectionState status="ready" retry={reload} empty="No size sets configured yet." /> :
+			<div className="grid-2">{sizeSets.map((set) => {
+				const draft = valueDrafts[set.id] ?? { label: "", sortOrder: "" };
+				return <section className="panel" key={set.id}>
+					<div className="panel-head"><h3>{set.name}</h3><span className="tiny">{set.code}</span></div>
+					<div className="panel-body">
+						{set.values.length === 0 ? <p className="tiny">No sizes yet.</p> : <div className="table-wrap"><table className="data-table">
+							<thead><tr><th>Size</th><th>Order</th><th>In use</th><th /></tr></thead>
+							<tbody>{set.values.map((value) => <tr key={value.id}>
+								<td><b>{value.label}</b></td>
+								<td>{value.sortOrder}</td>
+								<td>{value.inUseCount > 0 ? <span className="status green">{value.inUseCount} product{value.inUseCount === 1 ? "" : "s"}</span> : <span className="tiny">Not used</span>}</td>
+								<td className="right">
+									{confirmingValueId === value.id ? <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
+										<Input aria-label={`Type ${value.label} to confirm removing this size`} placeholder={`Type ${value.label}`} value={confirmText} onChange={(event) => setConfirmText(event.target.value)} style={{ width: 110 }} />
+										<Button variant="danger" size="sm" disabled={confirmText.trim() !== value.label || removingValueId === value.id} onClick={() => void removeValue(value.id)}>{removingValueId === value.id ? "Removing…" : "Confirm"}</Button>
+										<Button variant="secondary" size="sm" onClick={() => { setConfirmingValueId(null); setConfirmText(""); }}>Cancel</Button>
+									</div> : <Button variant="secondary" size="sm" onClick={() => { setConfirmingValueId(value.id); setConfirmText(""); }}>Remove</Button>}
+								</td>
+							</tr>)}</tbody>
+						</table></div>}
+						<div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap", alignItems: "flex-end" }}>
+							<FormField label="Add a size" htmlFor={`new-value-label-${set.id}`}>
+								<Input id={`new-value-label-${set.id}`} value={draft.label} onChange={(event) => setValueDrafts((current) => ({ ...current, [set.id]: { ...draft, label: event.target.value } }))} placeholder="e.g. 13" style={{ width: 100 }} />
+							</FormField>
+							<FormField label="Order" htmlFor={`new-value-order-${set.id}`} hint="Optional, leave blank to add at the end">
+								<Input id={`new-value-order-${set.id}`} inputMode="numeric" value={draft.sortOrder} onChange={(event) => setValueDrafts((current) => ({ ...current, [set.id]: { ...draft, sortOrder: event.target.value } }))} style={{ width: 80 }} />
+							</FormField>
+							<Button size="sm" disabled={!draft.label.trim() || savingValueSetId === set.id} onClick={() => void addValue(set)}>{savingValueSetId === set.id ? "Adding…" : "Add size"}</Button>
+						</div>
+					</div>
+				</section>;
+			})}</div>}
+
+		<section className="panel">
+			<div className="panel-head"><h3>Turn a size set on for products</h3></div>
+			<div className="panel-body">
+				<p className="tiny" style={{ marginBottom: 12 }}>This turns the chosen sizes on for the products you pick. Any size an admin already turned off for one product stays off.</p>
+				<div className="grid-2">
+					<FormField label="Size set" htmlFor="assign-set">
+						<Select id="assign-set" value={assignSetId} onChange={(event) => setAssignSetId(event.target.value)}>
+							<option value="">Choose a size set</option>
+							{sizeSets.map((set) => <option key={set.id} value={set.id}>{set.name} ({set.code})</option>)}
+						</Select>
+					</FormField>
+					<FormField label="Apply to" htmlFor="assign-scope">
+						<Select id="assign-scope" value={assignScope} onChange={(event) => setAssignScope(event.target.value as "family" | "brandGender")}>
+							<option value="family">One product</option>
+							<option value="brandGender">A whole brand and gender</option>
+						</Select>
+					</FormField>
+				</div>
+				{assignScope === "family" ? <FormField label="Product" htmlFor="assign-family">
+					<Select id="assign-family" value={assignFamilyId} onChange={(event) => setAssignFamilyId(event.target.value)}>
+						<option value="">Choose a product</option>
+						{families.map((family) => <option key={family.id} value={family.id}>{family.brandName} · {family.gender} · {family.name}</option>)}
+					</Select>
+				</FormField> : <div className="grid-2">
+					<FormField label="Brand" htmlFor="assign-brand">
+						<Select id="assign-brand" value={assignBrandId} onChange={(event) => { setAssignBrandId(event.target.value); setAssignGender(""); }}>
+							<option value="">Choose a brand</option>
+							{brands.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+						</Select>
+					</FormField>
+					<FormField label="Gender" htmlFor="assign-gender">
+						<Select id="assign-gender" value={assignGender} onChange={(event) => setAssignGender(event.target.value)} disabled={!assignBrandId}>
+							<option value="">Choose gender</option>
+							{gendersForBrand.map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+						</Select>
+					</FormField>
+				</div>}
+				<Button style={{ marginTop: 12 }} disabled={assigning || !assignSetId || !assignReady} onClick={() => void assign()}>{assigning ? "Assigning…" : "Turn on for these products"}</Button>
+				{assignResult && <p className="notice" style={{ marginTop: 12 }}>{assignResult}</p>}
+			</div>
+		</section>
+
+		{assignments.length > 0 && <section className="panel">
+			<div className="panel-head"><h3>What's turned on today</h3></div>
+			<div className="table-wrap"><table className="data-table">
+				<thead><tr><th>Brand</th><th>Gender</th><th>Size set</th><th>Products</th></tr></thead>
+				<tbody>{assignments.map((row) => <tr key={`${row.brandName}-${row.gender}-${row.sizeSetCode}`}>
+					<td><b>{row.brandName}</b></td><td>{row.gender}</td><td>{row.sizeSetName ?? dash}</td><td>{number(row.colourwayCount)}</td>
+				</tr>)}</tbody>
+			</table></div>
+		</section>}
+
+		<SizeChartSheet open={showSizeChart} onClose={() => setShowSizeChart(false)} />
 	</>;
 }
 

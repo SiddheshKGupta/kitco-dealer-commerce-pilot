@@ -14,6 +14,7 @@ import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-co
 import { SupabaseOrdersExporter } from "./supabase-orders-export";
 import { SupabaseDealerApplicationsAdmin } from "./supabase-dealer-applications";
 import { SupabaseAdminUsersStore } from "./supabase-admin-users";
+import { SupabaseSizeSetsAdmin } from "./supabase-admin-size-sets";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
@@ -40,6 +41,7 @@ export function createProductionCommerceApp(env: Env) {
     ordersExporter: new SupabaseOrdersExporter(client),
     dealerApplications: new SupabaseDealerApplicationsAdmin(client),
     adminUsers: new SupabaseAdminUsersStore(client),
+    sizeSetsAdmin: new SupabaseSizeSetsAdmin(client),
   });
 }
 

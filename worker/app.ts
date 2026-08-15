@@ -8,6 +8,7 @@ import { registerAdminExportRoutes, type OrdersExporter } from "./routes/admin-e
 import { registerAdminOrderRoutes } from "./routes/admin-orders";
 import { registerDealerApplicationRoutes, type DealerApplicationsAdmin } from "./routes/admin-dealer-applications";
 import { registerAdminUserRoutes, type AdminUsersStore } from "./routes/admin-users";
+import { registerSizeSetsAdminRoutes, type SizeSetsAdmin } from "./routes/admin-size-sets";
 import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerDispatchRoutes } from "./routes/dispatch";
 import { registerDealerRoutes } from "./routes/dealer";
@@ -26,6 +27,7 @@ export interface CommerceAppDependencies {
   ordersExporter?: OrdersExporter;
   dealerApplications?: DealerApplicationsAdmin;
   adminUsers?: AdminUsersStore;
+  sizeSetsAdmin?: SizeSetsAdmin;
 }
 
 export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, dependencies: CommerceAppDependencies) {
@@ -49,6 +51,7 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   registerAdminConsoleRoutes(app, dependencies.adminConsole);
   registerDealerApplicationRoutes(app, dependencies.dealerApplications);
   registerAdminUserRoutes(app, dependencies.adminUsers);
+  registerSizeSetsAdminRoutes(app, dependencies.sizeSetsAdmin);
   registerDispatchRoutes(app, dependencies.repository);
   registerHoldRoutes(app, dependencies.repository);
   registerImportRoutes(app, dependencies.repository);
