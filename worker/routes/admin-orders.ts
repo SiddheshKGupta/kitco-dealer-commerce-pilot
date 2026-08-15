@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { z } from "zod";
 import { HOLD_REASONS } from "../../src/domain/holds";
 import type { AuthVariables } from "../middleware/auth";
+import { ApiError } from "../middleware/errors";
 import type { CommerceRepository } from "../repository";
 import { parseBody } from "./shared";
 
@@ -19,7 +20,7 @@ export function registerAdminOrderRoutes(app: Hono<{ Variables: AuthVariables }>
   app.get("/api/admin/orders", async (context) => context.json({ orders: await repository.listOrders(context.get("session")) }));
   app.get("/api/admin/orders/:orderId", async (context) => {
     const order = await repository.findOrder(context.get("session"), context.req.param("orderId"));
-    if (!order) return context.json({ error: { code: "ORDER_NOT_FOUND", message: "Order not found" } }, 404);
+    if (!order) throw new ApiError(404, "ORDER_NOT_FOUND", "Order not found");
     return context.json({ order });
   });
   app.post("/api/admin/orders/:orderId/approve", async (context) => {
