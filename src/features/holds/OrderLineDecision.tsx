@@ -46,8 +46,8 @@ export function OrderLineDecision({ orderId, allocation, request, onDecided }: {
 			}) as { order: { status: string; allocations: FulfilmentAllocation[] } };
 			setMessage("Decision saved");
 			onDecided(result.order);
-		} catch {
-			setMessage("Decision could not be saved.");
+		} catch (caught) {
+			setMessage(caught instanceof Error ? caught.message : "Decision could not be saved.");
 		} finally {
 			setSaving(false);
 		}

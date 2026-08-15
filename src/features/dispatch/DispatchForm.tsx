@@ -17,7 +17,7 @@ export function DispatchForm({ orderId, allocation, request, onMessage, onDispat
 			setPairs("");
 			if (result.order) onDispatched?.(result.order);
 		}
-		catch (error) { onMessage(error instanceof Error && error.message === "DISPATCH_EXCEEDS_PENDING" ? "Dispatch exceeds the approved pending quantity." : "Dispatch could not be recorded."); }
+		catch (error) { onMessage(error instanceof Error ? error.message : "Dispatch could not be recorded."); }
 		finally { setSending(false); }
 	}
 	return <div className="control-action">

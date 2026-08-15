@@ -16,7 +16,28 @@ import type {
 
 type Row = Record<string, any>;
 
+// The admin fulfilment RPCs (supabase/migrations/20260813184500_admin_fulfilment_rpc.sql,
+// 20260815120000_partial_order_line_decisions.sql) raise real, specific Postgres error text
+// for the cases an admin can actually hit and needs to know the reason for -- surface those
+// verbatim as the ApiError message instead of collapsing every RPC failure to one generic
+// string. Order matters: more specific patterns first.
+const FULFILMENT_ERROR_PATTERNS: Array<[RegExp, string, string]> = [
+  [/hold exceeds available pending quantity/, "HOLD_EXCEEDS_PENDING", "This hold would exceed the pairs still pending for this size."],
+  [/dispatch exceeds available pending quantity/, "DISPATCH_EXCEEDS_PENDING", "This dispatch would exceed the pairs still pending for this size."],
+  [/dealer location required when more than one active Ship-To exists/, "SHIP_TO_REQUIRED", "This dealer has more than one active Ship-To location -- choose one before dispatching."],
+  [/active dealer Ship-To location not found/, "SHIP_TO_NOT_FOUND", "No active Ship-To location was found for this dealer."],
+  [/approved plus held pairs cannot exceed/, "DECISION_EXCEEDS_ORDERED", "Approved plus held pairs can't exceed what the dealer ordered for this size."],
+  [/approved pairs cannot drop below/, "APPROVED_BELOW_DISPATCHED", "Approved pairs can't drop below what's already been dispatched for this size."],
+  [/order decisions are closed for status/, "ORDER_DECISIONS_CLOSED", "This order can no longer be decided."],
+  [/hold reason required|a valid hold reason is required/, "HOLD_REASON_REQUIRED", "A hold reason is required when holding pairs."],
+  [/approved order allocation not found|order line size not found/, "ALLOCATION_NOT_FOUND", "That order line and size could not be found."],
+];
+
 function fail(error: { message?: string } | null, code = "DATABASE_ERROR"): never {
+  const message = error?.message ?? "";
+  for (const [pattern, mappedCode, mappedMessage] of FULFILMENT_ERROR_PATTERNS) {
+    if (pattern.test(message)) throw new ApiError(422, mappedCode, mappedMessage);
+  }
   throw new ApiError(409, code, error?.message ? "The requested operation could not be completed" : "Database operation failed");
 }
 

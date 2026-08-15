@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminOrderPanel } from "../../src/features/admin/AdminOrderPanel";
 import { DealerFulfilmentStatus } from "../../src/features/reports/DealerFulfilmentStatus";
 
@@ -9,7 +9,19 @@ const order = {
 	], audit: [{ correlationId: "corr-submitted", action: "Order submitted", detail: "Submitted as version 1", occurredAt: "2026-08-01T09:00:00.000Z", actorEmail: "dealer@example.com" }],
 };
 
+afterEach(() => vi.unstubAllGlobals());
+
 describe("KITCO Control order operations", () => {
+	it("extracts the API's error message correctly through the real defaultApi (not the whole {code,message} object stringified to [object Object])", async () => {
+		vi.stubGlobal("fetch", vi.fn(async () =>
+			new Response(JSON.stringify({ error: { code: "DISPATCH_EXCEEDS_PENDING", message: "This dispatch would exceed the pairs still pending for this size." } }), { status: 422 })));
+		render(<AdminOrderPanel order={order} />);
+		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "9" } });
+		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
+		await screen.findByText("This dispatch would exceed the pairs still pending for this size.");
+		expect(screen.queryByText("[object Object]")).not.toBeInTheDocument();
+	});
+
 	it("saves a per-size approve/hold decision and records a dispatch through the admin API", async () => {
 		const api = vi.fn(async (path: string) => {
 			if (path.includes("decide")) return { order: { status: "PARTIALLY_APPROVED", allocations: [{ ...order.allocations[0], approvedPairs: 4, heldPairs: 2, holdReason: "STOCK_REVIEW" }] } };
@@ -59,19 +71,22 @@ describe("KITCO Control order operations", () => {
 		expect(screen.getByRole("button", { name: "Save decision" })).toBeDisabled();
 	});
 
-	it("shows a decision failure and an over-dispatch rejection", async () => {
+	it("surfaces the API's specific error message instead of a generic one for both a decision and a dispatch failure", async () => {
+		// The API always throws with the server's real, specific message here (this is what
+		// AdminOrderPanel's defaultApi actually extracts from {error: {code, message}} in
+		// production -- see the regression test below for that extraction itself).
 		const api = vi.fn(async (path: string) => {
-			if (path.includes("decide")) throw new Error("DECISION_EXCEEDS_ORDERED");
-			throw new Error("DISPATCH_EXCEEDS_PENDING");
+			if (path.includes("decide")) throw new Error("Approved plus held pairs can't exceed what the dealer ordered for this size.");
+			throw new Error("This dispatch would exceed the pairs still pending for this size.");
 		});
 		render(<AdminOrderPanel order={order} api={api} />);
 		fireEvent.change(screen.getByLabelText("Approve pairs"), { target: { value: "6" } });
 		fireEvent.click(screen.getByRole("button", { name: "Save decision" }));
-		await screen.findByText("Decision could not be saved.");
+		await screen.findByText("Approved plus held pairs can't exceed what the dealer ordered for this size.");
 
 		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "9" } });
 		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
-		await screen.findByText("Dispatch exceeds the approved pending quantity.");
+		await screen.findByText("This dispatch would exceed the pairs still pending for this size.");
 	});
 
 	it("targets the decision and dispatch at the right line+size on a multi-line order", async () => {

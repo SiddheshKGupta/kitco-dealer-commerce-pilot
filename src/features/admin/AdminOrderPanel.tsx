@@ -8,7 +8,10 @@ export interface ControlOrder { id: string; orderNumber?: string; status: string
 type AdminApi = (path: string, body: object) => Promise<unknown>;
 const defaultApi: AdminApi = async (path, body) => {
 	const response = await fetch(path, { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-correlation-id": crypto.randomUUID() }, body: JSON.stringify(body) });
-	if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: string }).error ?? "REQUEST_FAILED");
+	// The API's error shape is { error: { code, message, ... } } (see worker/middleware/errors.ts)
+	// -- grabbing the whole error object here instead of .message would stringify to
+	// "[object Object]", silently defeating every specific-error-message check downstream.
+	if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: { message?: string } }).error?.message ?? "That action could not be completed.");
 	return response.json().catch(() => ({}));
 };
 
