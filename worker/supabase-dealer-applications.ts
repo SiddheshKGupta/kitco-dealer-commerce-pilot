@@ -13,6 +13,19 @@ export function slugCode(businessName: string): string {
 export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin {
 	constructor(private readonly client: SupabaseClient) {}
 
+	private async audit(session: SessionIdentity, correlationId: string, eventType: string, applicationId: string, evidence: Record<string, unknown>) {
+		await this.client.from("audit_events").insert({
+			organisation_id: session.organisationId,
+			dealer_id: null,
+			actor_auth_user_id: session.userId,
+			event_type: eventType,
+			entity_type: "dealer_application",
+			entity_id: applicationId,
+			correlation_id: correlationId,
+			evidence,
+		});
+	}
+
 	async list(session: SessionIdentity): Promise<DealerApplicationRow[]> {
 		const { data, error } = await this.client
 			.from("dealer_applications")
@@ -40,7 +53,7 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 		return data as Row;
 	}
 
-	async approve(session: SessionIdentity, applicationId: string, _correlationId: string): Promise<{ dealerId: string }> {
+	async approve(session: SessionIdentity, applicationId: string, correlationId: string): Promise<{ dealerId: string }> {
 		const application = await this.loadReviewable(session, applicationId);
 		let dealerId: string | null = null;
 		for (let attempt = 0; attempt < 3 && !dealerId; attempt += 1) {
@@ -67,22 +80,25 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 			status: "APPROVED", reviewed_by: session.userId, reviewed_at: new Date().toISOString(), created_dealer_id: dealerId,
 		}).eq("id", applicationId);
 		if (updateError) throw new ApiError(502, "APPLICATION_UPDATE_FAILED", "Application could not be updated");
+		await this.audit(session, correlationId, "DEALER_APPLICATION_APPROVED", applicationId, { dealerId, businessName: application.business_name });
 		return { dealerId };
 	}
 
-	async reject(session: SessionIdentity, applicationId: string, notes: string, _correlationId: string): Promise<void> {
-		await this.loadReviewable(session, applicationId);
+	async reject(session: SessionIdentity, applicationId: string, notes: string, correlationId: string): Promise<void> {
+		const application = await this.loadReviewable(session, applicationId);
 		const { error } = await this.client.from("dealer_applications").update({
 			status: "REJECTED", reviewed_by: session.userId, reviewed_at: new Date().toISOString(), review_notes: notes,
 		}).eq("id", applicationId);
 		if (error) throw new ApiError(502, "APPLICATION_UPDATE_FAILED", "Application could not be updated");
+		await this.audit(session, correlationId, "DEALER_APPLICATION_REJECTED", applicationId, { notes, businessName: application.business_name });
 	}
 
-	async requestMoreInfo(session: SessionIdentity, applicationId: string, notes: string, _correlationId: string): Promise<void> {
-		await this.loadReviewable(session, applicationId);
+	async requestMoreInfo(session: SessionIdentity, applicationId: string, notes: string, correlationId: string): Promise<void> {
+		const application = await this.loadReviewable(session, applicationId);
 		const { error } = await this.client.from("dealer_applications").update({
 			status: "MORE_INFO_REQUIRED", reviewed_by: session.userId, reviewed_at: new Date().toISOString(), review_notes: notes,
 		}).eq("id", applicationId);
 		if (error) throw new ApiError(502, "APPLICATION_UPDATE_FAILED", "Application could not be updated");
+		await this.audit(session, correlationId, "DEALER_APPLICATION_MORE_INFO_REQUESTED", applicationId, { notes, businessName: application.business_name });
 	}
 }
