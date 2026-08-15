@@ -45,8 +45,8 @@ describe("pilot surface routing", () => {
     window.history.replaceState({}, "", "/orders");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ orders: [] }), { status: 200 })));
     render(<App />);
-    expect(screen.getByRole("heading", { name: "Current Order" })).toBeInTheDocument();
-    expect(await screen.findByText("No submitted orders yet.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Your Orders" })).toBeInTheDocument();
+    expect(await screen.findByText("No orders yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Start an order" })).toHaveAttribute("href", "/products");
   });
 
@@ -54,7 +54,7 @@ describe("pilot surface routing", () => {
     window.history.replaceState({}, "", "/reports");
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ orders: [{ id: "order-1", status: "APPROVED", version: 1, retailValueMinor: 40000, allocations: [{ orderLineId: "line-1", size: "7", approvedPairs: 4, dispatchedPairs: 2, heldPairs: 0 }] }] }), { status: 200 })));
     render(<App />);
-    expect(await screen.findByRole("heading", { name: "Fulfilment reports" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Where's my order?" })).toBeInTheDocument();
     expect(within(screen.getByLabelText("Order fulfilment")).getByText("Dispatched 2 pairs")).toBeInTheDocument();
   });
 

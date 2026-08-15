@@ -42,7 +42,7 @@ describe("Dealer orders screen expansive view", () => {
 		render(<App />);
 		await screen.findByText("SO-1001");
 
-		const toggle = screen.getByText("View articles in this order");
+		const toggle = screen.getByText("See the articles in this order");
 		expect(within(toggle.closest("details")!).queryByText("Size 7 · 4 pairs")).not.toBeVisible();
 
 		fireEvent.click(toggle);
