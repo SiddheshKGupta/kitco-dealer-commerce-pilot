@@ -19,6 +19,7 @@
 .control-table-wrap th:first-child { text-align: left; }
 .control-table-wrap thead { color: var(--mute); font-size: 11px; text-transform: uppercase; }
 .control-table-wrap tfoot { background: var(--soft-cloud); font-weight: 500; }
+.control-table-wrap tr.is-selected { background: var(--soft-cloud); }
 .control-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
 .control-actions > section { padding: 18px; border: 1px solid var(--hairline); background: var(--canvas); }
 .control-actions h2 { margin: 0 0 14px; font-size: 14px; font-weight: 500; }

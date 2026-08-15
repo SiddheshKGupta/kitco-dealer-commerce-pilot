@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, FormField, Input, Select } from "../../components/ui";
 import { formatRetailValue } from "../catalogue/types";
+import { groupByArticle, summarizeFulfilment } from "../dispatch/fulfilment";
 import { AdminOrderPanel, type ControlOrder } from "./AdminOrderPanel";
 import {
 	AuditSection, CatalogueSection, DashboardSection, DealersSection, DispatchSection,
@@ -156,11 +157,29 @@ function DealerApplicationsSection() {
 }
 
 /* ------------------------------------------------------------------- Orders */
+/** Adds the dealer identity/location fields the orders list already returns (see
+ *  SupabaseCommerceRepository.orderFromRow) but LiveOrder doesn't declare. */
+type QueueOrder = LiveOrder & { dealerId?: string; dealerCity?: string; dealerState?: string };
+
 function OrdersSection() {
-	const { data, status, reload } = useAdminSection<{ orders: LiveOrder[] }>("/api/admin/orders");
+	const { data, status, reload } = useAdminSection<{ orders: QueueOrder[] }>("/api/admin/orders");
 	const [openOrderId, setOpenOrderId] = useState<string | null>(null);
+	const [statusFilter, setStatusFilter] = useState("");
+	const [dealerFilter, setDealerFilter] = useState("");
+	const [stateFilter, setStateFilter] = useState("");
+	const [dateFrom, setDateFrom] = useState("");
+	const [dateTo, setDateTo] = useState("");
 	const orders = (data?.orders ?? []).map((order) => ({ ...order, allocations: order.allocations ?? [], audit: order.audit ?? [] }));
 	const open = orders.find((order) => order.id === openOrderId);
+	const statuses = [...new Set(orders.map((order) => order.status))];
+	const dealers = [...new Map(orders.filter((order) => order.dealerId).map((order) => [order.dealerId as string, order.dealerName ?? order.dealerId as string])).entries()];
+	const states = [...new Set(orders.map((order) => order.dealerState).filter((value): value is string => Boolean(value)))];
+	const rows = orders.filter((order) =>
+		(!statusFilter || order.status === statusFilter)
+		&& (!dealerFilter || order.dealerId === dealerFilter)
+		&& (!stateFilter || order.dealerState === stateFilter)
+		&& (!dateFrom || (order.submittedAt ?? "").slice(0, 10) >= dateFrom)
+		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo));
 
 	if (open) return <>
 		<PageHead eyebrow="Order governance" title="Order review" actions={<Button variant="secondary" onClick={() => setOpenOrderId(null)}>Back to all orders</Button>} />
@@ -172,18 +191,46 @@ function OrdersSection() {
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : orders.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer orders have been submitted yet." />
 			: <section className="panel">
-				<div className="panel-head"><h3>{number(orders.length)} orders</h3></div>
+				<div className="panel-head">
+					<h3>{number(rows.length)} orders</h3>
+					<div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+						<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
+							<option value="">All statuses</option>
+							{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}
+						</Select>
+						<Select value={dealerFilter} onChange={(event) => setDealerFilter(event.target.value)} aria-label="Filter by dealer">
+							<option value="">All dealers</option>
+							{dealers.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
+						</Select>
+						<Select value={stateFilter} onChange={(event) => setStateFilter(event.target.value)} aria-label="Filter by state">
+							<option value="">All states</option>
+							{states.map((value) => <option key={value} value={value}>{value}</option>)}
+						</Select>
+						<Input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} aria-label="Submitted from date" />
+						<Input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} aria-label="Submitted to date" />
+					</div>
+				</div>
 				<div className="table-wrap"><table className="data-table">
-					<thead><tr><th>Dealer</th><th>Order</th><th>Version</th><th>Lines</th><th>Retail Value</th><th>Status</th><th /></tr></thead>
-					<tbody>{orders.map((order) => <tr key={order.id}>
-						<td><b>{order.dealerName ?? "—"}</b></td>
-						<td>{order.orderNumber ?? order.id.slice(0, 8)}</td>
-						<td>V{order.version ?? 1}</td>
-						<td>{number(order.allocations.length)}</td>
-						<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
-						<td><StatusPill value={order.status} /></td>
-						<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenOrderId(order.id)}>Review</Button></td>
-					</tr>)}</tbody>
+					<thead><tr><th>Order</th><th>Dealer</th><th>City</th><th>State</th><th>Submitted</th><th>Articles</th><th>Pairs</th><th>Retail Value</th><th>Status</th><th>Approved</th><th>Held</th><th>Dispatched</th><th>Pending</th><th /></tr></thead>
+					<tbody>{rows.map((order) => {
+						const summary = summarizeFulfilment(order.allocations);
+						return <tr key={order.id}>
+							<td>{order.orderNumber ?? order.id.slice(0, 8)}</td>
+							<td><b>{order.dealerName ?? "—"}</b></td>
+							<td>{order.dealerCity ?? "—"}</td>
+							<td>{order.dealerState ?? "—"}</td>
+							<td>{order.submittedAt ? shortDate(order.submittedAt) : "—"}</td>
+							<td>{number(groupByArticle(order.allocations).length)}</td>
+							<td>{number(summary.orderedPairs)}</td>
+							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
+							<td><StatusPill value={order.status} /></td>
+							<td>{number(summary.orderedPairs)}</td>
+							<td>{number(summary.heldPairs)}</td>
+							<td>{number(summary.dispatchedPairs)}</td>
+							<td>{number(summary.pendingPairs)}</td>
+							<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenOrderId(order.id)}>Review</Button></td>
+						</tr>;
+					})}</tbody>
 				</table></div>
 			</section>}
 	</>;

@@ -38,6 +38,24 @@ describe("KITCO Control order operations", () => {
 		expect(api).toHaveBeenLastCalledWith("/api/admin/holds", expect.objectContaining({ pairs: 1, reason: "Credit review" }));
 	});
 
+	it("targets dispatch/hold at the selected line+size, not always the first row", async () => {
+		const multiLineOrder = {
+			id: "order-2", status: "SUBMITTED",
+			allocations: [
+				{ orderLineId: "order-2:offer-1", size: "7", approvedPairs: 6, dispatchedPairs: 0, heldPairs: 0 },
+				{ orderLineId: "order-2:offer-2", size: "9", approvedPairs: 4, dispatchedPairs: 0, heldPairs: 0 },
+			],
+			audit: [],
+		};
+		const api = vi.fn(async () => ({ status: "FINALISED" }));
+		render(<AdminOrderPanel order={multiLineOrder} api={api} />);
+		fireEvent.click(screen.getByRole("button", { name: "Select size 9 for dispatch or hold" }));
+		fireEvent.change(screen.getByLabelText("Dispatch pairs"), { target: { value: "2" } });
+		fireEvent.click(screen.getByRole("button", { name: "Record dispatch" }));
+		await screen.findByText("Dispatch recorded");
+		expect(api).toHaveBeenLastCalledWith("/api/admin/dispatches", expect.objectContaining({ orderLineId: "order-2:offer-2", size: "9", pairs: 2 }));
+	});
+
 	it("shows dealer Ordered, Dispatched, Pending, and hold quantities without availability data", () => {
 		render(<DealerFulfilmentStatus order={{ ...order, allocations: [{ ...order.allocations[0], dispatchedPairs: 2, heldPairs: 1 }] }} />);
 		expect(screen.getByText("Ordered 6 pairs")).toBeInTheDocument();
