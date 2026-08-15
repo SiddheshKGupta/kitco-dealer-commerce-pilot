@@ -264,6 +264,56 @@ has no columns to store it (confirmed via direct query: no `gstin`, `address_lin
 
 ---
 
+## Task 8: Configurable size sets + Universal Shoe Size Chart reference
+
+**Client requirement, verbatim:** Reebok Men must show US 7-13. Nike Women must show US 5.5,
+6.5, 7.5... (half sizes). Nike Men must show US 7-13. The admin panel must let KITCO configure
+these size sets themselves going forward — this is not a one-off data fix, it's a durable
+admin capability. Separately, add a "Universal Shoe Size Chart" reference button available to
+anyone (dealer or admin) who wants to open it — a static conversion reference, not tied to any
+specific product.
+
+**Current state (verified via Supabase, project `lvbgpgsgotadoneyrtyt`):** `size_sets` →
+`size_values` (label + sort_order) → `product_size_values` (per-colourway enabled flags)
+already exists as a schema, but `src/features/admin/ControlSections.tsx`'s `SizeSetsSection`
+(~line 201) is **read-only** — it only displays existing sets/values, no add/edit/remove UI at
+all. Existing sets found: `REEBOK_7_12` (7,8,9,10,11,12 — **missing 13, a real data gap**),
+`NIKE_HALF` (5.5-11.5), `NIKE_WHOLE` (5-13), `DOUBLEU_36_44`, `LEE_COOPER_39_45`, `NIKE_ALPHA`
+(S/M/L). Verify which set(s) are actually assigned to Reebok Men colourways vs Nike
+Women/Men colourways (via `product_families`/`product_colourways` joined to `commercial_offerings`
+and ultimately `product_size_values`/`size_values`/`size_sets`) and fix the assignment/values so
+Reebok Men reads exactly 7-13, Nike Women reads the half-size run, Nike Men reads 7-13 — add
+missing size *values* to existing sets rather than creating duplicate sets where one already
+fits the brand+gender.
+
+**Do:**
+1. Fix the immediate data gap: `REEBOK_7_12` needs a `13` value added (`sort_order` after 12).
+   Verify Nike Women colourways are actually using `NIKE_HALF` and Nike Men colourways are
+   using a 7-13 range (trim `NIKE_WHOLE`'s 5/6 for Men if that's the assigned set, or confirm
+   a size *value* being enabled per-colourway via `product_size_values.enabled` already handles
+   this without touching the shared set — prefer the least destructive fix that doesn't affect
+   other products sharing the same `size_set`).
+2. Build real CRUD in `SizeSetsSection` (or a new admin route/section if that reads cleaner):
+   add a size set (code, name), add/edit/remove size values within a set (label, order), and
+   assign a size set to a product family or brand+gender combination — reuse
+   `src/components/ui/*` primitives, follow the existing admin panel/table patterns already in
+   `ControlSections.tsx`/`ControlConsole.tsx`. Every mutation needs: zod validation, scoped by
+   `organisation_id`, an audit event, a visible busy state, typed confirmation before removing a
+   size value that's in use by live products (removing a size a dealer has already ordered
+   must not silently break historical order data — block removal if `product_size_values` rows
+   reference it, or handle gracefully; your call, document the choice).
+3. Add a "Shoe Size Chart" reference: a `Button variant="ghost"` (or similar unobtrusive
+   trigger) that opens the existing `Modal`/`BottomSheet` component (mobile-first — bottom
+   sheet on mobile, modal on desktop, matching how those primitives are already used elsewhere)
+   showing a static US/UK/EU/CM conversion table for men's and women's sizing. This is a fixed
+   reference table (standard shoe-size conversion, not derived from any product data) — place
+   it somewhere a dealer would actually look for it, e.g. near the `SizeGrid` on the PDP, and
+   also accessible from the admin size-sets screen.
+
+**Global Constraints apply in full** — this is dealer-facing (the size chart, and any size
+values a dealer sees on the PDP) as well as admin-facing (the CRUD), so the 40-50-year-old
+readability bar and plain-language bar both apply.
+
 ## Notes for every implementer
 
 - This repo has no separate PR/review-branch workflow in this session — work happens directly
