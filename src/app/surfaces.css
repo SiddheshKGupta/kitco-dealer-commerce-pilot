@@ -1,0 +1,22 @@
+.pilot-control-surface { flex: 1; min-width: 0; max-width: 100%; overflow: hidden; background: var(--soft-cloud); }
+.pilot-surface-state, .pilot-orders-empty { display: grid; justify-items: start; gap: 16px; max-width: 520px; margin-top: 32px; }
+.pilot-order-list { display: grid; gap: 18px; margin-top: 36px; }
+.pilot-order-card { display: grid; gap: 14px; border: 1px solid var(--hairline); background: var(--canvas); padding: clamp(16px, 3vw, 28px); }
+.pilot-order-card > header { display: flex; align-items: start; justify-content: space-between; gap: 20px; }
+.pilot-order-card > header div { display: grid; gap: 4px; min-width: 0; }
+.pilot-order-card > header span { color: var(--mute); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.pilot-order-card > header strong { overflow-wrap: anywhere; }
+.pilot-order-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+.pilot-order-value { color: var(--ink); font-size: 20px; font-weight: 700; }
+.dealer-fulfilment { display: grid; gap: 10px; border: 1px solid var(--hairline); padding: 16px; background: var(--canvas); font-family: var(--font-ui); }
+.dealer-fulfilment div { display: flex; flex-wrap: wrap; gap: 8px; }
+.dealer-fulfilment span { padding: 7px 12px; border-radius: var(--radius-lg); background: var(--soft-cloud); font-size: 14px; font-weight: 600; color: var(--ink); }
+.pilot-order-details { border-top: 1px solid var(--hairline); padding-top: 14px; }
+.pilot-order-details > summary { cursor: pointer; font-size: 16px; font-weight: 700; color: var(--ink); min-height: 44px; display: flex; align-items: center; }
+.dealer-order-articles { display: grid; gap: 12px; margin-top: 14px; }
+.dealer-order-article { display: grid; gap: 8px; border: 1px solid var(--hairline); padding: 14px; background: var(--soft-cloud); }
+.dealer-order-article > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.dealer-order-article > header span { color: var(--ink); font-size: 14px; font-weight: 600; }
+.dealer-order-article-sizes, .dealer-order-article-status { display: flex; flex-wrap: wrap; gap: 6px; }
+.dealer-order-article-sizes span { padding: 5px 10px; border-radius: var(--radius-lg); background: var(--canvas); border: 1px solid var(--hairline); font-size: 14px; font-weight: 600; color: var(--ink); }
+.dealer-order-article-status span { padding: 5px 10px; border-radius: var(--radius-lg); background: var(--canvas); font-size: 14px; font-weight: 600; color: var(--ink); }

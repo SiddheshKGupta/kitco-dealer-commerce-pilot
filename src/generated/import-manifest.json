@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "SOURCE_HASHED_AT_RUNTIME",
+  "imports": [
+    {
+      "profile": "DEALER_MASTER_BIHAR",
+      "fileName": "Bihar Dealer List new.xlsx",
+      "sha256": "680565d57223de20c8a56456fc3db93ac6de59a472d4499d1a01b530380f3d34",
+      "byteSize": 23241,
+      "sourceRowCount": 135,
+      "canonicalRecordCount": 135,
+      "conflicts": [],
+      "seed": {
+        "syntheticDealer": {
+          "dealerName": "VLCO",
+          "state": "Bihar",
+          "city": "Patna",
+          "location": "VLCO Main",
+          "pilotEmailEnv": "VLCO_TEST_EMAIL",
+          "pilotEmailSource": "SELF_DECLARED_PILOT",
+          "activationPurpose": "CONTROLLED_END_TO_END_TESTING"
+        }
+      }
+    },
+    {
+      "profile": "NIKE_ITEM_MASTER",
+      "fileName": "Nike Item master File.xlsx",
+      "sha256": "6da4cdd4a582e6d7a2fb3ca07cb384741170c8c697bca6cf84bb7fbfe9c74486",
+      "byteSize": 67486,
+      "sourceRowCount": 480,
+      "canonicalRecordCount": 463,
+      "repeatedSourceArticleCount": 17,
+      "conflicts": [
+        {
+          "code": "MASTER_VALUE_CONFLICT",
+          "articleNo": "IO2091-103",
+          "field": "category",
+          "resolution": "REQUIRED"
+        },
+        {
+          "code": "MASTER_VALUE_CONFLICT",
+          "articleNo": "SX7667-906",
+          "field": "uom",
+          "resolution": "REQUIRED"
+        }
+      ]
+    },
+    {
+      "profile": "REEBOK_BUY_FORM",
+      "fileName": "REEBOK BUY FORM.xlsx",
+      "sha256": "a2b18250e64a440da4afbfa61310613aa5b3e429c911f0272df0a8d522094dcc",
+      "byteSize": 13756,
+      "sourceRowCount": 85,
+      "canonicalRecordCount": 85,
+      "publishableRecordCount": 0,
+      "enrichmentStatus": "NEEDS_ENRICHMENT",
+      "conflicts": []
+    },
+    {
+      "profile": "DOUBLEU_ITEM_MASTER",
+      "fileName": "DOUBLUE_ITEM _MASTER _FILE.xlsx",
+      "sha256": "058c7e698c61a501c01df826fc9af3983c318dabf3d0e68c1198acfb14acb928",
+      "byteSize": 30131,
+      "sourceRowCount": 159,
+      "canonicalRecordCount": 29,
+      "conflicts": []
+    },
+    {
+      "profile": "LEE_COOPER_SOH",
+      "fileName": "Lee Cooper 68 pcs Sample Warehouse Stock sheet.pdf",
+      "sha256": "695ef963525ca79f55ab2e554c564b3ad419b1d2ae2bf71f7062aacb8792dbb1",
+      "byteSize": 44180,
+      "totalPairs": 1732,
+      "conflicts": []
+    }
+  ],
+  "seedTransport": {
+    "endpoint": "/api/imports",
+    "mode": "AUDITED_SERVER_SIDE",
+    "rawFiles": "PRIVATE_R2_ONLY"
+  }
+}

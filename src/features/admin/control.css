@@ -1,0 +1,68 @@
+.control-layout { display: grid; grid-template-columns: 212px minmax(0, 1fr); min-width: 0; max-width: 100%; min-height: 620px; background: var(--soft-cloud); color: var(--ink); font-family: var(--font-ui); }
+.control-nav { padding: 24px 14px; border-right: 1px solid var(--hairline); background: var(--canvas); }
+.control-nav > p { margin: 0 0 28px; font-size: 15px; font-weight: 500; letter-spacing: 0; }
+.control-nav nav { display: grid; gap: 2px; }
+.control-nav a { padding: 8px 10px; border-radius: var(--radius-md); color: var(--mute); font-size: 12px; font-weight: 500; text-decoration: none; }
+.control-nav a.is-active, .control-nav a:hover { background: var(--ink); color: var(--canvas); }
+.control-nav span { margin: 18px 10px 5px; color: var(--mute); font-size: 10px; font-weight: 500; letter-spacing: .11em; text-transform: uppercase; }
+.control-main { min-width: 0; padding: clamp(24px, 4vw, 56px); }
+.control-heading { display: flex; align-items: start; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+/* Filter/export controls above a queue table: compact and inline (auto width, not the
+   shared 48px/full-width ui-input/ui-select sizing meant for dealer touch targets) so
+   several fit per row instead of each stacking as its own full-width line. */
+.control-filter-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.control-filter-row .ui-select, .control-filter-row .ui-input { width: auto; min-width: 130px; min-height: 34px; font-size: 12px; }
+.control-filter-row .ui-btn { min-height: 34px; padding: 0 var(--space-4); font-size: 12px; }
+.control-heading p { margin: 0 0 8px; color: var(--mute); font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
+.control-heading h1 { margin: 0; font-size: 32px; font-weight: 500; line-height: 1.2; letter-spacing: 0; }
+.control-status { border-radius: var(--radius-lg); border: 1px solid var(--ink); padding: 7px 12px; font-size: 11px; font-weight: 500; letter-spacing: .08em; }
+.status-approved { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
+.control-order-articles { display: grid; gap: 14px; margin-bottom: 14px; }
+.control-table-wrap { overflow: auto; border: 1px solid var(--hairline); background: var(--canvas); }
+.control-table-wrap table { width: 100%; border-collapse: collapse; text-align: right; }
+.control-table-wrap caption { padding: 12px 16px; border-bottom: 1px solid var(--hairline); text-align: left; font-size: 12px; font-weight: 500; }
+.control-table-wrap th, .control-table-wrap td { padding: 13px 16px; border-bottom: 1px solid var(--hairline-soft); font-size: 13px; }
+.control-table-wrap th:first-child { text-align: left; }
+.control-table-wrap thead { color: var(--mute); font-size: 11px; text-transform: uppercase; }
+.control-table-wrap tfoot { background: var(--soft-cloud); font-weight: 500; }
+.control-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+.control-actions > section { padding: 18px; border: 1px solid var(--hairline); background: var(--canvas); }
+.control-actions h2 { margin: 0 0 14px; font-size: 14px; font-weight: 500; }
+.control-actions .ui-btn { width: 100%; margin-top: 8px; }
+.control-nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.control-action { display: grid; gap: 8px; margin-top: 12px; }
+.control-article { border: 1px solid var(--hairline); background: var(--canvas); padding: 16px; }
+.control-article-title { margin: 0 0 12px; font-size: 15px; font-weight: 500; }
+.control-size-cards { display: grid; gap: 12px; }
+/* Collapsed by default (native <details>, no open attribute) -- most sizes just get
+   approved/dispatched as ordered, so a scannable tile beats an always-open form per
+   size. Clicking a tile reveals the approve/hold/dispatch controls; no JS needed. */
+.control-size-card { border: 1px solid var(--hairline-soft); border-radius: var(--radius-md); background: var(--soft-cloud); overflow: hidden; }
+.control-size-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; padding: 14px; cursor: pointer; list-style: none; }
+.control-size-card-head::-webkit-details-marker { display: none; }
+.control-size-card-head::after { content: "+"; margin-left: 8px; font-size: 20px; font-weight: 400; color: var(--mute); line-height: 1; flex-shrink: 0; }
+.control-size-card[open] .control-size-card-head::after { content: "\2212"; }
+.control-size-card-head strong { font-size: 16px; font-weight: 600; }
+.control-size-card-head span { color: var(--mute); font-size: 14px; }
+.control-size-card-body { display: grid; gap: 12px; padding: 12px 14px 14px; border-top: 1px solid var(--hairline-soft); }
+.decision-card { display: grid; gap: 10px; border-top: 1px solid var(--hairline-soft); padding-top: 12px; }
+.decision-card-ordered { margin: 0; font-size: 14px; font-weight: 500; color: var(--mute); }
+.decision-card-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.decision-card-error { margin: 0; color: var(--danger); font-size: 14px; font-weight: 600; }
+.decision-card-message { margin: 0; font-size: 14px; font-weight: 500; }
+@media (max-width: 420px) { .decision-card-grid { grid-template-columns: 1fr; } }
+.audit-list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.audit-list li { display: grid; gap: 3px; font-size: 11px; }
+.audit-list li > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px; }
+.audit-list span { color: var(--mute); font-family: var(--font-ui); }
+.audit-list p { margin: 0; font-size: 12px; color: var(--ink); }
+.control-message { margin: 14px 0 0; padding: 12px; border-left: 3px solid var(--ink); background: var(--canvas); font-size: 13px; font-weight: 500; }
+.dealer-fulfilment { display: grid; gap: 10px; border: 1px solid var(--hairline); padding: 16px; background: var(--canvas); font-family: var(--font-ui); }
+.dealer-fulfilment div { display: flex; flex-wrap: wrap; gap: 8px; }
+.dealer-fulfilment span { padding: 6px 10px; border-radius: var(--radius-lg); background: var(--soft-cloud); font-size: 12px; font-weight: 500; }
+.control-detail-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 0 0 18px; }
+.control-detail-grid dt { margin: 0 0 3px; color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.control-detail-grid dd { margin: 0; font-size: 14px; font-weight: 500; }
+.control-actions-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+@media (max-width: 760px) { .control-layout { grid-template-columns: minmax(0, 1fr); } .control-nav { min-width: 0; border-right: 0; border-bottom: 1px solid #d8d8d8; } .control-nav nav { display: flex; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; } .control-nav a { flex: 0 0 auto; padding: 11px 14px; font-size: 13px; } .control-nav span { display: none; } .control-actions { grid-template-columns: minmax(0, 1fr); } .control-heading { align-items: flex-start; flex-direction: column; } .control-table-wrap, .control-layout .table-wrap { max-width: 100%; } .control-detail-grid { grid-template-columns: minmax(0, 1fr); } .control-layout .data-table th, .control-layout .data-table td, .control-layout .control-table-wrap th, .control-layout .control-table-wrap td { min-width: 84px; padding: 12px 10px; } }
+@media (prefers-reduced-motion: reduce) { .control-nav a { transition: none; } }

@@ -1,0 +1,14 @@
+import { useEffect, useState } from "react";
+import { Button, Input, OTPInput } from "../../components/ui";
+import { errorMessage, postJson } from "./api";
+
+export function LoginPage() {
+	const [email, setEmail] = useState(""); const [code, setCode] = useState(""); const [challengeId, setChallengeId] = useState(""); const [error, setError] = useState(""); const [resendIn, setResendIn] = useState(60);
+	const verifying = Boolean(challengeId);
+	useEffect(() => { if (!verifying || resendIn <= 0) return; const timer = window.setTimeout(() => setResendIn((value) => value - 1), 1000); return () => window.clearTimeout(timer); }, [verifying, resendIn]);
+	async function signIn() { setError(""); try { const response = await postJson<{ challengeId: string }>("/api/login/otp", { email }); setChallengeId(response.challengeId); setResendIn(60); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); } }
+	async function verify() { setError(""); try { const response = await postJson<{ role?: string }>("/api/otp/verify", { challengeId, code, purpose: "LOGIN" }); const destination = response.role === "DEALER" ? "/products" : "/control"; window.history.replaceState({}, "", destination); window.dispatchEvent(new PopStateEvent("popstate")); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); } }
+	async function resend() { setError(""); try { const response = await postJson<{ challengeId: string }>("/api/otp/resend", { challengeId }); setChallengeId(response.challengeId); setResendIn(60); } catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); } }
+	if (verifying) return <section className="auth-page"><div className="auth-kicker">Check your email <span>02 / 02</span></div><h1>Enter your code.</h1><p className="auth-intro">We just emailed you a 6-digit code. Type it in below.</p><OTPInput value={code} onChange={setCode} /><Button full disabled={code.length !== 6} onClick={verify}>Confirm and sign in</Button><button className="text-action" type="button" disabled={resendIn > 0} onClick={resend}>{resendIn > 0 ? `You can ask for a new code in ${resendIn}s` : "Send me a new code"}</button>{error && <p className="form-error" role="alert">{error}</p>}</section>;
+	return <section className="auth-page"><div className="auth-kicker">Dealer sign in <span>01 / 02</span></div><h1>Welcome back.</h1><p className="auth-intro">Type your email below and we'll send you a 6-digit code. No password to remember.</p><label htmlFor="login-email">Your email</label><Input id="login-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" /><Button full disabled={!email} onClick={signIn}>Send me a code</Button>{error && <p className="form-error" role="alert">{error}</p>}</section>;
+}

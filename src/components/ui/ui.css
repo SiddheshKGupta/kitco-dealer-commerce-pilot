@@ -1,0 +1,161 @@
+/* ============================================================
+   KITCO shared design system — the ONE button/input/card/status
+   visual system. Feature CSS must not define its own.
+   Consumes only tokens from styles/tokens.css.
+   ============================================================ */
+
+/* ---------------------------------------------------------- Button */
+.ui-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2);
+  border: 0; border-radius: var(--radius-pill); font: inherit; font-weight: 600; cursor: pointer;
+  transition: background var(--motion-standard) var(--ease-standard), opacity var(--motion-standard) var(--ease-standard), transform var(--motion-standard) var(--ease-standard);
+}
+.ui-btn:active:not(:disabled) { transform: scale(0.98); }
+.ui-btn:disabled { cursor: not-allowed; opacity: .45; }
+.ui-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+.ui-btn-md { min-height: 48px; padding: 0 var(--space-5); font-size: 16px; }
+.ui-btn-sm { min-height: 40px; padding: 0 var(--space-4); font-size: 14px; }
+.ui-btn-full { width: 100%; }
+
+.ui-btn-primary { background: var(--ink); color: var(--canvas); }
+.ui-btn-primary:hover:not(:disabled) { background: var(--charcoal, #333); }
+.ui-btn-secondary { background: var(--canvas); color: var(--ink); border: 1px solid var(--line); }
+.ui-btn-secondary:hover:not(:disabled) { background: var(--soft); }
+.ui-btn-ghost { background: transparent; color: var(--ink); }
+.ui-btn-ghost:hover:not(:disabled) { background: var(--soft); }
+.ui-btn-danger { background: var(--danger); color: var(--canvas); }
+.ui-btn-danger:hover:not(:disabled) { opacity: .88; }
+
+.ui-btn-spinner { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: ui-spin .6s linear infinite; }
+.ui-btn-label-loading { opacity: .85; }
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+
+/* ---------------------------------------------------------- IconButton */
+.ui-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line);
+  border-radius: var(--radius-pill); background: var(--canvas); color: var(--ink); cursor: pointer;
+  transition: background var(--motion-standard) var(--ease-standard);
+}
+.ui-icon-btn:hover:not(:disabled) { background: var(--soft); }
+.ui-icon-btn:disabled { cursor: not-allowed; opacity: .45; }
+.ui-icon-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.ui-icon-btn-md { width: 48px; height: 48px; font-size: 18px; }
+.ui-icon-btn-sm { width: 40px; height: 40px; font-size: 15px; }
+
+/* ---------------------------------------------------------- Input / Select */
+.ui-input, .ui-select {
+  width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 0 var(--space-4); background: var(--canvas); color: var(--ink); font: inherit;
+  transition: border-color var(--motion-standard) var(--ease-standard), box-shadow var(--motion-standard) var(--ease-standard);
+}
+.ui-input:focus, .ui-select:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(0, 0, 0, .06); }
+.ui-input:focus-visible, .ui-select:focus-visible { outline: none; }
+.ui-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) center, calc(100% - 15px) center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: var(--space-7); }
+
+.ui-otp-input {
+  width: 100%; height: 68px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  padding: 0 14px; font: inherit; font-size: 32px; font-weight: 500; letter-spacing: .48em; text-align: center;
+  background: var(--canvas); color: var(--ink);
+}
+.ui-otp-input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------------------------------------------------------- Checkbox */
+.ui-checkbox { display: flex; align-items: center; gap: var(--space-3); cursor: pointer; font: inherit; }
+.ui-checkbox-input { width: 20px; height: 20px; accent-color: var(--ink); flex: 0 0 auto; }
+.ui-checkbox-input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------------------------------------------------------- Tabs */
+.ui-tabs { display: flex; gap: var(--space-6); overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.ui-tabs::-webkit-scrollbar { display: none; }
+.ui-tab { position: relative; border: 0; background: none; padding: var(--space-4) 0; font: inherit; font-weight: 700; color: var(--muted); cursor: pointer; white-space: nowrap; transition: color var(--motion-standard) var(--ease-standard); }
+.ui-tab[aria-selected="true"] { color: var(--ink); }
+.ui-tab::after { content: ""; position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--ink); transform: scaleX(0); transition: transform var(--motion-standard) var(--ease-standard); }
+.ui-tab[aria-selected="true"]::after { transform: scaleX(1); }
+.ui-tab:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------------------------------------------------------- StatusBadge */
+.ui-status { display: inline-flex; align-items: center; gap: 5px; border-radius: var(--radius-pill); padding: 6px 10px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.ui-status-success { background: var(--success-soft); color: var(--success); }
+.ui-status-warning { background: var(--warning-soft); color: #8c6300; }
+.ui-status-danger { background: var(--danger-soft); color: var(--danger); }
+.ui-status-info { background: var(--info-soft); color: var(--info); }
+.ui-status-neutral { background: var(--soft2); color: var(--muted); }
+
+/* ---------------------------------------------------------- Card */
+.ui-card { border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas); overflow: hidden; }
+
+/* ---------------------------------------------------------- BottomSheet (mobile) */
+/* Native <dialog>, shown via showModal(): the browser renders it in the top layer
+   (always above everything, no z-index/stacking-context possible) and centers it
+   the same way it centers a native <select> dropdown -- no custom scrim element,
+   no CSS animation-fill-mode state that can get stuck invisible. */
+.ui-native-sheet { width: min(100%, 480px); max-height: 85vh; overflow: auto; margin: auto; border: 0; border-radius: var(--radius); background: var(--canvas); box-shadow: var(--shadow); padding: 0; padding-bottom: env(safe-area-inset-bottom, 0); }
+.ui-native-sheet::backdrop { background: rgb(0 0 0 / .4); }
+.ui-sheet-head { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; padding: var(--space-5) var(--space-5) var(--space-4); background: var(--canvas); border-bottom: 1px solid var(--line); }
+.ui-sheet-head p { margin: 0; font-size: 18px; font-weight: 700; }
+.ui-sheet-body { padding: var(--space-5); }
+.ui-sheet-footer { position: sticky; bottom: 0; padding: var(--space-4) var(--space-5); background: var(--canvas); border-top: 1px solid var(--line); }
+
+/* ---------------------------------------------------------- Modal (desktop) */
+.ui-modal-scrim { position: fixed; z-index: 60; inset: 0; display: grid; place-items: center; padding: var(--space-4); background: rgb(0 0 0 / .4); }
+.ui-modal { width: min(100%, 560px); max-height: 88vh; overflow: auto; background: var(--canvas); border-radius: var(--radius); box-shadow: var(--shadow); opacity: 1; animation: ui-modal-in var(--motion-standard) var(--ease-standard); }
+.ui-modal-head { display: flex; justify-content: space-between; align-items: center; padding: var(--space-5); border-bottom: 1px solid var(--line); }
+.ui-modal-head p { margin: 0; font-size: 18px; font-weight: 700; }
+.ui-modal-body { padding: var(--space-5); }
+.ui-modal-footer { display: flex; justify-content: flex-end; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-top: 1px solid var(--line); }
+/* Same fix as .ui-native-sheet: opacity is never gated on animation playback. */
+@keyframes ui-modal-in { from { transform: scale(.98); } to { transform: scale(1); } }
+
+/* ---------------------------------------------------------- EmptyState */
+.ui-empty { display: grid; justify-items: center; gap: var(--space-3); padding: var(--space-8) var(--space-5); text-align: center; color: var(--muted); }
+.ui-empty h3 { margin: 0; color: var(--ink); font-size: 18px; }
+.ui-empty p { margin: 0; max-width: 420px; }
+
+/* ---------------------------------------------------------- QuantityStepper */
+.ui-stepper { display: inline-flex; align-items: center; gap: var(--space-2); }
+.ui-stepper-btn { border-radius: var(--radius-sm); }
+.ui-stepper-value { width: 56px; height: 48px; border: 1px solid var(--line); border-radius: var(--radius-sm); text-align: center; font: inherit; font-size: 16px; font-weight: 700; background: var(--canvas); color: var(--ink); }
+.ui-stepper-value:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* ---------------------------------------------------------- FormField */
+.ui-field { display: grid; gap: var(--space-2); }
+.ui-field label { font-size: 13px; font-weight: 700; color: var(--ink); }
+.ui-field-hint { margin: 0; font-size: 12px; color: var(--muted); }
+.ui-field-error { margin: 0; font-size: 12px; color: var(--danger); font-weight: 600; }
+
+/* ---------------------------------------------------------- SearchField */
+.ui-search { position: relative; display: block; }
+.ui-search-icon { position: absolute; top: 50%; left: 16px; width: 16px; height: 16px; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
+.ui-search-input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--soft); padding: 0 var(--space-4) 0 44px; font: inherit; color: var(--ink); transition: background var(--motion-standard) var(--ease-standard), border-color var(--motion-standard) var(--ease-standard); }
+.ui-search-input:focus { outline: none; background: var(--canvas); border-color: var(--ink); }
+.ui-search-input::-webkit-search-cancel-button { appearance: none; }
+
+/* ---------------------------------------------------------- Toast */
+.ui-toast { position: fixed; z-index: 80; right: var(--space-5); bottom: var(--space-5); max-width: min(90vw, 360px); border-radius: var(--radius-sm); padding: var(--space-3) var(--space-4); background: var(--ink); color: var(--canvas); font-size: 13px; font-weight: 600; box-shadow: var(--shadow); animation: ui-toast-in var(--motion-standard) var(--ease-standard) both; }
+.ui-toast-success { background: var(--success); }
+.ui-toast-danger { background: var(--danger); }
+@keyframes ui-toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ---------------------------------------------------------- Skeleton */
+.ui-skeleton { display: block; border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--soft) 25%, var(--soft2) 37%, var(--soft) 63%); background-size: 400% 100%; animation: ui-skeleton-shimmer 1.4s ease infinite; }
+@keyframes ui-skeleton-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* ---------------------------------------------------------- Bottom nav (mobile dealer shell) */
+.ui-bottom-nav { position: fixed; z-index: 50; right: 0; bottom: 0; left: 0; display: none; border-top: 1px solid var(--line); background: var(--canvas); padding-bottom: env(safe-area-inset-bottom, 0); }
+.ui-bottom-nav-list { display: flex; margin: 0; padding: 0; list-style: none; }
+.ui-bottom-nav-item { position: relative; flex: 1; }
+.ui-bottom-nav-link { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 56px; padding: 8px 0; color: var(--muted); font-size: 11px; font-weight: 700; }
+.ui-bottom-nav-link.is-current { color: var(--ink); }
+.ui-bottom-nav-icon { display: block; width: 22px; height: 22px; }
+.ui-bottom-nav-badge { position: absolute; top: 4px; left: calc(50% + 8px); display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill); background: var(--danger); color: var(--canvas); font-size: 10px; font-weight: 800; }
+
+@media (max-width: 850px) {
+  .ui-bottom-nav { display: block; }
+  .app-shell .dealer-nav { display: none; }
+  .app-shell .shell-content, .app-shell .commerce-page { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn, .ui-icon-btn, .ui-native-sheet, .ui-modal, .ui-toast, .ui-skeleton, .ui-btn-spinner { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
