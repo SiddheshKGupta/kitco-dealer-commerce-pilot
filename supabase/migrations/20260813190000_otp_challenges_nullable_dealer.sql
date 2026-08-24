@@ -1,0 +1,11 @@
+-- KITCO staff (ADMIN/OPS) sign in through the same OTP table as dealers, but
+-- they belong to no dealer: app_users resolves a staff session with a null
+-- dealer_id, so a staff LOGIN challenge has nothing to put in the column and
+-- the original not-null constraint made it unstorable.
+--
+-- Dropping not-null does not widen dealer read access. The existing
+-- otp_challenges_self_select policy calls private.is_current_dealer(dealer_id,
+-- organisation_id), which is false whenever dealer_id is null, so staff rows
+-- stay invisible to every authenticated caller and are only reachable by the
+-- worker's service-role client.
+alter table public.otp_challenges alter column dealer_id drop not null;

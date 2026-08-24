@@ -1,0 +1,11 @@
+-- dealer_applications is written only by the public registration endpoint and
+-- read only by the KITCO review console, both of which go through the worker's
+-- service-role client. It was created without RLS, which left an applicant's
+-- GSTIN, address, contact person and email readable over the anon/authenticated
+-- PostgREST surface by anyone who guessed the table name.
+--
+-- Enabling RLS with no policy is the deny-all: every anon/authenticated request
+-- matches nothing and returns empty, while service_role bypasses RLS entirely.
+-- Deliberately not "force row level security" -- there is no policy for a table
+-- owner to be caught by, and forcing it would only break local psql maintenance.
+alter table public.dealer_applications enable row level security;
