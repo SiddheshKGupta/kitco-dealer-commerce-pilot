@@ -3,6 +3,7 @@ import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 import type {
   AdminDealerGroupRow,
+  AdminGstRegistrationRow,
   AdminMembershipRequestRow,
   DealerGroupPayload,
   DealerGroupsStore,
@@ -222,6 +223,68 @@ export class SupabaseDealerGroups implements DealerGroupsStore {
     }
     await this.audit(session, correlationId, "DEALER_GROUP_CREATED", "dealer_group", String(data.id), { groupCode, groupName });
     return { id: String(data.id) };
+  }
+
+  async renameGroup(session: SessionIdentity, groupId: string, groupName: string, correlationId: string): Promise<void> {
+    const org = session.organisationId;
+    const group = await this.loadActiveGroup(org, groupId);
+    if (!group) throw new ApiError(404, "DEALER_GROUP_NOT_FOUND", "Dealer group not found");
+    // Read off the row before the write: the whole point of the audit line is the old
+    // name, and re-reading `group` afterwards is one aliasing bug away from logging the
+    // new name as if it were the old one.
+    const { group_code: groupCode, group_name: previousName } = group;
+    const { error } = await this.client.from("dealer_groups").update({ group_name: groupName })
+      .eq("id", groupId).eq("organisation_id", org);
+    if (error) throw new ApiError(502, "DEALER_GROUP_RENAME_FAILED", "Dealer group could not be renamed");
+    await this.audit(session, correlationId, "DEALER_GROUP_RENAMED", "dealer_group", groupId, {
+      groupCode: String(groupCode), from: String(previousName), to: groupName,
+    });
+  }
+
+  /** Registrations with the dealers trading under each. Both reads are organisation
+   *  scoped; the join is done here rather than in PostgREST so a dealer row can never
+   *  arrive through a registration's embedded resource and skip that filter. */
+  async listGstRegistrations(session: SessionIdentity): Promise<AdminGstRegistrationRow[]> {
+    const org = session.organisationId;
+    const [registrations, dealers] = await Promise.all([
+      this.client.from("gst_registrations")
+        .select("id,gstin,legal_name,trade_name,state,gst_status,verification_status,verified_at,provider")
+        .eq("organisation_id", org).order("gstin"),
+      this.client.from("dealers").select("id,code,name,display_name,city,state,gst_registration_id,is_main_dealer")
+        .eq("organisation_id", org).order("code"),
+    ]);
+    if (registrations.error || dealers.error) throw new ApiError(502, "GST_REGISTRATION_LOAD_FAILED", "GST registrations could not be loaded");
+
+    const byRegistration = new Map<string, AdminGstRegistrationRow["dealers"]>();
+    for (const row of (dealers.data as Row[]) ?? []) {
+      if (!row.gst_registration_id) continue;
+      const key = String(row.gst_registration_id);
+      const list = byRegistration.get(key) ?? [];
+      list.push({
+        dealerId: String(row.id),
+        dealerCode: String(row.code),
+        displayName: String(row.display_name ?? row.name),
+        city: row.city ? String(row.city) : null,
+        state: row.state ? String(row.state) : null,
+        isMainDealer: row.is_main_dealer === true,
+      });
+      byRegistration.set(key, list);
+    }
+
+    return ((registrations.data as Row[]) ?? []).map((row) => ({
+      id: String(row.id),
+      gstin: String(row.gstin),
+      legalName: row.legal_name ? String(row.legal_name) : null,
+      tradeName: row.trade_name ? String(row.trade_name) : null,
+      state: row.state ? String(row.state) : null,
+      gstStatus: row.gst_status ? String(row.gst_status) : null,
+      // A null column means nobody has ever attempted verification, which is exactly
+      // what UNVERIFIED says. Never upgraded to anything stronger here.
+      verificationStatus: row.verification_status ? String(row.verification_status) : "UNVERIFIED",
+      verifiedAt: row.verified_at ? String(row.verified_at) : null,
+      provider: row.provider ? String(row.provider) : null,
+      dealers: byRegistration.get(String(row.id)) ?? [],
+    }));
   }
 
   async assignDealer(session: SessionIdentity, groupId: string, dealerCode: string, isMainDealer: boolean, correlationId: string): Promise<{ dealerId: string }> {

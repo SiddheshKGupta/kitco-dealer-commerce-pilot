@@ -89,14 +89,19 @@ function makeDb(): FakeDb {
     { id: "grp-evil", organisation_id: "org-2", group_code: "OPENAI", group_name: "Other Tenant Group", status: "ACTIVE", primary_dealer_id: null },
   ]);
   db.seed("gst_registrations", [
+    // No verification_status at all: nothing has ever been attempted, and the store
+    // must read that as UNVERIFIED rather than inventing something stronger.
     { id: "gst-a", organisation_id: "org-1", gstin: "19AAACC1234A1ZQ" },
-    { id: "gst-b", organisation_id: "org-1", gstin: "19BBBCC5678B1ZQ" },
+    { id: "gst-b", organisation_id: "org-1", gstin: "19BBBCC5678B1ZQ", verification_status: "NOT_LIVE_VERIFIED" },
+    { id: "gst-evil", organisation_id: "org-2", gstin: "07ZZZCC9999Z1ZQ", verification_status: "VERIFIED" },
   ]);
   db.seed("dealers", [
     { id: "dealer-a", organisation_id: "org-1", code: "ADEALER", name: "CHATGPT PVT LTD", display_name: "ChatGPT", city: "Kolkata", state: "West Bengal", dealer_group_id: "grp-openai", gst_registration_id: "gst-a", ...ACTIVE_V4 },
     { id: "dealer-b", organisation_id: "org-1", code: "BDEALER", name: "HARDWARE PVT LTD", display_name: "Hardware", city: "Guwahati", state: "Assam", dealer_group_id: "grp-openai", gst_registration_id: "gst-b", activation_status: "ACTIVE", account_state: "ACTIVE", is_main_dealer: true },
     { id: "dealer-susp", organisation_id: "org-1", code: "SUSPD", name: "SUSPENDED SIBLING", display_name: "Suspended Sibling", city: "Kolkata", state: "West Bengal", dealer_group_id: "grp-openai", gst_registration_id: null, activation_status: "ACTIVE", account_state: "SUSPENDED", is_main_dealer: false },
-    { id: "dealer-c", organisation_id: "org-1", code: "CDEALER", name: "OUTSIDER PVT LTD", display_name: "Outsider", city: "Patna", state: "Bihar", dealer_group_id: "grp-other", gst_registration_id: null, ...ACTIVE_V4 },
+    // Shares gst-a with dealer-a: one GSTIN per PAN per state covering several outlets
+    // is the normal case, not a duplicate.
+    { id: "dealer-c", organisation_id: "org-1", code: "CDEALER", name: "OUTSIDER PVT LTD", display_name: "Outsider", city: "Patna", state: "Bihar", dealer_group_id: "grp-other", gst_registration_id: "gst-a", ...ACTIVE_V4 },
     { id: "dealer-solo", organisation_id: "org-1", code: "SOLO", name: "SOLO PVT LTD", display_name: "Solo", city: "Ranchi", state: "Jharkhand", dealer_group_id: null, gst_registration_id: null, ...ACTIVE_V4 },
     { id: "dealer-frozen", organisation_id: "org-1", code: "FROZEN1", name: "FROZEN PVT LTD", display_name: "Frozen", city: "Ranchi", state: "Jharkhand", dealer_group_id: "grp-frozen", gst_registration_id: null, ...ACTIVE_V4 },
     { id: "dealer-frozen-2", organisation_id: "org-1", code: "FROZEN2", name: "FROZEN TWO PVT LTD", display_name: "Frozen Two", city: "Ranchi", state: "Jharkhand", dealer_group_id: "grp-frozen", gst_registration_id: null, ...ACTIVE_V4 },
@@ -322,6 +327,43 @@ describe("admin dealer groups", () => {
     expect(db.rows("dealers").find((row) => row.id === "dealer-solo")).toMatchObject({ dealer_group_id: id, is_main_dealer: true });
     expect(db.rows("dealer_groups").find((row) => row.id === id)?.primary_dealer_id).toBe("dealer-solo");
     expect(db.auditEvents.at(-1)).toMatchObject({ event_type: "DEALER_GROUP_DEALER_ASSIGNED", dealer_id: "dealer-solo", organisation_id: "org-1" });
+  });
+
+  it("renames a group, leaves its code alone and writes audit", async () => {
+    const { store, db } = makeStore();
+    const app = adminApp(store);
+
+    const blank = await app.request("/api/admin/dealer-groups/grp-openai/name", { method: "POST", headers: headers("admin"), body: JSON.stringify({ groupName: "X" }) });
+    expect(blank.status).toBe(400);
+
+    const renamed = await app.request("/api/admin/dealer-groups/grp-openai/name", { method: "POST", headers: headers("admin"), body: JSON.stringify({ groupName: "OpenAI Retail Group" }) });
+    expect(renamed.status).toBe(200);
+    expect(db.rows("dealer_groups").find((row) => row.id === "grp-openai")).toMatchObject({ group_name: "OpenAI Retail Group", group_code: "OPENAI" });
+    expect(db.auditEvents.at(-1)).toMatchObject({
+      event_type: "DEALER_GROUP_RENAMED", entity_id: "grp-openai", organisation_id: "org-1",
+      evidence: { groupCode: "OPENAI", from: "OpenAI Group", to: "OpenAI Retail Group" },
+    });
+  });
+
+  it("refuses to rename another organisation's group", async () => {
+    const { store, db } = makeStore();
+    const response = await adminApp(store).request("/api/admin/dealer-groups/grp-evil/name", { method: "POST", headers: headers("admin"), body: JSON.stringify({ groupName: "Renamed By Neighbour" }) });
+    expect(response.status).toBe(404);
+    expect(db.rows("dealer_groups").find((row) => row.id === "grp-evil")?.group_name).toBe("Other Tenant Group");
+  });
+
+  it("lists GST registrations with the dealers sharing each, and never another tenant's", async () => {
+    const { store } = makeStore();
+    const body = await (await adminApp(store).request("/api/admin/gst-registrations", { headers: headers("admin") })).json() as { registrations: Row[] };
+
+    expect(body.registrations.map((row) => row.gstin)).toEqual(["19AAACC1234A1ZQ", "19BBBCC5678B1ZQ"]);
+    const [shared, single] = body.registrations;
+    // Sharing is the normal case: two outlets, one registration, no error anywhere.
+    expect(shared.dealers.map((dealer: Row) => dealer.dealerCode)).toEqual(["ADEALER", "CDEALER"]);
+    expect(shared.verificationStatus).toBe("UNVERIFIED");
+    expect(single.dealers).toEqual([expect.objectContaining({ dealerCode: "BDEALER", isMainDealer: true })]);
+    // Mock evidence stays its own value -- it must never be reported as VERIFIED.
+    expect(single.verificationStatus).toBe("NOT_LIVE_VERIFIED");
   });
 
   it("does not let :groupId shadow the literal /requests route", async () => {

@@ -56,6 +56,24 @@ export interface AdminMembershipRequestRow extends MembershipRequestRow {
   dealerName: string;
 }
 
+/** One registration and every dealer trading under it. Several dealers sharing one
+ *  GSTIN is the normal case, not a duplicate: GST issues one GSTIN per PAN per state
+ *  covering unlimited additional places of business (V5_DATA_MODEL.md §2). */
+export interface AdminGstRegistrationRow {
+  id: string;
+  gstin: string;
+  legalName: string | null;
+  tradeName: string | null;
+  state: string | null;
+  gstStatus: string | null;
+  /** UNVERIFIED | NOT_LIVE_VERIFIED | VERIFIED | FAILED. Never inferred -- read from
+   *  the row, so the console cannot present a self-declared number as GST-verified. */
+  verificationStatus: string;
+  verifiedAt: string | null;
+  provider: string | null;
+  dealers: { dealerId: string; dealerCode: string; displayName: string; city: string | null; state: string | null; isMainDealer: boolean }[];
+}
+
 /** Whatever the browser claims the partner functions are. Every id here is untrusted
  *  input and is re-derived from the database against the session's own dealer. */
 export interface OrderPartnerSelection {
@@ -80,6 +98,10 @@ export interface DealerGroupsStore {
   requestMembership(session: SessionIdentity, groupCode: string, correlationId: string): Promise<MembershipRequestRow>;
   listGroups(session: SessionIdentity): Promise<AdminDealerGroupRow[]>;
   createGroup(session: SessionIdentity, groupCode: string, groupName: string, correlationId: string): Promise<{ id: string }>;
+  /** Name only. group_code is the dealer-facing identifier printed on paperwork and
+   *  quoted on membership requests, so it is set once at creation and never edited. */
+  renameGroup(session: SessionIdentity, groupId: string, groupName: string, correlationId: string): Promise<void>;
+  listGstRegistrations(session: SessionIdentity): Promise<AdminGstRegistrationRow[]>;
   assignDealer(session: SessionIdentity, groupId: string, dealerCode: string, isMainDealer: boolean, correlationId: string): Promise<{ dealerId: string }>;
   listPendingRequests(session: SessionIdentity): Promise<AdminMembershipRequestRow[]>;
   approveRequest(session: SessionIdentity, requestId: string, correlationId: string): Promise<{ dealerId: string; groupId: string }>;
@@ -101,6 +123,7 @@ const createGroupSchema = z.object({ groupCode: groupCodeSchema, groupName: grou
 // resolved to a row server-side -- which is what this whole feature is about anyway.
 const assignDealerSchema = z.object({ dealerCode: dealerCodeSchema, isMainDealer: z.boolean().optional() }).strict();
 const rejectSchema = z.object({ notes: notesSchema }).strict();
+const renameGroupSchema = z.object({ groupName: groupNameSchema }).strict();
 
 export function registerDealerGroupRoutes(app: Hono<{ Variables: AuthVariables }>, store?: DealerGroupsStore): void {
   if (!store) return;
@@ -138,6 +161,15 @@ export function registerDealerGroupRoutes(app: Hono<{ Variables: AuthVariables }
   app.post("/api/admin/dealer-groups/requests/:requestId/reject", async (context) => {
     const input = await parseBody(context, rejectSchema);
     await store.rejectRequest(context.get("session"), context.req.param("requestId"), input.notes, context.get("correlationId"));
+    return context.json({ ok: true });
+  });
+
+  app.get("/api/admin/gst-registrations", async (context) =>
+    context.json({ registrations: await store.listGstRegistrations(context.get("session")) }));
+
+  app.post("/api/admin/dealer-groups/:groupId/name", async (context) => {
+    const input = await parseBody(context, renameGroupSchema);
+    await store.renameGroup(context.get("session"), context.req.param("groupId"), input.groupName, context.get("correlationId"));
     return context.json({ ok: true });
   });
 

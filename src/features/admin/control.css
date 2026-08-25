@@ -64,5 +64,14 @@
 .control-detail-grid dt { margin: 0 0 3px; color: var(--mute); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
 .control-detail-grid dd { margin: 0; font-size: 14px; font-weight: 500; }
 .control-actions-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+/* Verification state: icon + word, never colour on its own. Muted by default so an
+   unverified registration reads as unfinished rather than as an error, and only a live
+   provider response gets full-ink weight -- a green tick would make mock or
+   self-declared data look official (V5_GST_INTEGRATION.md §3). */
+.verify { display: inline-flex; align-items: baseline; gap: 6px; color: var(--mute); font-size: 12px; line-height: 1.4; }
+.verify.is-verified { color: var(--ink); font-weight: 500; }
+.verify svg { width: 14px; height: 14px; flex-shrink: 0; align-self: center; }
+.verify-detail { color: var(--mute); font-weight: 400; }
+.plain-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
 @media (max-width: 760px) { .control-layout { grid-template-columns: minmax(0, 1fr); } .control-nav { min-width: 0; border-right: 0; border-bottom: 1px solid #d8d8d8; } .control-nav nav { display: flex; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; } .control-nav a { flex: 0 0 auto; padding: 11px 14px; font-size: 13px; } .control-nav span { display: none; } .control-actions { grid-template-columns: minmax(0, 1fr); } .control-heading { align-items: flex-start; flex-direction: column; } .control-table-wrap, .control-layout .table-wrap { max-width: 100%; } .control-detail-grid { grid-template-columns: minmax(0, 1fr); } .control-layout .data-table th, .control-layout .data-table td, .control-layout .control-table-wrap th, .control-layout .control-table-wrap td { min-width: 84px; padding: 12px 10px; } }
 @media (prefers-reduced-motion: reduce) { .control-nav a { transition: none; } }

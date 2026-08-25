@@ -3,7 +3,7 @@ import { Button, Checkbox, FormField, Input } from "../../components/ui";
 import { PageHead, SectionState, StatusPill } from "./ControlSections";
 import { useAdminSection } from "./useAdminSection";
 
-interface AdminDealerRow {
+export interface AdminDealerRow {
 	id: string;
 	dealerCode: string;
 	legalName: string | null;
@@ -36,7 +36,7 @@ interface ImportPlan { rows: ImportRowPlan[]; totals: { create: number; update: 
 const dash = "—";
 const shortDate = (value: string | null) => value ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : dash;
 
-async function post<T>(path: string, body?: unknown): Promise<T> {
+export async function post<T>(path: string, body?: unknown): Promise<T> {
 	const response = await fetch(path, {
 		method: "POST", credentials: "include", headers: { "content-type": "application/json" },
 		body: JSON.stringify(body ?? {}),

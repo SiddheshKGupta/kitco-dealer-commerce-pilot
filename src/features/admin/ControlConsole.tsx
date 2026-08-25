@@ -8,6 +8,7 @@ import {
 	HoldsSection, ImportsSection, MediaSection, OfferingsSection, PageHead, SchemesSection,
 	SeasonsSection, SectionState, SettingsSection, SizeSetsSection, StatusPill,
 } from "./ControlSections";
+import { DealerGroupsSection, GroupRequestsSection, GstRegistrationsSection } from "./DealerGroups";
 import { DealerImportSection, DealerOnboardingSection } from "./DealerOnboarding";
 import { useAdminSection } from "./useAdminSection";
 import "./control.css";
@@ -356,7 +357,10 @@ const sections = [
 	{ slug: "dealers", label: "Dealers", group: "primary", render: () => <DealersSection /> },
 	{ slug: "dealer-onboarding", label: "Dealer Onboarding", group: "primary", render: () => <DealerOnboardingSection /> },
 	{ slug: "dealer-applications", label: "Dealer Applications", group: "primary", render: () => <DealerApplicationsSection /> },
+	{ slug: "dealer-groups", label: "Dealer Groups", group: "primary", render: () => <DealerGroupsSection /> },
+	{ slug: "group-requests", label: "Group Requests", group: "primary", render: () => <GroupRequestsSection /> },
 	{ slug: "dealer-import", label: "Dealer Import", group: "operations", render: () => <DealerImportSection /> },
+	{ slug: "gst-registrations", label: "GST Registrations", group: "operations", render: () => <GstRegistrationsSection /> },
 	{ slug: "catalogue", label: "Catalogue", group: "primary", render: () => <CatalogueSection /> },
 	{ slug: "catalogue-imports", label: "Catalogue Imports", group: "operations", render: () => <ImportsSection /> },
 	{ slug: "media-library", label: "Media Library", group: "operations", render: () => <MediaSection /> },
