@@ -9,6 +9,7 @@ import { registerAdminExportRoutes, type OrdersExporter } from "./routes/admin-e
 import { registerAdminOrderRoutes } from "./routes/admin-orders";
 import { registerAdminProductExportRoutes, registerDealerProductExportRoutes } from "./routes/product-export";
 import { registerDealerApplicationRoutes, type DealerApplicationsAdmin } from "./routes/admin-dealer-applications";
+import { registerAdminDealerRoutes, type AdminDealersStore } from "./routes/admin-dealers";
 import { registerAdminUserRoutes, type AdminUsersStore } from "./routes/admin-users";
 import { registerSizeSetsAdminRoutes, type SizeSetsAdmin } from "./routes/admin-size-sets";
 import { registerDealerGroupRoutes, type DealerGroupsStore } from "./routes/dealer-groups";
@@ -34,6 +35,7 @@ export interface CommerceAppDependencies {
   adminConsole?: AdminConsoleReader;
   ordersExporter?: OrdersExporter;
   dealerApplications?: DealerApplicationsAdmin;
+  adminDealers?: AdminDealersStore;
   adminUsers?: AdminUsersStore;
   sizeSetsAdmin?: SizeSetsAdmin;
   dealerGroups?: DealerGroupsStore;
@@ -73,6 +75,7 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   registerAdminOrderRoutes(app, dependencies.repository);
   registerAdminConsoleRoutes(app, dependencies.adminConsole);
   registerDealerApplicationRoutes(app, dependencies.dealerApplications);
+  registerAdminDealerRoutes(app, dependencies.adminDealers);
   registerAdminUserRoutes(app, dependencies.adminUsers);
   registerSizeSetsAdminRoutes(app, dependencies.sizeSetsAdmin);
   registerDealerGroupRoutes(app, dependencies.dealerGroups);

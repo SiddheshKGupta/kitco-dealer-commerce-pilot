@@ -8,6 +8,7 @@ import {
 	HoldsSection, ImportsSection, MediaSection, OfferingsSection, PageHead, SchemesSection,
 	SeasonsSection, SectionState, SettingsSection, SizeSetsSection, StatusPill,
 } from "./ControlSections";
+import { DealerImportSection, DealerOnboardingSection } from "./DealerOnboarding";
 import { useAdminSection } from "./useAdminSection";
 import "./control.css";
 
@@ -353,7 +354,9 @@ const sections = [
 	{ slug: "dispatch", label: "Dispatch", group: "primary", render: () => <DispatchSection /> },
 	{ slug: "credit-holds", label: "Credit Holds", group: "primary", render: () => <HoldsSection /> },
 	{ slug: "dealers", label: "Dealers", group: "primary", render: () => <DealersSection /> },
+	{ slug: "dealer-onboarding", label: "Dealer Onboarding", group: "primary", render: () => <DealerOnboardingSection /> },
 	{ slug: "dealer-applications", label: "Dealer Applications", group: "primary", render: () => <DealerApplicationsSection /> },
+	{ slug: "dealer-import", label: "Dealer Import", group: "operations", render: () => <DealerImportSection /> },
 	{ slug: "catalogue", label: "Catalogue", group: "primary", render: () => <CatalogueSection /> },
 	{ slug: "catalogue-imports", label: "Catalogue Imports", group: "operations", render: () => <ImportsSection /> },
 	{ slug: "media-library", label: "Media Library", group: "operations", render: () => <MediaSection /> },

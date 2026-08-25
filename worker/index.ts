@@ -14,6 +14,7 @@ import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-co
 import { SupabaseDealerProfileStore } from "./supabase-dealer-profile";
 import { SupabaseOrdersExporter } from "./supabase-orders-export";
 import { SupabaseDealerApplicationsAdmin } from "./supabase-dealer-applications";
+import { SupabaseAdminDealers } from "./supabase-admin-dealers";
 import { SupabaseAdminUsersStore } from "./supabase-admin-users";
 import { SupabaseSizeSetsAdmin } from "./supabase-admin-size-sets";
 import { SupabaseDealerGroups } from "./supabase-dealer-groups";
@@ -49,6 +50,7 @@ export function createProductionCommerceApp(env: Env) {
     adminConsole: new SupabaseAdminConsoleReader(client),
     ordersExporter: new SupabaseOrdersExporter(client),
     dealerApplications: new SupabaseDealerApplicationsAdmin(client, mailer),
+    adminDealers: new SupabaseAdminDealers(client),
     adminUsers: new SupabaseAdminUsersStore(client),
     sizeSetsAdmin: new SupabaseSizeSetsAdmin(client),
     dealerGroups: new SupabaseDealerGroups(client),
