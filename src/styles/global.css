@@ -40,6 +40,12 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 
 .shell-content { width: min(100% - 32px, 1460px); margin: 0 auto; padding: 34px 0 80px; }
 
+/* Shown on every dealer page except the profile itself, which states the same
+   thing in more detail. Aligned to the content column, not full bleed. */
+.shell-profile-notice { width: min(100% - 32px, 1460px); margin: var(--space-5) auto 0; padding: 14px 16px; border-left: 3px solid var(--ink); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
+.shell-profile-notice strong { display: block; }
+.shell-profile-notice a { text-decoration: underline; }
+
 .eyebrow { margin: 0 0 var(--space-3); font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 
 h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height: 1.2; letter-spacing: 0; }

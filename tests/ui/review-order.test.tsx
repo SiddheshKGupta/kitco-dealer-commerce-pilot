@@ -74,4 +74,44 @@ describe("Review order (single consolidated OTP)", () => {
 
     expect(screen.getByRole("button", { name: /Send me a new code in \d+s/ })).toBeDisabled();
   });
+
+  it("will not issue an order code while the profile is incomplete, so a blocked dealer never spends one", async () => {
+    // Without this the dealer completes every step, receives a real emailed code,
+    // and only then meets the server's 422 -- the code burnt for nothing.
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
+      throw new Error(`unexpected fetch ${input}`);
+    }));
+    const requestOrderOtp = vi.fn(async () => "otp-order-1");
+    render(<ReviewPage requestOrderOtp={requestOrderOtp} profileBlock="GST number and mobile number" />);
+
+    await screen.findByRole("option", { name: "Main showroom" });
+    fireEvent.change(screen.getByLabelText("Ship-to location"), { target: { value: "location-main" } });
+    fireEvent.click(screen.getByLabelText("I confirm the above order details."));
+
+    const place = screen.getByRole("button", { name: "Place Final Order" });
+    expect(place).toBeDisabled();
+    fireEvent.click(place);
+    expect(requestOrderOtp).not.toHaveBeenCalled();
+    // Named in the same words as the server's refusal, so the two cannot disagree.
+    expect(screen.getByRole("alert")).toHaveTextContent("Add GST number and mobile number to your profile before placing an order.");
+  });
+
+  it("leaves ordering alone when the profile is complete", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
+      throw new Error(`unexpected fetch ${input}`);
+    }));
+    const requestOrderOtp = vi.fn(async () => "otp-order-1");
+    render(<ReviewPage requestOrderOtp={requestOrderOtp} profileBlock={null} />);
+
+    await screen.findByRole("option", { name: "Main showroom" });
+    fireEvent.change(screen.getByLabelText("Ship-to location"), { target: { value: "location-main" } });
+    fireEvent.click(screen.getByLabelText("I confirm the above order details."));
+    fireEvent.click(screen.getByRole("button", { name: "Place Final Order" }));
+
+    await waitFor(() => expect(requestOrderOtp).toHaveBeenCalledTimes(1));
+  });
 });

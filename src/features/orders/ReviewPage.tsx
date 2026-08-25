@@ -14,8 +14,18 @@ function sizesLabel(quantities: Record<string, number>): string {
 }
 
 /** One OTP for the whole order, issued only here after every article has been
- *  reviewed -- never per article, never on the cart or product page (v4.0 §23/§48). */
-export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "ORDER_SUBMISSION") => Promise<string> }) {
+ *  reviewed -- never per article, never on the cart or product page (v4.0 §23/§48).
+ *
+ *  profileBlock is the "GST number and mobile number" phrase from the shared
+ *  completeness rule, or null when the dealer may order. It stops the OTP being
+ *  issued for an order the server will refuse anyway -- otherwise the dealer
+ *  spends a real emailed code to reach a 422. It is a courtesy, not the control:
+ *  the gate that actually holds is in POST /api/orders/submit, so an undefined
+ *  prop (or a failed profile fetch) leaves ordering to the server as before. */
+export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
+	requestOrderOtp: (purpose: "ORDER_SUBMISSION") => Promise<string>;
+	profileBlock?: string | null;
+}) {
 	const [lines, setLines] = useState<DraftLine[] | null>(null);
 	const [locations, setLocations] = useState<DealerLocation[]>([]);
 	const [locationsStatus, setLocationsStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -121,7 +131,10 @@ export function ReviewPage({ requestOrderOtp }: { requestOrderOtp: (purpose: "OR
 
 		{stage === "review" && <>
 			<Checkbox label="I confirm the above order details." checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
-			<Button full disabled={!location || !confirmed || pending !== null} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
+			{profileBlock && <p className="commerce-validation" role="alert">
+				Add {profileBlock} to your profile before placing an order. <a href="/profile">Complete your profile</a>
+			</p>}
+			<Button full disabled={!location || !confirmed || pending !== null || profileBlock !== null} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
 		</>}
 		{stage === "otp" && <div className="commerce-review">
 			<h2>Confirm your order</h2>
