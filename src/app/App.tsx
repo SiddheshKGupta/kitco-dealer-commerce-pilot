@@ -4,6 +4,7 @@ import { SUPPORT_EMAIL } from "../config/support";
 import { RouteTransition } from "../components/RouteTransition";
 import { AuthLandingPage } from "../features/auth/AuthLandingPage";
 import { DealerCommercePage } from "../features/catalogue/DealerCommercePage";
+import { ProfilePage } from "../features/dealer/ProfilePage";
 import { CartPage } from "../features/orders/CartPage";
 import { ReviewPage } from "../features/orders/ReviewPage";
 import { fetchDraft, requestOrderOtp } from "../features/orders/api";
@@ -25,6 +26,7 @@ export function App() {
 	const dealerPage = pathname.startsWith("/products") ? <DealerCommercePage />
 		: pathname.startsWith("/cart") ? <CartPage />
 		: pathname.startsWith("/checkout/review") ? <ReviewPage requestOrderOtp={requestOrderOtp} />
+		: pathname.startsWith("/profile") ? <ProfilePage />
 		: pathname.startsWith("/orders") ? <OrdersSurface />
 		: <OrdersSurface reports />;
 	const navLink = (label: string, route: string) => <>

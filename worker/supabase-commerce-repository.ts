@@ -521,4 +521,12 @@ export class R2CatalogueMediaStore {
     if (!object?.body) return null;
     return { body: object.body, contentType: object.httpMetadata?.contentType ?? "application/octet-stream" };
   }
+  /** Mirrors get()'s key handling exactly: the organisation prefix is a routing
+   *  guard carried in the scoped key, not part of the stored object key. The two
+   *  must strip it identically or an uploaded object becomes unreadable. */
+  async put(scopedKey: string, body: ArrayBuffer, contentType: string) {
+    const separator = scopedKey.indexOf("/");
+    if (separator < 1) throw new ApiError(400, "INVALID_MEDIA_KEY", "Invalid media key");
+    await this.bucket.put(scopedKey.slice(separator + 1), body, { httpMetadata: { contentType } });
+  }
 }

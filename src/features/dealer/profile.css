@@ -1,0 +1,30 @@
+/* Dealer profile. Audience is 40-50, on a phone, in a shop: body text stays at
+   or above 16px, every control clears 48px, and nothing load-bearing is carried
+   by colour alone -- the blocked banner pairs its tint with a heading and a list. */
+
+.profile-page h1 { margin: 0 0 8px; }
+.profile-page h2 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
+.profile-page section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline); }
+.profile-page > .ui-btn { margin-top: 28px; }
+
+.profile-hint { margin: 0 0 12px; font-size: 16px; color: var(--mute); line-height: 1.5; }
+
+.profile-banner { margin: 20px 0 0; padding: 16px 18px; border-left: 3px solid var(--ink); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
+.profile-banner strong { display: block; font-size: 17px; }
+.profile-banner.is-blocked ul { margin: 10px 0 0; padding-left: 20px; }
+.profile-banner.is-blocked li { margin-bottom: 4px; }
+
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; margin-top: 16px; }
+@media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }
+
+.profile-photo-row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.profile-photo-row img { width: 160px; height: 160px; object-fit: cover; border: 1px solid var(--hairline); }
+.profile-photo-empty {
+  display: grid; place-items: center; width: 160px; height: 160px;
+  border: 1px dashed var(--hairline); background: var(--soft-cloud);
+  color: var(--mute); font-size: 16px; text-align: center;
+}
+
+.profile-message, .profile-error { margin: 20px 0 0; padding: 12px 14px; font-size: 16px; line-height: 1.5; }
+.profile-message { border-left: 3px solid var(--ink); background: var(--soft-cloud); }
+.profile-error { border-left: 3px solid var(--danger); background: var(--soft-cloud); color: var(--ink); }

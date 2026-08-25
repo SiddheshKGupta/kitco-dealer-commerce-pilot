@@ -11,6 +11,7 @@ import { createSupabaseAdminClient } from "./lib/supabase-admin";
 import { ApiError } from "./middleware/errors";
 import { SupabaseAdminConsoleReader } from "./supabase-admin-console";
 import { R2CatalogueMediaStore, SupabaseCommerceRepository } from "./supabase-commerce-repository";
+import { SupabaseDealerProfileStore } from "./supabase-dealer-profile";
 import { SupabaseOrdersExporter } from "./supabase-orders-export";
 import { SupabaseDealerApplicationsAdmin } from "./supabase-dealer-applications";
 import { SupabaseAdminUsersStore } from "./supabase-admin-users";
@@ -19,6 +20,7 @@ import { SupabaseDealerGroups } from "./supabase-dealer-groups";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
+  const mediaStore = new R2CatalogueMediaStore(env.CATALOGUE_MEDIA);
   const sessions = new SessionService(env.SESSION_SECRET);
   const otpStore = new SupabaseOtpChallengeStore(client);
   const otp = new OtpService(otpStore, new ResendEmailProvider(env), { pepper: env.SESSION_SECRET, pilotBypassCode: env.PILOT_STATIC_OTP });
@@ -40,7 +42,9 @@ export function createProductionCommerceApp(env: Env) {
         throw new ApiError(422, code, "OTP verification failed");
       }
     },
-    mediaStore: new R2CatalogueMediaStore(env.CATALOGUE_MEDIA),
+    mediaStore: mediaStore,
+    storefrontPhotos: mediaStore,
+    dealerProfiles: new SupabaseDealerProfileStore(client),
     adminConsole: new SupabaseAdminConsoleReader(client),
     ordersExporter: new SupabaseOrdersExporter(client),
     dealerApplications: new SupabaseDealerApplicationsAdmin(client),

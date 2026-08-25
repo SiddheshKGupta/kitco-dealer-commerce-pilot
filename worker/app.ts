@@ -3,6 +3,7 @@ import { requireAdmin, requireDealer, requireSession, type AuthVariables, type S
 import { correlation } from "./middleware/correlation";
 import { handleApiError } from "./middleware/errors";
 import type { CommerceRepository } from "./repository";
+import type { DealerProfileStore } from "./supabase-dealer-profile";
 import { registerAdminConsoleRoutes, type AdminConsoleReader } from "./routes/admin-console";
 import { registerAdminExportRoutes, type OrdersExporter } from "./routes/admin-export";
 import { registerAdminOrderRoutes } from "./routes/admin-orders";
@@ -14,6 +15,7 @@ import { registerDealerGroupRoutes, type DealerGroupsStore } from "./routes/deal
 import { registerCatalogueRoutes } from "./routes/catalogue";
 import { registerDispatchRoutes } from "./routes/dispatch";
 import { registerDealerRoutes } from "./routes/dealer";
+import { registerDealerProfileRoutes, type StorefrontPhotoUploader } from "./routes/dealer-profile";
 import { registerDraftRoutes } from "./routes/drafts";
 import { registerHoldRoutes } from "./routes/holds";
 import { registerImportRoutes } from "./routes/imports";
@@ -35,6 +37,8 @@ export interface CommerceAppDependencies {
   adminUsers?: AdminUsersStore;
   sizeSetsAdmin?: SizeSetsAdmin;
   dealerGroups?: DealerGroupsStore;
+  dealerProfiles?: DealerProfileStore;
+  storefrontPhotos?: StorefrontPhotoUploader;
 }
 
 export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, dependencies: CommerceAppDependencies) {
@@ -58,8 +62,9 @@ export function registerCommerceRoutes(app: Hono<{ Variables: AuthVariables }>, 
   // the literal /api/orders/export-products.csv route (Hono matches routes in
   // registration order and :orderId matches "export-products.csv").
   registerDealerProductExportRoutes(app, dependencies.ordersExporter);
-  registerOrderRoutes(app, dependencies.repository, dependencies.verifyOrderOtp);
+  registerOrderRoutes(app, dependencies.repository, dependencies.verifyOrderOtp, dependencies.dealerProfiles);
   registerDealerRoutes(app, dependencies.repository);
+  registerDealerProfileRoutes(app, dependencies.dealerProfiles, dependencies.storefrontPhotos);
   // Must precede registerAdminOrderRoutes: its GET /api/admin/orders/:orderId
   // otherwise shadows these literal /api/admin/orders/export*.csv routes, since
   // Hono matches routes in registration order and :orderId matches "export.csv".
