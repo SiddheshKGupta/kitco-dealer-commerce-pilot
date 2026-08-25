@@ -8,11 +8,14 @@ type Row = Record<string, any>;
 const applicationRow: Row = {
 	id: "app-1", organisation_id: "org-1", business_name: "VLCO Sports", gstin: "10ABCDE1234F1Z5",
 	city: "Patna", state: "Bihar", primary_email: "owner@vlco.test", status: "SUBMITTED",
+	address_line1: "12 Station Road", address_line2: null, pin_code: "800001",
+	contact_person: "Asha Rao", mobile: "9800000000", secondary_email: "accounts@vlco.test",
 };
 
 function makeClient(row: Row = applicationRow) {
 	const auditInserts: Row[] = [];
 	const applicationUpdates: Row[] = [];
+	const dealerInserts: Row[] = [];
 	const from = vi.fn((table: string) => {
 		if (table === "dealer_applications") {
 			return {
@@ -21,7 +24,13 @@ function makeClient(row: Row = applicationRow) {
 			};
 		}
 		if (table === "dealers") {
-			return { insert: () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: "dealer-new-1" }, error: null }) }) }) };
+			return { insert: (patch: Row) => { dealerInserts.push(patch); return { select: () => ({ maybeSingle: async () => ({ data: { id: "dealer-new-1" }, error: null }) }) }; } };
+		}
+		if (table === "gst_registrations") {
+			return {
+				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+				insert: () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: "gst-reg-1" }, error: null }) }) }),
+			};
 		}
 		if (table === "dealer_gst_registrations") {
 			return { insert: async () => ({ error: null }) };
@@ -31,7 +40,7 @@ function makeClient(row: Row = applicationRow) {
 		}
 		throw new Error(`unexpected table ${table}`);
 	});
-	return { client: { from } as unknown as SupabaseClient, auditInserts, applicationUpdates };
+	return { client: { from } as unknown as SupabaseClient, auditInserts, applicationUpdates, dealerInserts };
 }
 
 describe("SupabaseDealerApplicationsAdmin audit trail", () => {
@@ -105,12 +114,66 @@ function makeDealersInsertClient(failuresBeforeSuccess: number, errorCode = "235
 				}),
 			};
 		}
+		if (table === "gst_registrations") {
+			return {
+				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "gst-reg-1" }, error: null }) }) }) }),
+			};
+		}
 		if (table === "dealer_gst_registrations") return { insert: async () => ({ error: null }) };
 		if (table === "audit_events") return { insert: async () => ({ error: null }) };
 		throw new Error(`unexpected table ${table}`);
 	});
 	return { client: { from } as unknown as SupabaseClient, getAttempts: () => attempts };
 }
+
+describe("SupabaseDealerApplicationsAdmin.approve -- what the new dealer inherits", () => {
+	it("creates the dealer unactivated, carrying across everything the applicant already gave us", async () => {
+		// The applicant typed their address, contact and mobile on the public form.
+		// Dropping them would leave an approved dealer blocked by the profile gate,
+		// retyping details KITCO is already holding.
+		const { client, dealerInserts } = makeClient();
+		await new SupabaseDealerApplicationsAdmin(client).approve(admin, "app-1", "corr-1");
+
+		expect(dealerInserts).toHaveLength(1);
+		expect(dealerInserts[0]).toMatchObject({
+			organisation_id: "org-1", name: "VLCO Sports", city: "Patna", state: "Bihar",
+			address_line1: "12 Station Road", pin_code: "800001",
+			contact_person: "Asha Rao", mobile: "9800000000", secondary_email: "accounts@vlco.test",
+			gst_registration_id: "gst-reg-1",
+			source_system: "DEALER_APPLICATION", source_reference: "app-1",
+			// Approval says "yes, we will trade with you", not "you are signed in".
+			activation_status: "UNACTIVATED",
+		});
+	});
+
+	it("tells the applicant they were approved, and where to go next", async () => {
+		const sent: Array<{ to: string; subject: string; text: string }> = [];
+		const mailer = { sendNotice: async (notice: any) => { sent.push(notice); return { deliveryId: "mail-1" }; } };
+		await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer).approve(admin, "app-1", "corr-1");
+
+		expect(sent).toHaveLength(1);
+		expect(sent[0]!.to).toBe("owner@vlco.test");
+		expect(sent[0]!.text).toContain("/activate");
+	});
+
+	it("still approves when the decision email bounces", async () => {
+		// The dealer row and the audit entry are already committed. Turning that
+		// into a 502 would leave the admin unsure whether the approval landed.
+		const mailer = { sendNotice: async () => { throw new Error("EMAIL_DELIVERY_FAILED"); } };
+		const result = await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer).approve(admin, "app-1", "corr-1");
+
+		expect(result).toEqual({ dealerId: "dealer-new-1" });
+	});
+
+	it("tells the applicant why they were rejected", async () => {
+		const sent: Array<{ to: string; text: string }> = [];
+		const mailer = { sendNotice: async (notice: any) => { sent.push(notice); return { deliveryId: "mail-1" }; } };
+		await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer).reject(admin, "app-1", "GSTIN could not be verified", "corr-1");
+
+		expect(sent[0]!.to).toBe("owner@vlco.test");
+		expect(sent[0]!.text).toContain("GSTIN could not be verified");
+	});
+});
 
 describe("SupabaseDealerApplicationsAdmin.approve -- dealer-code collision retry", () => {
 	it("retries slugCode generation on a unique-violation (23505) and succeeds once a non-colliding code is generated", async () => {

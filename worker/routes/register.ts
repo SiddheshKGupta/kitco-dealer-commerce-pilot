@@ -23,14 +23,18 @@ export interface DealerApplicationRecord {
 	status: string;
 }
 
-/** Pilot only: a submitted application self-activates on OTP verification --
- *  no admin approval gate. approveAndActivate() creates the canonical dealer
- *  row ACTIVE and links the given auth user, so the applicant can order immediately. */
+/** Registration is an application, never an account. A shop fills in the form,
+ *  verifies its own email with an OTP, and the application lands in KITCO's
+ *  review queue at SUBMITTED. Nothing here grants dealer access: the dealer row
+ *  is created only when an admin approves, in SupabaseDealerApplicationsAdmin.
+ *
+ *  This used to self-activate on OTP verification, which meant anyone on the
+ *  internet could register a shop, verify their own address and immediately
+ *  browse wholesale pricing. Do not reintroduce that shortcut. */
 export interface DealerApplicationStore {
 	create(input: DealerApplicationInput): Promise<{ id: string; organisationId: string }>;
 	get(applicationId: string): Promise<DealerApplicationRecord | null>;
 	submit(applicationId: string): Promise<boolean>;
-	approveAndActivate(applicationId: string, authUserId: string): Promise<{ dealerId: string; organisationId: string } | null>;
 }
 
 interface RegisterDependencies {

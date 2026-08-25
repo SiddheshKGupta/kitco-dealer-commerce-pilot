@@ -10,7 +10,7 @@ interface FormState {
 
 const empty: FormState = { businessName: "", gstin: "", addressLine1: "", addressLine2: "", city: "", state: "", pinCode: "", contactPerson: "", primaryEmail: "", secondaryEmail: "", mobile: "" };
 
-type Stage = "form" | "verify";
+type Stage = "form" | "verify" | "submitted";
 
 /** Brand-new dealer with no existing record -- pilot self-activates on OTP
  *  verification (no admin approval gate) and lands directly in /products. */
@@ -49,9 +49,10 @@ export function RegisterPage() {
 	async function verify() {
 		setError(""); setPending(true);
 		try {
+			// Confirming the code submits the application for review -- it does not
+			// sign anyone in. KITCO decides who becomes a dealer.
 			await postJson("/api/otp/verify", { challengeId, code, purpose: "REGISTRATION" });
-			window.history.replaceState({}, "", "/products");
-			window.dispatchEvent(new PopStateEvent("popstate"));
+			setStage("submitted");
 		} catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 		finally { setPending(false); }
 	}
@@ -64,12 +65,23 @@ export function RegisterPage() {
 		} catch (reason) { setError(errorMessage(reason instanceof Error ? reason.message : "REQUEST_FAILED")); }
 	}
 
+	if (stage === "submitted") return <section className="auth-page">
+		<div className="auth-kicker">New dealer registration <span>Sent</span></div>
+		<h1>Thanks — that's with KITCO now.</h1>
+		<p className="auth-intro">
+			We've sent your shop's details to KITCO for review. They'll email {form.primaryEmail} with
+			their decision, and if you're approved that email will tell you how to set up your account.
+		</p>
+		<p className="field-note">You don't need to do anything else, and you don't need to register again.</p>
+		<a className="ui-btn ui-btn-secondary ui-btn-md" href="/login">Back to sign in</a>
+	</section>;
+
 	if (stage === "verify") return <section className="auth-page">
 		<div className="auth-kicker">New dealer registration <span>02 / 02</span></div>
 		<h1>Enter your code.</h1>
-		<p className="auth-intro">We just emailed a 6-digit code to {form.primaryEmail}.</p>
+		<p className="auth-intro">We just emailed a 6-digit code to {form.primaryEmail}. Confirming it sends your details to KITCO for review.</p>
 		<OTPInput value={code} onChange={setCode} />
-		<Button full disabled={code.length !== 6 || pending} onClick={() => void verify()}>{pending ? "Confirming…" : "Confirm and start ordering"}</Button>
+		<Button full disabled={code.length !== 6 || pending} onClick={() => void verify()}>{pending ? "Sending…" : "Send my details to KITCO"}</Button>
 		<button className="text-action" type="button" disabled={resendIn > 0} onClick={() => void resend()}>{resendIn > 0 ? `You can ask for a new code in ${resendIn}s` : "Send me a new code"}</button>
 		{error && <p className="form-error" role="alert">{error}</p>}
 	</section>;
@@ -77,7 +89,7 @@ export function RegisterPage() {
 	return <section className="auth-page auth-page-wide">
 		<div className="auth-kicker">New dealer registration <span>01 / 02</span></div>
 		<h1>Tell us about your shop.</h1>
-		<p className="auth-intro">We don't have your shop on file yet — fill in a few details below and we'll get you set up.</p>
+		<p className="auth-intro">We don't have your shop on file yet. Fill in the details below and KITCO will review them — they'll email you either way.</p>
 		<div className="auth-form-grid">
 			<FormField label="Business name" htmlFor="reg-business"><Input id="reg-business" value={form.businessName} onChange={set("businessName")} /></FormField>
 			<FormField label="GSTIN" htmlFor="reg-gstin" hint="15 characters"><Input id="reg-gstin" value={form.gstin} onChange={(event) => setForm((current) => ({ ...current, gstin: event.target.value.toUpperCase() }))} maxLength={15} /></FormField>
