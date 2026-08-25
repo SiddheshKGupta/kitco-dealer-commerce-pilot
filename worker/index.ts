@@ -15,6 +15,7 @@ import { SupabaseOrdersExporter } from "./supabase-orders-export";
 import { SupabaseDealerApplicationsAdmin } from "./supabase-dealer-applications";
 import { SupabaseAdminUsersStore } from "./supabase-admin-users";
 import { SupabaseSizeSetsAdmin } from "./supabase-admin-size-sets";
+import { SupabaseDealerGroups } from "./supabase-dealer-groups";
 
 export function createProductionCommerceApp(env: Env) {
   const client = createSupabaseAdminClient(env);
@@ -45,6 +46,7 @@ export function createProductionCommerceApp(env: Env) {
     dealerApplications: new SupabaseDealerApplicationsAdmin(client),
     adminUsers: new SupabaseAdminUsersStore(client),
     sizeSetsAdmin: new SupabaseSizeSetsAdmin(client),
+    dealerGroups: new SupabaseDealerGroups(client),
   });
 }
 

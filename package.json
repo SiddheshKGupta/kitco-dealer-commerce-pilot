@@ -8,7 +8,8 @@
     "build": "vite build",
     "ingest:canonical": "node scripts/build-canonical-import.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest"
+    "test": "vitest",
+    "test:db": "vitest --run --config vitest.db.config.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.112.3",
