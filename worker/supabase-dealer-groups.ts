@@ -392,15 +392,24 @@ export class SupabaseDealerGroups implements DealerGroupsStore {
    *  group. A dealer with no group (or a SUSPENDED one) may name only itself.
    *  Failures share one shape per slot so a rejected id never reveals whether it was
    *  wrong, foreign, suspended or simply nonexistent. */
-  async resolveOrderPartners(session: SessionIdentity, selection: OrderPartnerSelection): Promise<ResolvedOrderPartners> {
+  async resolveOrderPartners(session: SessionIdentity, selection: OrderPartnerSelection, correlationId: string = crypto.randomUUID()): Promise<ResolvedOrderPartners> {
     const org = session.organisationId;
     const orderingDealerId = this.sessionDealerId(session);
     const billToDealerId = selection.billToDealerId ?? orderingDealerId;
     const shipToDealerId = selection.shipToDealerId ?? orderingDealerId;
 
+    // A failed assertion here is a real attempt to bill or ship against a dealer
+    // outside the caller's own group, not a UI hiccup -- audited the same way any
+    // other rejected cross-tenant write is, with the id that was refused but never
+    // the fact that it might have been a valid dealer elsewhere.
+    const refuse = async (code: string, message: string, evidence: Record<string, unknown>): Promise<never> => {
+      await this.audit(session, correlationId, "ORDER_PARTNER_REJECTED", "dealer", orderingDealerId, { code, ...evidence }, orderingDealerId);
+      throw new ApiError(403, code, message);
+    };
+
     const dealers = await this.loadDealers(org, [...new Set([orderingDealerId, billToDealerId, shipToDealerId])]);
     const ordering = dealers.get(orderingDealerId);
-    if (!isSelectableDealer(ordering)) throw new ApiError(403, "ORDERING_DEALER_NOT_ACTIVE", "This dealer account cannot place orders");
+    if (!isSelectableDealer(ordering)) await refuse("ORDERING_DEALER_NOT_ACTIVE", "This dealer account cannot place orders", {});
 
     let groupId: string | null = ordering!.dealer_group_id ? String(ordering!.dealer_group_id) : null;
     if (groupId) {
@@ -408,15 +417,15 @@ export class SupabaseDealerGroups implements DealerGroupsStore {
       if (!group || group.status !== "ACTIVE") groupId = null;
     }
 
-    const requireSelectable = (candidateId: string, code: string, message: string) => {
+    const requireSelectable = async (candidateId: string, code: string, message: string) => {
       if (candidateId === orderingDealerId) return;
       const candidate = dealers.get(candidateId);
       if (!groupId || !candidate || String(candidate.dealer_group_id ?? "") !== groupId || !isSelectableDealer(candidate)) {
-        throw new ApiError(403, code, message);
+        await refuse(code, message, { candidateDealerId: candidateId });
       }
     };
-    requireSelectable(billToDealerId, "BILL_TO_NOT_SELECTABLE", "That Bill-To dealer is not available for this order");
-    requireSelectable(shipToDealerId, "SHIP_TO_NOT_SELECTABLE", "That Ship-To dealer is not available for this order");
+    await requireSelectable(billToDealerId, "BILL_TO_NOT_SELECTABLE", "That Bill-To dealer is not available for this order");
+    await requireSelectable(shipToDealerId, "SHIP_TO_NOT_SELECTABLE", "That Ship-To dealer is not available for this order");
 
     const shipToLocationId = selection.shipToLocationId ?? null;
     if (shipToLocationId) {
@@ -425,7 +434,7 @@ export class SupabaseDealerGroups implements DealerGroupsStore {
       if (error) throw new ApiError(502, "DEALER_GROUP_LOAD_FAILED", "Delivery location could not be checked");
       const location = data as Row | null;
       if (!location || String(location.dealer_id) !== shipToDealerId || location.active !== true || !SHIP_TO_LOCATION_TYPES.includes(String(location.location_type))) {
-        throw new ApiError(403, "SHIP_TO_LOCATION_NOT_SELECTABLE", "That delivery location is not available for this order");
+        await refuse("SHIP_TO_LOCATION_NOT_SELECTABLE", "That delivery location is not available for this order", { shipToLocationId });
       }
     }
 

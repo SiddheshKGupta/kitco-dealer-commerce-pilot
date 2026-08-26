@@ -24,6 +24,9 @@ class FakeQuery implements PromiseLike<{ data: any; error: any }> {
   eq(column: string, value: unknown) { this.filters.push({ op: "eq", column, value }); return this; }
   in(column: string, value: unknown[]) { this.filters.push({ op: "in", column, value }); return this; }
   order() { return this; }
+  // Only ever called for audit_events, fire-and-forget: resolveOrderPartners audits a
+  // rejection but nothing here asserts on it, so accepting anything is enough.
+  insert() { return Promise.resolve({ data: null, error: null }); }
   private matching() {
     return this.rows.filter((row) => this.filters.every((filter) =>
       filter.op === "eq" ? row[filter.column] === filter.value : (filter.value as unknown[]).includes(row[filter.column])));

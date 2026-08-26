@@ -89,7 +89,7 @@ export function registerOrderRoutes(
           billToDealerId: input.billToDealerId ?? null,
           shipToDealerId: input.shipToDealerId ?? null,
           shipToLocationId: input.shipToLocationId ?? null,
-        })
+        }, context.get("correlationId"))
       : { billToDealerId: session.dealerId!, shipToDealerId: session.dealerId!, shipToLocationId: input.shipToLocationId ?? null };
     const submitInput: SubmitOrderInput = {
       idempotencyKey, otpChallengeId: input.otpChallengeId, otpDigest: input.otpDigest, now: new Date().toISOString(), correlationId: context.get("correlationId"),

@@ -196,6 +196,23 @@ describe("resolveOrderPartners -- the partner-function trust boundary", () => {
     await expect(store.resolveOrderPartners(dealerA, { billToDealerId: "dealer-c" })).rejects.toMatchObject({ status: 403, code: "BILL_TO_NOT_SELECTABLE" });
   });
 
+  it("audits a rejected cross-group attempt -- a missing check here is a real cross-dealer write, not a cosmetic bug", async () => {
+    const { store, db } = makeStore();
+    await expect(store.resolveOrderPartners(dealerA, { billToDealerId: "dealer-c" }, "corr-1")).rejects.toMatchObject({ code: "BILL_TO_NOT_SELECTABLE" });
+
+    expect(db.auditEvents).toEqual([expect.objectContaining({
+      organisation_id: dealerA.organisationId, dealer_id: "dealer-a", event_type: "ORDER_PARTNER_REJECTED",
+      entity_type: "dealer", entity_id: "dealer-a", correlation_id: "corr-1",
+      evidence: { code: "BILL_TO_NOT_SELECTABLE", candidateDealerId: "dealer-c" },
+    })]);
+  });
+
+  it("generates its own correlation id when the caller supplies none", async () => {
+    const { store, db } = makeStore();
+    await expect(store.resolveOrderPartners(dealerA, { billToDealerId: "dealer-c" })).rejects.toMatchObject({ code: "BILL_TO_NOT_SELECTABLE" });
+    expect(db.auditEvents[0]?.correlation_id).toEqual(expect.any(String));
+  });
+
   it("rejects a Ship-To dealer from another group", async () => {
     const { store } = makeStore();
     await expect(store.resolveOrderPartners(dealerA, { shipToDealerId: "dealer-c" })).rejects.toMatchObject({ status: 403, code: "SHIP_TO_NOT_SELECTABLE" });

@@ -107,8 +107,11 @@ export interface DealerGroupsStore {
   approveRequest(session: SessionIdentity, requestId: string, correlationId: string): Promise<{ dealerId: string; groupId: string }>;
   rejectRequest(session: SessionIdentity, requestId: string, notes: string, correlationId: string): Promise<void>;
   /** Phase 4's checkout calls this. Returns the partner set proven against the
-   *  database, or throws -- never echoes back what the caller supplied. */
-  resolveOrderPartners(session: SessionIdentity, selection: OrderPartnerSelection): Promise<ResolvedOrderPartners>;
+   *  database, or throws -- never echoes back what the caller supplied. Every
+   *  rejection is audited (V5_DEALER_GROUP_MODEL.md §4: "403, audited") since a
+   *  missing check here is a real cross-dealer write, not a cosmetic bug --
+   *  correlationId defaults to a fresh id so existing callers need not supply one. */
+  resolveOrderPartners(session: SessionIdentity, selection: OrderPartnerSelection, correlationId?: string): Promise<ResolvedOrderPartners>;
 }
 
 const groupCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,40}$/, "Use letters, numbers and underscores only, 2-40 characters");
