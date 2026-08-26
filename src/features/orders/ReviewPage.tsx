@@ -163,11 +163,18 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 			</label>
 			<fieldset className="commerce-delivery-preference">
 				<legend>Delivery</legend>
-				<label><input type="radio" name="delivery-preference" checked={deliveryPreference === "ASAP"} onChange={() => setDeliveryPreference("ASAP")} /> As soon as possible</label>
-				<label><input type="radio" name="delivery-preference" checked={deliveryPreference === "REQUESTED_DATE"} onChange={() => setDeliveryPreference("REQUESTED_DATE")} /> On a date</label>
-				{deliveryPreference === "REQUESTED_DATE" && <label>Requested delivery date
-					<input type="date" aria-label="Requested delivery date" value={requestedDate} min={todayIso()} onChange={(event) => setRequestedDate(event.target.value)} />
-				</label>}
+				<label className="commerce-delivery-option">
+					<input type="radio" name="delivery-preference" checked={deliveryPreference === "ASAP"} onChange={() => setDeliveryPreference("ASAP")} />
+					<span>As soon as possible</span>
+				</label>
+				<label className="commerce-delivery-option">
+					<input type="radio" name="delivery-preference" checked={deliveryPreference === "REQUESTED_DATE"} onChange={() => setDeliveryPreference("REQUESTED_DATE")} />
+					<span>On a date</span>
+				</label>
+				{deliveryPreference === "REQUESTED_DATE" && <div className="commerce-delivery-date">
+					<label htmlFor="requested-delivery-date">Requested delivery date</label>
+					<input id="requested-delivery-date" type="date" value={requestedDate} min={todayIso()} onChange={(event) => setRequestedDate(event.target.value)} />
+				</div>}
 			</fieldset>
 		</section>
 

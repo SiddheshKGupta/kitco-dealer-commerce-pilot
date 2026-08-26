@@ -83,7 +83,19 @@
 .commerce-review-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--hairline); }
 .commerce-review-section:first-of-type { margin-top: 24px; }
 .commerce-review-section h2 { margin: 0 0 16px; font-size: 20px; font-weight: 700; }
-.commerce-review-section select { min-height: 48px; width: 100%; border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 0 12px; background: white; color: var(--commerce-ink); }
+.commerce-review-section > label { display: block; margin-bottom: 16px; font-size: 15px; font-weight: 700; }
+.commerce-review-section > label:last-child { margin-bottom: 0; }
+.commerce-review-section select, .commerce-review-section input[type="text"], .commerce-review-section input[type="date"] {
+	display: block; margin-top: 8px; min-height: 48px; width: 100%; max-width: 320px;
+	border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 0 12px;
+	background: white; color: var(--commerce-ink); font: inherit;
+}
+.commerce-delivery-preference { margin: 0; padding: 0; border: 0; }
+.commerce-delivery-preference legend { margin-bottom: 12px; padding: 0; font-size: 15px; font-weight: 700; }
+.commerce-delivery-option { display: flex; align-items: center; gap: 10px; min-height: 48px; font-size: 16px; font-weight: 400; cursor: pointer; }
+.commerce-delivery-option input { flex: none; width: 20px; height: 20px; }
+.commerce-delivery-date { margin-top: 12px; }
+.commerce-delivery-date label { display: block; margin-bottom: 8px; font-size: 15px; font-weight: 700; }
 .commerce-review-summary { display: grid; gap: 8px; }
 .commerce-review-summary > div { display: flex; justify-content: space-between; }
 .commerce-review-summary span { color: var(--commerce-mid); }
