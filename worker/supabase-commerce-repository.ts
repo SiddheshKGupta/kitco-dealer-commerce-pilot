@@ -269,7 +269,7 @@ const CATALOGUE_SELECT = `
 
 const ORDER_SELECT = `
   id,organisation_id,dealer_id,status,current_version_no,order_number,idempotency_key,submitted_at,
-  dealers(name,city,state),
+  dealers!dealer_id(name,city,state),
   order_versions(version_no,version_status,retail_value_minor,
     order_lines(id,commercial_offering_id,mrp_minor,approved_quantity_pairs,
       product_colourways!inner(article_no,colour,product_families(name,brands(name))),

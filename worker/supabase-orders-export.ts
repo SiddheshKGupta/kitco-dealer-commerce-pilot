@@ -25,7 +25,7 @@ function buildExportSelect(filters: OrderExportFilters): string {
   id,order_number,status,submitted_at,dealer_id,
   dealer_po_number,delivery_preference,requested_delivery_date,estimated_delivery_date,
   bill_to_snapshot,ship_to_snapshot,
-  dealers!inner(code,name,city,state,dealer_groups(group_code,group_name)),
+  dealers!dealer_id!inner(code,name,city,state,dealer_groups!dealers_dealer_group_fk(group_code,group_name)),
   dealer_locations!ship_to_location_id(name),
   order_versions(version_no,
     order_lines(id,mrp_minor,
