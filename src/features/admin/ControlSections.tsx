@@ -199,10 +199,11 @@ export function MediaSection() {
 
 /* ---------------------------------------------------------------- Size sets */
 interface SizeValueRow { id: string; label: string; sortOrder: number; inUseCount: number }
-interface SizeSetRow { id: string; code: string; name: string; values: SizeValueRow[] }
+interface SizeSetRow { id: string; code: string; name: string; values: SizeValueRow[]; sizeSystemId: string | null; sizeSystemLabel: string | null }
 interface FamilyOptionRow { id: string; brandId: string; brandName: string; gender: string; name: string }
 interface SizeSetAssignmentRow { brandName: string; gender: string; sizeSetCode: string | null; sizeSetName: string | null; colourwayCount: number }
-interface SizeSetsPayload { sizeSets: SizeSetRow[]; families: FamilyOptionRow[]; assignments: SizeSetAssignmentRow[] }
+interface SizeSystemRow { id: string; code: string; label: string }
+interface SizeSetsPayload { sizeSets: SizeSetRow[]; families: FamilyOptionRow[]; assignments: SizeSetAssignmentRow[]; sizeSystems: SizeSystemRow[] }
 
 async function sizeSetsApi<T = unknown>(path: string, init?: RequestInit): Promise<T> {
 	const response = await fetch(path, { credentials: "include", headers: { "content-type": "application/json" }, ...init });
@@ -216,10 +217,16 @@ export function SizeSetsSection() {
 	const sizeSets = data?.sizeSets ?? [];
 	const families = data?.families ?? [];
 	const assignments = data?.assignments ?? [];
+	const sizeSystems = data?.sizeSystems ?? [];
 	const brands = [...new Map(families.map((family) => [family.brandId, family.brandName])).entries()];
 
 	const [error, setError] = useState("");
 	const [showSizeChart, setShowSizeChart] = useState(false);
+
+	const [savingSystemSetId, setSavingSystemSetId] = useState<string | null>(null);
+	const [newSystemCode, setNewSystemCode] = useState("");
+	const [newSystemLabel, setNewSystemLabel] = useState("");
+	const [creatingSystem, setCreatingSystem] = useState(false);
 
 	const [newSetCode, setNewSetCode] = useState("");
 	const [newSetName, setNewSetName] = useState("");
@@ -248,6 +255,24 @@ export function SizeSetsSection() {
 			setNewSetCode(""); setNewSetName(""); reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size set could not be created"); }
 		finally { setCreatingSet(false); }
+	}
+
+	async function setSizeSystem(setId: string, sizeSystemId: string) {
+		setError(""); setSavingSystemSetId(setId);
+		try {
+			await sizeSetsApi(`/api/admin/size-sets/${setId}/size-system`, { method: "PATCH", body: JSON.stringify({ sizeSystemId: sizeSystemId || null }) });
+			reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size system could not be saved"); }
+		finally { setSavingSystemSetId(null); }
+	}
+
+	async function createSystem() {
+		setError(""); setCreatingSystem(true);
+		try {
+			await sizeSetsApi("/api/admin/size-systems", { method: "POST", body: JSON.stringify({ code: newSystemCode.trim(), label: newSystemLabel.trim() }) });
+			setNewSystemCode(""); setNewSystemLabel(""); reload();
+		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size system could not be created"); }
+		finally { setCreatingSystem(false); }
 	}
 
 	async function addValue(set: SizeSetRow) {
@@ -308,12 +333,35 @@ export function SizeSetsSection() {
 			</div>
 		</section>
 
+		<section className="panel">
+			<div className="panel-head"><h3>Size systems</h3><span className="tiny">{sizeSystems.length} configured</span></div>
+			<div className="panel-body">
+				<p className="tiny" style={{ marginBottom: 12 }}>US, UK, EU, CM and IN come pre-loaded. Add another if a brand uses one of its own.</p>
+				<div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "flex-end" }}>
+					<FormField label="System code" htmlFor="new-system-code" hint="e.g. ALPHA">
+						<Input id="new-system-code" value={newSystemCode} onChange={(event) => setNewSystemCode(event.target.value)} style={{ width: 100 }} />
+					</FormField>
+					<FormField label="System label" htmlFor="new-system-label" hint="e.g. Alpha (S/M/L)">
+						<Input id="new-system-label" value={newSystemLabel} onChange={(event) => setNewSystemLabel(event.target.value)} style={{ width: 160 }} />
+					</FormField>
+					<Button size="sm" disabled={!newSystemCode.trim() || !newSystemLabel.trim() || creatingSystem} onClick={() => void createSystem()}>{creatingSystem ? "Adding…" : "Add size system"}</Button>
+				</div>
+			</div>
+		</section>
+
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : sizeSets.length === 0 ? <SectionState status="ready" retry={reload} empty="No size sets configured yet." /> :
 			<div className="grid-2">{sizeSets.map((set) => {
 				const draft = valueDrafts[set.id] ?? { label: "", sortOrder: "" };
 				return <section className="panel" key={set.id}>
 					<div className="panel-head"><h3>{set.name}</h3><span className="tiny">{set.code}</span></div>
 					<div className="panel-body">
+						<FormField label="Size system" htmlFor={`size-system-${set.id}`} hint="Shown to dealers next to these sizes at checkout. Only set this when you know it -- leave it blank rather than guess.">
+							<Select id={`size-system-${set.id}`} value={set.sizeSystemId ?? ""} disabled={savingSystemSetId === set.id}
+								onChange={(event) => void setSizeSystem(set.id, event.target.value)} style={{ maxWidth: 220 }}>
+								<option value="">Not confirmed</option>
+								{sizeSystems.map((system) => <option key={system.id} value={system.id}>{system.label}</option>)}
+							</Select>
+						</FormField>
 						{set.values.length === 0 ? <p className="tiny">No sizes yet.</p> : <div className="table-wrap"><table className="data-table">
 							<thead><tr><th>Size</th><th>Order</th><th>In use</th><th /></tr></thead>
 							<tbody>{set.values.map((value) => <tr key={value.id}>

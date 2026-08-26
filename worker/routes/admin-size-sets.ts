@@ -4,14 +4,18 @@ import type { AuthVariables, SessionIdentity } from "../middleware/auth";
 import { parseBody } from "./shared";
 
 export interface SizeValueRow { id: string; label: string; sortOrder: number; inUseCount: number }
-export interface SizeSetDetailRow { id: string; code: string; name: string; values: SizeValueRow[] }
+export interface SizeSetDetailRow { id: string; code: string; name: string; values: SizeValueRow[]; sizeSystemId: string | null; sizeSystemLabel: string | null }
 export interface FamilyOptionRow { id: string; brandId: string; brandName: string; gender: string; name: string }
 export interface SizeSetAssignmentRow { brandName: string; gender: string; sizeSetCode: string | null; sizeSetName: string | null; colourwayCount: number }
+export interface SizeSystemRow { id: string; code: string; label: string }
 
 export interface SizeSetsAdminPayload {
   sizeSets: SizeSetDetailRow[];
   families: FamilyOptionRow[];
   assignments: SizeSetAssignmentRow[];
+  /** V5_PRODUCT_SPEC.md §4, "Size System is never optional": admin-extensible list a
+   *  size set is confirmed against, never a hardcoded five. */
+  sizeSystems: SizeSystemRow[];
 }
 
 type AssignInput = { sizeSetId: string; familyId: string } | { sizeSetId: string; brandId: string; gender: string };
@@ -27,6 +31,10 @@ export interface SizeSetsAdmin {
   updateValue(session: SessionIdentity, valueId: string, changes: { label?: string; sortOrder?: number }, correlationId: string): Promise<void>;
   removeValue(session: SessionIdentity, valueId: string, correlationId: string): Promise<void>;
   assign(session: SessionIdentity, input: AssignInput, correlationId: string): Promise<{ colourwaysAffected: number }>;
+  /** null clears the size system back to "Not confirmed" -- never guessed, only ever
+   *  set from a fact an admin actually knows (V5_PRODUCT_SPEC.md §5 open decisions). */
+  setSizeSystem(session: SessionIdentity, sizeSetId: string, sizeSystemId: string | null, correlationId: string): Promise<void>;
+  createSizeSystem(session: SessionIdentity, code: string, label: string, correlationId: string): Promise<{ id: string }>;
 }
 
 const codeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,40}$/, "Use letters, numbers and underscores only, 2-40 characters");
@@ -38,6 +46,8 @@ const createSetSchema = z.object({ code: codeSchema, name: nameSchema }).strict(
 const createValueSchema = z.object({ label: labelSchema, sortOrder: sortOrderSchema }).strict();
 const updateValueSchema = z.object({ label: labelSchema.optional(), sortOrder: sortOrderSchema.optional() }).strict()
   .refine((value) => value.label !== undefined || value.sortOrder !== undefined, "Nothing to update");
+const setSizeSystemSchema = z.object({ sizeSystemId: z.string().uuid().nullable() }).strict();
+const createSizeSystemSchema = z.object({ code: codeSchema, label: z.string().trim().min(1).max(20) }).strict();
 const assignSchema = z.union([
   z.object({ sizeSetId: z.string().uuid(), familyId: z.string().uuid() }).strict(),
   z.object({ sizeSetId: z.string().uuid(), brandId: z.string().uuid(), gender: z.string().trim().min(1).max(20) }).strict(),
@@ -75,5 +85,17 @@ export function registerSizeSetsAdminRoutes(app: Hono<{ Variables: AuthVariables
     const input = await parseBody(context, assignSchema);
     const result = await admin.assign(context.get("session"), input, context.get("correlationId"));
     return context.json(result);
+  });
+
+  app.patch("/api/admin/size-sets/:id/size-system", async (context) => {
+    const input = await parseBody(context, setSizeSystemSchema);
+    await admin.setSizeSystem(context.get("session"), context.req.param("id"), input.sizeSystemId, context.get("correlationId"));
+    return context.json({ ok: true });
+  });
+
+  app.post("/api/admin/size-systems", async (context) => {
+    const input = await parseBody(context, createSizeSystemSchema);
+    const result = await admin.createSizeSystem(context.get("session"), input.code, input.label, context.get("correlationId"));
+    return context.json(result, 201);
   });
 }

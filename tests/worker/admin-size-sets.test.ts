@@ -6,9 +6,13 @@ import { admin, dealerA, headers, repository, verifier } from "./fixtures";
 /** In-memory double for SizeSetsAdmin -- exercises the route layer (zod validation,
  *  admin-only access, status codes) without touching Supabase. */
 class FakeSizeSetsAdmin implements SizeSetsAdmin {
-  sets = new Map<string, { id: string; code: string; name: string }>([
-    ["set-1", { id: "set-1", code: "REEBOK_7_12", name: "Reebok 7 12" }],
+  sets = new Map<string, { id: string; code: string; name: string; sizeSystemId: string | null }>([
+    ["set-1", { id: "set-1", code: "REEBOK_7_12", name: "Reebok 7 12", sizeSystemId: null }],
   ]);
+  sizeSystems = new Map<string, { id: string; code: string; label: string }>([
+    ["sys-us", { id: "sys-us", code: "US", label: "US" }],
+  ]);
+  setSizeSystemCalls: unknown[] = [];
   values = new Map<string, { id: string; sizeSetId: string; label: string; sortOrder: number; inUse: boolean }>([
     ["value-1", { id: "value-1", sizeSetId: "set-1", label: "12", sortOrder: 5, inUse: true }],
     ["value-2", { id: "value-2", sizeSetId: "set-1", label: "11", sortOrder: 4, inUse: false }],
@@ -19,17 +23,19 @@ class FakeSizeSetsAdmin implements SizeSetsAdmin {
     return {
       sizeSets: [...this.sets.values()].map((set) => ({
         id: set.id, code: set.code, name: set.name,
+        sizeSystemId: set.sizeSystemId, sizeSystemLabel: set.sizeSystemId ? (this.sizeSystems.get(set.sizeSystemId)?.label ?? null) : null,
         values: [...this.values.values()].filter((v) => v.sizeSetId === set.id)
           .map((v) => ({ id: v.id, label: v.label, sortOrder: v.sortOrder, inUseCount: v.inUse ? 3 : 0 })),
       })),
       families: [{ id: "family-1", brandId: "brand-1", brandName: "Reebok", gender: "MENS", name: "Reebok Classic" }],
       assignments: [{ brandName: "Reebok", gender: "MENS", sizeSetCode: "REEBOK_7_12", sizeSetName: "Reebok 7 12", colourwayCount: 77 }],
+      sizeSystems: [...this.sizeSystems.values()],
     };
   }
 
   async createSet(_session: unknown, code: string, name: string): Promise<{ id: string }> {
     const id = `set-${this.sets.size + 1}`;
-    this.sets.set(id, { id, code, name });
+    this.sets.set(id, { id, code, name, sizeSystemId: null });
     return { id };
   }
 
@@ -59,6 +65,19 @@ class FakeSizeSetsAdmin implements SizeSetsAdmin {
   async assign(_session: unknown, input: unknown): Promise<{ colourwaysAffected: number }> {
     this.assignCalls.push(input);
     return { colourwaysAffected: 42 };
+  }
+
+  async setSizeSystem(_session: unknown, sizeSetId: string, sizeSystemId: string | null): Promise<void> {
+    this.setSizeSystemCalls.push({ sizeSetId, sizeSystemId });
+    const set = this.sets.get(sizeSetId);
+    if (!set) { const { ApiError } = await import("../../worker/middleware/errors"); throw new ApiError(404, "SIZE_SET_NOT_FOUND", "Size set not found"); }
+    set.sizeSystemId = sizeSystemId;
+  }
+
+  async createSizeSystem(_session: unknown, code: string, label: string): Promise<{ id: string }> {
+    const id = `sys-${this.sizeSystems.size + 1}`;
+    this.sizeSystems.set(id, { id, code, label });
+    return { id };
   }
 }
 

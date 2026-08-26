@@ -24,17 +24,19 @@ export class SupabaseSizeSetsAdmin implements SizeSetsAdmin {
 
   async list(session: SessionIdentity): Promise<SizeSetsAdminPayload> {
     const org = session.organisationId;
-    const [sets, values, families, brands, colourways, enabledUsage] = await Promise.all([
-      this.client.from("size_sets").select("id,code,name").eq("organisation_id", org).order("code"),
+    const [sets, values, families, brands, colourways, enabledUsage, sizeSystems] = await Promise.all([
+      this.client.from("size_sets").select("id,code,name,size_system_id").eq("organisation_id", org).order("code"),
       this.client.from("size_values").select("id,size_set_id,label,sort_order").eq("organisation_id", org).order("sort_order"),
       this.client.from("product_families").select("id,brand_id,gender,name,family_key").eq("organisation_id", org),
       this.client.from("brands").select("id,name").eq("organisation_id", org),
       this.client.from("product_colourways").select("id,product_family_id").eq("organisation_id", org),
       this.client.from("product_size_values").select("product_colourway_id,size_value_id").eq("organisation_id", org).eq("enabled", true),
+      this.client.from("size_systems").select("id,code,label").eq("organisation_id", org).order("label"),
     ]);
-    for (const result of [sets, values, families, brands, colourways, enabledUsage]) {
+    for (const result of [sets, values, families, brands, colourways, enabledUsage, sizeSystems]) {
       if (result.error) throw new ApiError(502, "SIZE_SETS_LOAD_FAILED", "Size sets could not be loaded");
     }
+    const systemById = new Map((sizeSystems.data ?? []).map((row: AnyRow) => [String(row.id), String(row.label)]));
 
     const brandById = new Map((brands.data ?? []).map((row: AnyRow) => [String(row.id), String(row.name)]));
     const familyById = new Map((families.data ?? []).map((row: AnyRow) => [String(row.id), row]));
@@ -50,6 +52,8 @@ export class SupabaseSizeSetsAdmin implements SizeSetsAdmin {
 
     const sizeSets = (sets.data ?? []).map((set: AnyRow) => ({
       id: String(set.id), code: String(set.code), name: String(set.name),
+      sizeSystemId: set.size_system_id ? String(set.size_system_id) : null,
+      sizeSystemLabel: set.size_system_id ? (systemById.get(String(set.size_system_id)) ?? null) : null,
       values: (values.data ?? [])
         .filter((value: AnyRow) => String(value.size_set_id) === String(set.id))
         .map((value: AnyRow) => ({ id: String(value.id), label: String(value.label), sortOrder: Number(value.sort_order), inUseCount: usageCounts[String(value.id)] ?? 0 })),
@@ -88,7 +92,10 @@ export class SupabaseSizeSetsAdmin implements SizeSetsAdmin {
       })
       .sort((a, b) => a.brandName.localeCompare(b.brandName) || a.gender.localeCompare(b.gender));
 
-    return { sizeSets, families: familyOptions, assignments };
+    return {
+      sizeSets, families: familyOptions, assignments,
+      sizeSystems: (sizeSystems.data ?? []).map((row: AnyRow) => ({ id: String(row.id), code: String(row.code), label: String(row.label) })),
+    };
   }
 
   async createSet(session: SessionIdentity, code: string, name: string, correlationId: string): Promise<{ id: string }> {
@@ -197,5 +204,31 @@ export class SupabaseSizeSetsAdmin implements SizeSetsAdmin {
 
     await this.audit(session, correlationId, "SIZE_SET_ASSIGNED", input.sizeSetId, { ...input, colourwaysAffected: colourwayIds.length });
     return { colourwaysAffected: colourwayIds.length };
+  }
+
+  async setSizeSystem(session: SessionIdentity, sizeSetId: string, sizeSystemId: string | null, correlationId: string): Promise<void> {
+    const org = session.organisationId;
+    const { data: set } = await this.client.from("size_sets").select("id")
+      .eq("id", sizeSetId).eq("organisation_id", org).maybeSingle();
+    if (!set) throw new ApiError(404, "SIZE_SET_NOT_FOUND", "Size set not found");
+    if (sizeSystemId) {
+      const { data: system } = await this.client.from("size_systems").select("id")
+        .eq("id", sizeSystemId).eq("organisation_id", org).maybeSingle();
+      if (!system) throw new ApiError(404, "SIZE_SYSTEM_NOT_FOUND", "Size system not found");
+    }
+    const { error } = await this.client.from("size_sets").update({ size_system_id: sizeSystemId }).eq("id", sizeSetId);
+    if (error) throw new ApiError(502, "SIZE_SET_UPDATE_FAILED", "Size system could not be saved");
+    await this.audit(session, correlationId, "SIZE_SET_SIZE_SYSTEM_SET", sizeSetId, { sizeSystemId });
+  }
+
+  async createSizeSystem(session: SessionIdentity, code: string, label: string, correlationId: string): Promise<{ id: string }> {
+    const { data, error } = await this.client.from("size_systems")
+      .insert({ organisation_id: session.organisationId, code, label }).select("id").single();
+    if (error) {
+      if (error.code === "23505") throw new ApiError(409, "SIZE_SYSTEM_CODE_TAKEN", "A size system with this code already exists");
+      throw new ApiError(502, "SIZE_SYSTEM_CREATE_FAILED", "Size system could not be created");
+    }
+    await this.audit(session, correlationId, "SIZE_SYSTEM_CREATED", String(data.id), { code, label });
+    return { id: String(data.id) };
   }
 }
