@@ -73,5 +73,22 @@
 .verify svg { width: 14px; height: 14px; flex-shrink: 0; align-self: center; }
 .verify-detail { color: var(--mute); font-weight: 400; }
 .plain-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+
+/* v5 order review: status is never colour alone -- every bucket pairs an icon with a word.
+   review-status is the order-level pill (control-heading), review-status-sm the compact
+   per-size badges inside a decision card. */
+.review-status { display: inline-flex; align-items: center; gap: 6px; border-radius: var(--radius-lg); padding: 7px 12px; font-size: 12px; font-weight: 500; }
+.review-status svg { width: 14px; height: 14px; flex-shrink: 0; }
+.review-status-green { background: var(--success-soft); color: var(--success); }
+.review-status-amber { background: var(--warning-soft); color: var(--warning); }
+.review-status-red { background: var(--danger-soft); color: var(--danger); }
+.review-status-blue { background: var(--info-soft); color: var(--info); }
+.review-status-sm { padding: 4px 9px; font-size: 11px; border-radius: var(--radius-md); }
+.review-bucket-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.decision-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.decision-card-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 480px) { .decision-card-grid-3 { grid-template-columns: 1fr; } }
+.review-reject-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.review-reject-inline .ui-field { min-width: 220px; margin: 0; }
 @media (max-width: 760px) { .control-layout { grid-template-columns: minmax(0, 1fr); } .control-nav { min-width: 0; border-right: 0; border-bottom: 1px solid #d8d8d8; } .control-nav nav { display: flex; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; } .control-nav a { flex: 0 0 auto; padding: 11px 14px; font-size: 13px; } .control-nav span { display: none; } .control-actions { grid-template-columns: minmax(0, 1fr); } .control-heading { align-items: flex-start; flex-direction: column; } .control-table-wrap, .control-layout .table-wrap { max-width: 100%; } .control-detail-grid { grid-template-columns: minmax(0, 1fr); } .control-layout .data-table th, .control-layout .data-table td, .control-layout .control-table-wrap th, .control-layout .control-table-wrap td { min-width: 84px; padding: 12px 10px; } }
 @media (prefers-reduced-motion: reduce) { .control-nav a { transition: none; } }

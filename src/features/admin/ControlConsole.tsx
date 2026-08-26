@@ -196,7 +196,7 @@ function OrdersSection() {
 			<a className="ui-btn ui-btn-secondary ui-btn-md" href={`/api/admin/orders/${open.id}/export-products.csv`}>Download this order</a>
 			<Button variant="secondary" onClick={() => { setOpenOrderId(null); reload(); }}>Back to all orders</Button>
 		</div>} />
-		<AdminOrderPanel order={open} />
+		<AdminOrderPanel orderId={open.id} />
 	</>;
 
 	return <>
