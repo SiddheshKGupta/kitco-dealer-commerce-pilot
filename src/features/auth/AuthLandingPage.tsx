@@ -1,5 +1,4 @@
 import { Button, Tabs } from "../../components/ui";
-import { ActivationPage } from "../activation/ActivationPage";
 import { RegisterPage } from "../activation/RegisterPage";
 import { LoginPage } from "./LoginPage";
 
@@ -8,29 +7,27 @@ function navigate(path: string) {
 	window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+const TABS = [{ id: "signin", label: "Sign In" }, { id: "register", label: "Register" }];
+
+/** v5 has two public doors and no third: sign in with KITCO-issued credentials, or
+ *  apply to become a dealer. v4's "Activate" tab is gone -- it let anyone search the
+ *  dealer list, claim an unactivated shop with their own email and be signed in as that
+ *  dealership, and 135 of the 136 live dealers are still unactivated. Registration
+ *  remains an application that only an admin can approve. */
 export function AuthLandingPage({ pathname }: { pathname: string }) {
-	const activeTab = pathname === "/activate" || pathname === "/register" ? "activate" : "signin";
-	if (pathname === "/register") {
-		return <div className="auth-landing">
-			<Tabs items={[{ id: "signin", label: "Sign In" }, { id: "activate", label: "Activate / Register" }]} activeId={activeTab} onChange={(id) => navigate(id === "activate" ? "/activate" : "/login")} label="Sign in or activate" />
-			<RegisterPage />
-		</div>;
-	}
-	if (activeTab === "activate") {
-		return <div className="auth-landing">
-			<Tabs items={[{ id: "signin", label: "Sign In" }, { id: "activate", label: "Activate / Register" }]} activeId={activeTab} onChange={(id) => navigate(id === "activate" ? "/activate" : "/login")} label="Sign in or activate" />
-			<ActivationPage />
-		</div>;
-	}
+	const activeTab = pathname === "/register" ? "register" : "signin";
+	const tabs = <Tabs items={TABS} activeId={activeTab} onChange={(id) => navigate(id === "register" ? "/register" : "/login")} label="Sign in or register" />;
+
+	if (activeTab === "register") return <div className="auth-landing">{tabs}<RegisterPage /></div>;
+
 	return <div className="auth-landing">
-		<Tabs items={[{ id: "signin", label: "Sign In" }, { id: "activate", label: "Activate / Register" }]} activeId={activeTab} onChange={(id) => navigate(id === "activate" ? "/activate" : "/login")} label="Sign in or activate" />
+		{tabs}
 		<div className="auth-landing-split">
 			<div className="auth-landing-primary"><LoginPage /></div>
 			<aside className="auth-landing-promo">
-				<p className="auth-kicker">First time here?</p>
-				<h2>Set up your account</h2>
-				<p className="field-note">Already work with KITCO? Activate your account in a few quick steps.</p>
-				<Button full onClick={() => navigate("/activate")}>Activate my account</Button>
+				<p className="auth-kicker">No sign-in details yet?</p>
+				<h2>KITCO issues your account</h2>
+				<p className="field-note">Existing dealers: KITCO sends you a Dealer Code and a first-time password. Contact your KITCO representative if you have not received them.</p>
 				<p className="field-note">Brand new to KITCO?</p>
 				<Button full variant="secondary" onClick={() => navigate("/register")}>Register my shop</Button>
 			</aside>

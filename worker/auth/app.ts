@@ -3,7 +3,6 @@ import type { Env } from "../env";
 import { createSupabaseAdminClient } from "../lib/supabase-admin";
 import { requireDealer, requireSession, type AuthVariables } from "../middleware/auth";
 import { handleApiError } from "../middleware/errors";
-import { registerActivationRoutes } from "../routes/activation";
 import { registerLoginRoutes } from "../routes/login";
 import { registerLogoutRoutes } from "../routes/logout";
 import { registerOrderOtpRoutes } from "../routes/order-otp";
@@ -12,18 +11,18 @@ import { registerRegistrationRoutes } from "../routes/register";
 import { OtpService } from "./otp-service";
 import { ResendEmailProvider } from "./resend-provider";
 import { SessionService } from "./session";
-import { SupabaseActivationStore, SupabaseLoginIdentityResolver, SupabaseOtpChallengeStore } from "./supabase-auth";
+import { SupabaseLoginIdentityResolver, SupabaseOtpChallengeStore } from "./supabase-auth";
 import { SupabaseDealerApplicationStore } from "../supabase-registration";
 import { createVerifiedSessionVerifier } from "./verified-session";
 
 export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   const client = createSupabaseAdminClient(env);
-  const activationStore = new SupabaseActivationStore(client);
   const applicationStore = new SupabaseDealerApplicationStore(client);
-  const identity = new SupabaseLoginIdentityResolver(client);
+  const identity = new SupabaseLoginIdentityResolver(client, env.SUPABASE_URL, env.SUPABASE_SECRET_KEY);
+  // No bypass code is accepted here or anywhere else: PILOT_STATIC_OTP is gone from the
+  // service, from Env and from the Worker's secrets (V5_AUTH_FLOW.md §7).
   const otp = new OtpService(new SupabaseOtpChallengeStore(client), new ResendEmailProvider(env), {
     pepper: env.SESSION_SECRET,
-    pilotBypassCode: env.PILOT_STATIC_OTP,
   });
   const sessions = new SessionService(env.SESSION_SECRET);
   const verifyApplicationSession = createVerifiedSessionVerifier(client, sessions);
@@ -31,10 +30,9 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   app.onError(handleApiError);
   app.use("/api/orders/otp", requireSession(verifyApplicationSession));
   app.use("/api/orders/otp", requireDealer());
-  registerActivationRoutes(app, { store: activationStore, otp, sessions });
   registerLoginRoutes(app, { identity, otp, sessions });
   registerLogoutRoutes(app, sessions);
-  registerOtpRoutes(app, { otp, sessions, identity, activationStore, applicationStore });
+  registerOtpRoutes(app, { otp, sessions, identity, applicationStore });
   registerOrderOtpRoutes(app, otp);
   registerRegistrationRoutes(app, { store: applicationStore, otp, sessions });
   return app;

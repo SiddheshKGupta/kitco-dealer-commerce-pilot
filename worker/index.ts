@@ -25,7 +25,7 @@ export function createProductionCommerceApp(env: Env) {
   const sessions = new SessionService(env.SESSION_SECRET);
   const otpStore = new SupabaseOtpChallengeStore(client);
   const mailer = new ResendEmailProvider(env);
-  const otp = new OtpService(otpStore, mailer, { pepper: env.SESSION_SECRET, pilotBypassCode: env.PILOT_STATIC_OTP });
+  const otp = new OtpService(otpStore, mailer, { pepper: env.SESSION_SECRET });
   return createCommerceApp({
     repository: new SupabaseCommerceRepository(client),
     verifySession: createVerifiedSessionVerifier(client, sessions),
@@ -60,7 +60,8 @@ export function createProductionCommerceApp(env: Env) {
 const app = new Hono<{ Bindings: Env }>();
 
 app.get("/api/health", (context) => context.json({ status: "ok" }));
-app.all("/api/activation/*", (context) =>
+// Both the bare path and its children: /api/login is the sign-in route itself.
+app.all("/api/login", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/login/*", (context) =>

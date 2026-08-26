@@ -1,23 +1,41 @@
 import type { Hono } from "hono";
+import type { AccountState } from "../account-state";
 import type { OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
 import type { AppRole } from "../middleware/auth";
+
+/** V5_AUTH_FLOW.md §6: 12 characters, the bar v4 activation already stated. */
+export const MINIMUM_PASSWORD_LENGTH = 12;
 
 export interface LoginIdentity {
   authUserId: string;
   dealerId: string | null;
   organisationId: string;
+  /** Where a one-time code is sent. Never echoed to the client. */
   email: string;
   role: AppRole;
+  /** null for admins, who have no dealer row -- `mustChangePassword` plays the
+   *  PASSWORD_CHANGE_REQUIRED role for them (V5_AUTH_FLOW.md §3). */
+  accountState: AccountState | null;
+  mustChangePassword: boolean;
+  firstLoginAt: string | null;
 }
 
-/** OTP is the only login factor -- there is no password to check. resolve() maps
- *  an email to an existing, ACTIVE account (dealer or admin); createUser() is used
- *  only by the activation flow, to create the auth identity a new dealer will only
- *  ever sign into via OTP. */
+/** Two factors: the password is checked by Supabase Auth (§6 -- there is no password
+ *  column anywhere in `dealers`), then a one-time code proves the mailbox.
+ *
+ *  `resolve` takes a Dealer Code, or the registered email as an alias for it. §8 leaves
+ *  that an open decision and names this as the safe default: it costs one extra lookup
+ *  and strands nobody who holds the letter but not the code. Admins have no dealer
+ *  record, so they always arrive by email. */
 export interface LoginIdentityResolver {
-  resolve(email: string): Promise<LoginIdentity | null>;
-  createUser(email: string): Promise<{ authUserId: string }>;
+  resolve(identifier: string): Promise<LoginIdentity | null>;
+  byAuthUserId(authUserId: string): Promise<LoginIdentity | null>;
+  verifyPassword(identity: LoginIdentity, password: string): Promise<boolean>;
+  setPassword(identity: LoginIdentity, password: string): Promise<void>;
+  /** Drives the dealer half of the state machine. Throws on an illegal move. */
+  moveAccountState(identity: LoginIdentity, to: AccountState): Promise<void>;
+  stampLogin(identity: LoginIdentity, first: boolean): Promise<void>;
 }
 
 interface LoginDependencies {
@@ -26,15 +44,62 @@ interface LoginDependencies {
   sessions: SessionService;
 }
 
+/** Every rejection at the identifier/password step returns this, byte for byte:
+ *  unknown Dealer Code, wrong password, never-credentialed dealer and suspended
+ *  account are indistinguishable from outside (V5_AUTH_FLOW.md §4). Admin tooling
+ *  tells them apart; the public surface does not. */
+const INVALID_CREDENTIALS = { error: "INVALID_CREDENTIALS" } as const;
+
+/** States from which a dealer may sign in at all. CREDENTIALS_PENDING is absent on
+ *  purpose: that is where a dealer with no reachable email is parked (§8), and there
+ *  is no password on their account to accept. IMPORTED has no credentials either. */
+const SIGN_IN_STATES: readonly (AccountState | null)[] = [
+  "CREDENTIALS_ISSUED",
+  "FIRST_LOGIN_PENDING",
+  "OTP_PENDING",
+  "PASSWORD_CHANGE_REQUIRED",
+  "ACTIVE",
+];
+
+/** A reset must not become a way around the issued password. A dealer who has never
+ *  signed in still holds an admin-known password and their recovery is re-issuance by
+ *  an admin (§5); letting them reset on mailbox control alone would hand the account
+ *  to anyone who reads that mailbox, which is the v4 single-factor hole. */
+const RESET_STATES: readonly (AccountState | null)[] = ["PASSWORD_CHANGE_REQUIRED", "ACTIVE"];
+
+function readBody(value: unknown, key: string): string | null {
+  if (!value || typeof value !== "object") return null;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === "string" && field.length > 0 && field.length <= 200 ? field : null;
+}
+
 export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependencies): void {
-  app.post("/api/login/otp", async (context) => {
-    const body = await context.req.json().catch(() => null) as { email?: unknown } | null;
-    if (!body || typeof body.email !== "string") {
-      return context.json({ error: "INVALID_LOGIN_REQUEST" }, 400);
-    }
-    const identity = await dependencies.identity.resolve(body.email.trim().toLowerCase());
-    if (!identity) return context.json({ error: "INVALID_CREDENTIALS" }, 401);
+  /** Factor one. A pass here only earns the right to be sent a code. */
+  app.post("/api/login", async (context) => {
+    const body = await context.req.json().catch(() => null);
+    const identifier = readBody(body, "identifier");
+    const password = readBody(body, "password");
+    if (!identifier || !password) return context.json({ error: "INVALID_LOGIN_REQUEST" }, 400);
+
+    const identity = await dependencies.identity.resolve(identifier.trim());
+    if (!identity) return context.json(INVALID_CREDENTIALS, 401);
+    if (identity.dealerId && !SIGN_IN_STATES.includes(identity.accountState)) return context.json(INVALID_CREDENTIALS, 401);
+    if (!(await dependencies.identity.verifyPassword(identity, password))) return context.json(INVALID_CREDENTIALS, 401);
+
     try {
+      // CREDENTIALS_ISSUED -> FIRST_LOGIN_PENDING -> OTP_PENDING is the first login;
+      // re-entering the password from OTP_PENDING walks the same two steps, which is
+      // what stops an abandoned challenge parking a dealer there (§5). An already
+      // ACTIVE dealer's state does not move at all -- repeat sign-in is not a
+      // provisioning event, it only stamps last_login_at once the code is verified.
+      if (identity.accountState === "CREDENTIALS_ISSUED" || identity.accountState === "OTP_PENDING") {
+        await dependencies.identity.moveAccountState(identity, "FIRST_LOGIN_PENDING");
+        identity.accountState = "FIRST_LOGIN_PENDING";
+      }
+      if (identity.accountState === "FIRST_LOGIN_PENDING") {
+        await dependencies.identity.moveAccountState(identity, "OTP_PENDING");
+        identity.accountState = "OTP_PENDING";
+      }
       const challenge = await dependencies.otp.issue({
         organisationId: identity.organisationId,
         dealerId: identity.dealerId,
@@ -42,7 +107,7 @@ export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependenc
         to: identity.email,
         purpose: "LOGIN",
       });
-      const pending = await dependencies.sessions.sealPending({
+      context.header("Set-Cookie", dependencies.sessions.pendingCookie(await dependencies.sessions.sealPending({
         kind: "login",
         challengeId: challenge.id,
         authUserId: identity.authUserId,
@@ -50,12 +115,96 @@ export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependenc
         organisationId: identity.organisationId,
         email: identity.email,
         role: identity.role,
-      });
-      context.header("Set-Cookie", dependencies.sessions.pendingCookie(pending));
+      })));
       return context.json({ otpRequired: true, challengeId: challenge.id }, 202);
     } catch (reason) {
       console.error("login.otp.issue_failed", { reason: reason instanceof Error ? reason.message : String(reason) });
       return context.json({ error: "EMAIL_DELIVERY_FAILED" }, 502);
     }
+  });
+
+  /** Recovery. The status, the body and the cookie are identical whether or not the
+   *  account exists, so this form is not a free membership oracle (§4). When there is
+   *  nobody to send a code to, the sealed session carries no identity and the code the
+   *  caller eventually types fails as OTP_INVALID -- the same answer a real account
+   *  gives for a wrong code. */
+  app.post("/api/login/reset", async (context) => {
+    const identifier = readBody(await context.req.json().catch(() => null), "identifier");
+    if (!identifier) return context.json({ error: "INVALID_LOGIN_REQUEST" }, 400);
+
+    const identity = await dependencies.identity.resolve(identifier.trim());
+    const eligible = identity && (!identity.dealerId || RESET_STATES.includes(identity.accountState));
+
+    let challengeId: string = crypto.randomUUID();
+    if (eligible) {
+      try {
+        const challenge = await dependencies.otp.issue({
+          organisationId: identity.organisationId,
+          dealerId: identity.dealerId,
+          authUserId: identity.authUserId,
+          to: identity.email,
+          purpose: "PASSWORD_RESET",
+        });
+        challengeId = challenge.id;
+      } catch (reason) {
+        // Still the same answer to the caller: a delivery failure must not be the one
+        // response shape that proves an address is on file.
+        console.error("login.reset.issue_failed", { reason: reason instanceof Error ? reason.message : String(reason) });
+        return context.json({ otpRequired: true, challengeId }, 202);
+      }
+    }
+    context.header("Set-Cookie", dependencies.sessions.pendingCookie(await dependencies.sessions.sealPending({
+      kind: "reset",
+      challengeId,
+      authUserId: eligible ? identity.authUserId : null,
+      verified: false,
+    })));
+    return context.json({ otpRequired: true, challengeId }, 202);
+  });
+
+  /** The only route a PASSWORD_CHANGE_REQUIRED session can reach: the session verifier
+   *  refuses that cookie everywhere else, so §2 step 4 is a wall and not a prompt.
+   *  Also serves a verified reset, which arrives on the pending cookie instead. */
+  app.post("/api/login/password", async (context) => {
+    const password = readBody(await context.req.json().catch(() => null), "password");
+    if (!password || password.length < MINIMUM_PASSWORD_LENGTH) return context.json({ error: "PASSWORD_TOO_SHORT" }, 400);
+
+    const cookies = context.req.header("cookie");
+    const pendingToken = dependencies.sessions.readCookie(cookies, "kitco_pending");
+    const pending = pendingToken ? await dependencies.sessions.openPending(pendingToken) : null;
+    const reset = pending?.kind === "reset" && pending.verified ? pending.authUserId : null;
+
+    let authUserId = reset;
+    if (!authUserId) {
+      const sealed = dependencies.sessions.readCookie(cookies, "kitco_session");
+      const session = sealed ? await dependencies.sessions.openApplication(sealed) : null;
+      if (!session) return context.json({ error: "UNAUTHENTICATED" }, 401);
+      authUserId = session.authUserId;
+    }
+
+    const identity = await dependencies.identity.byAuthUserId(authUserId);
+    // Without a reset, this endpoint exists only to satisfy a forced change. An
+    // authenticated dealer cannot use it to rotate a password at will -- that is a
+    // separate feature, and quietly allowing it here would make the forced-change
+    // wall look optional.
+    if (!identity || (!reset && !identity.mustChangePassword)) return context.json({ error: "UNAUTHENTICATED" }, 401);
+    if (await dependencies.identity.verifyPassword(identity, password)) {
+      return context.json({ error: "PASSWORD_UNCHANGED" }, 400);
+    }
+
+    await dependencies.identity.setPassword(identity, password);
+    if (identity.dealerId && identity.accountState && identity.accountState !== "ACTIVE") {
+      await dependencies.identity.moveAccountState(identity, "ACTIVE");
+    }
+    await dependencies.identity.stampLogin(identity, identity.firstLoginAt === null);
+
+    context.header("Set-Cookie", dependencies.sessions.applicationCookie(await dependencies.sessions.sealApplication({
+      authUserId: identity.authUserId,
+      dealerId: identity.dealerId,
+      organisationId: identity.organisationId,
+      email: identity.email,
+    })));
+    context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
+    return context.json({ authenticated: true, role: identity.role });
   });
 }

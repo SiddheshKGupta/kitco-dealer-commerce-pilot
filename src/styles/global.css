@@ -78,6 +78,10 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
    even though it still reads visually as understated underlined text, not a button. */
 .text-action { display: flex; align-items: center; width: 100%; min-height: 48px; margin-top: var(--space-3); border: 0; background: transparent; color: var(--text); font: inherit; font-size: 16px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .form-error { margin: var(--space-4) 0 0; border-left: 3px solid var(--text); background: var(--surface-subtle); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
+/* The sign-in audience is 40-50, on a phone, in a shop: this is the one message that
+   tells them why they are not getting in, so it reads at body size like everything
+   else on these screens. Scoped to .auth-page so the desktop console keeps its own. */
+.auth-page .form-error { font-size: 16px; }
 .success-state { margin-top: var(--space-5); }
 .success-state .ui-btn { margin-top: var(--space-6); }
 @keyframes route-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }

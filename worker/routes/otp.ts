@@ -1,7 +1,6 @@
 import type { Hono } from "hono";
 import type { OtpPurpose, OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
-import type { ActivationStore } from "./activation";
 import type { LoginIdentityResolver } from "./login";
 import type { DealerApplicationStore } from "./register";
 
@@ -9,11 +8,14 @@ interface OtpDependencies {
   otp: OtpService;
   sessions: SessionService;
   identity: LoginIdentityResolver;
-  activationStore: ActivationStore;
   applicationStore?: DealerApplicationStore;
 }
 
-const PURPOSES = new Set<OtpPurpose>(["ACTIVATION", "LOGIN", "ORDER_SUBMISSION", "REVISION_ACCEPTANCE", "REGISTRATION"]);
+const PURPOSES = new Set<OtpPurpose>(["LOGIN", "PASSWORD_RESET", "ORDER_SUBMISSION", "REVISION_ACCEPTANCE", "REGISTRATION"]);
+
+/** The pending cookie's kind and the purpose in the body must name the same flow, so a
+ *  code minted for one cannot be spent on another. */
+const KIND_FOR_PURPOSE: Record<string, string> = { LOGIN: "login", PASSWORD_RESET: "reset", REGISTRATION: "registration" };
 
 export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies): void {
   app.post("/api/otp/resend", async (context) => {
@@ -22,8 +24,22 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
     const pendingToken = dependencies.sessions.readCookie(context.req.header("cookie"), "kitco_pending");
     const pending = pendingToken ? await dependencies.sessions.openPending(pendingToken) : null;
     if (!pending || pending.challengeId !== body.challengeId) return context.json({ error: "PENDING_SESSION_REQUIRED" }, 401);
+    let to: string;
+    if (pending.kind === "reset") {
+      // A recovery for an identifier that matched nothing has no challenge and no
+      // recipient. It answers exactly as a real one does on cooldown, because a resend
+      // that behaved differently would give back the oracle /api/login/reset withholds.
+      if (!pending.authUserId) return context.json({ error: "OTP_RESEND_COOLDOWN" }, 429);
+      // The address is re-read rather than carried in the cookie, so a recovery cannot
+      // be redirected by anything the caller holds.
+      const identity = await dependencies.identity.byAuthUserId(pending.authUserId);
+      if (!identity) return context.json({ error: "OTP_NOT_FOUND" }, 404);
+      to = identity.email;
+    } else {
+      to = pending.email;
+    }
     try {
-      const challenge = await dependencies.otp.resend(body.challengeId, pending.email);
+      const challenge = await dependencies.otp.resend(body.challengeId, to);
       const replacement = await dependencies.sessions.sealPending({ ...pending, challengeId: challenge.id });
       context.header("Set-Cookie", dependencies.sessions.pendingCookie(replacement));
       return context.json({ otpRequired: true, challengeId: challenge.id }, 202);
@@ -51,23 +67,24 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
 
     const pendingToken = dependencies.sessions.readCookie(context.req.header("cookie"), "kitco_pending");
     const pending = pendingToken ? await dependencies.sessions.openPending(pendingToken) : null;
-    if (!pending || pending.challengeId !== body.challengeId || pending.kind.toUpperCase() !== body.purpose) {
+    if (!pending || pending.challengeId !== body.challengeId || pending.kind !== KIND_FOR_PURPOSE[body.purpose]) {
       return context.json({ error: "PENDING_SESSION_REQUIRED" }, 401);
     }
+    // The decoy recovery ends here, with the answer a real account gives for a wrong
+    // code. Checked before otp.verify so a challenge id that was never issued cannot
+    // come back as OTP_NOT_FOUND and give the game away.
+    if (pending.kind === "reset" && !pending.authUserId) return context.json({ error: "OTP_INVALID" }, 400);
 
     try {
       await dependencies.otp.verify(body.challengeId, body.code, body.purpose as OtpPurpose);
-      if (pending.kind === "login") {
-        const token = await dependencies.sessions.sealApplication({
-          authUserId: pending.authUserId,
-          dealerId: pending.dealerId,
-          organisationId: pending.organisationId,
-          email: pending.email,
-        });
-        context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
-        context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
-        return context.json({ authenticated: true, role: pending.role });
+
+      if (pending.kind === "reset") {
+        context.header("Set-Cookie", dependencies.sessions.pendingCookie(
+          await dependencies.sessions.sealPending({ ...pending, verified: true }),
+        ));
+        return context.json({ authenticated: false, passwordResetAuthorised: true });
       }
+
       if (pending.kind === "registration") {
         if (!dependencies.applicationStore) return context.json({ error: "APPLICATION_NOT_FOUND" }, 404);
         // Verifying the code proves the applicant owns the email address they
@@ -82,19 +99,30 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         return context.json({ authenticated: false, submitted: true });
       }
 
-      const created = await dependencies.identity.createUser(pending.email);
-      if (!(await dependencies.activationStore.activate(pending.dealerId, created.authUserId, pending.business))) {
-        return context.json({ error: "DEALER_ALREADY_ACTIVE" }, 409);
+      // Factor two passed. The state is re-read rather than trusted from the cookie,
+      // so an admin who suspended this dealer between the two screens still wins.
+      const identity = await dependencies.identity.byAuthUserId(pending.authUserId);
+      if (!identity) return context.json({ error: "INVALID_CREDENTIALS" }, 401);
+
+      const mustChangePassword = identity.mustChangePassword || identity.accountState === "OTP_PENDING";
+      if (identity.accountState === "OTP_PENDING") {
+        await dependencies.identity.moveAccountState(identity, "PASSWORD_CHANGE_REQUIRED");
       }
+      // Only a login that is already finished stamps last_login_at. A first login is
+      // not finished until the issued password has been replaced.
+      if (!mustChangePassword) await dependencies.identity.stampLogin(identity, false);
+
       const token = await dependencies.sessions.sealApplication({
-        authUserId: created.authUserId,
-        dealerId: pending.dealerId,
-        organisationId: pending.organisationId,
-        email: pending.email,
+        authUserId: identity.authUserId,
+        dealerId: identity.dealerId,
+        organisationId: identity.organisationId,
+        email: identity.email,
       });
       context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
       context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
-      return context.json({ authenticated: true, role: "DEALER" });
+      // This cookie reaches exactly one route while mustChangePassword holds: the
+      // session verifier refuses it everywhere else (V5_AUTH_FLOW.md §2 step 4).
+      return context.json({ authenticated: true, role: identity.role, mustChangePassword });
     } catch (error) {
       const message = error instanceof Error ? error.message : "OTP_INVALID";
       const status = message === "OTP_NOT_FOUND" ? 404 : 400;

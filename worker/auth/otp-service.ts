@@ -72,8 +72,6 @@ interface OtpOptions {
   ttlMs?: number;
   maxAttempts?: number;
   resendCooldownMs?: number;
-  /** ponytail: pilot-only static OTP bypass, unset in production once Resend delivery is fully unblocked */
-  pilotBypassCode?: string;
 }
 
 const encoder = new TextEncoder();
@@ -162,7 +160,8 @@ export class OtpService {
       await this.store.update(challenge);
       return challenge;
     } catch {
-      if (this.options.pilotBypassCode) return challenge;
+      // A challenge whose code was never delivered is a dead end nobody can escape,
+      // so it is consumed here rather than left live (V5_AUTH_FLOW.md §7).
       challenge.consumedAt = now.toISOString();
       await this.store.update(challenge);
       throw new Error("EMAIL_DELIVERY_FAILED");
@@ -193,9 +192,11 @@ export class OtpService {
     if (challenge.purpose !== purpose) throw new Error("OTP_PURPOSE_MISMATCH");
     if (this.now().getTime() >= Date.parse(challenge.expiresAt)) throw new Error("OTP_EXPIRED");
     if (challenge.attempts >= challenge.maxAttempts) throw new Error("OTP_ATTEMPTS_EXHAUSTED");
-    const isPilotBypass = Boolean(this.options.pilotBypassCode) && code === this.options.pilotBypassCode;
+    // No bypass branch, by design: the only way past this comparison is the code that
+    // was actually issued. Tests inject `options.code`; production has no path that can
+    // accept a fixed value, not even behind an environment variable (§7).
     const supplied = await keyedHash(`${challenge.id}:${code}`, this.options.pepper);
-    if (!isPilotBypass && !equalHash(supplied, challenge.codeHash)) {
+    if (!equalHash(supplied, challenge.codeHash)) {
       const expectedAttempts = challenge.attempts;
       challenge.attempts += 1;
       if (!(await this.store.update(challenge, expectedAttempts))) throw new Error("OTP_ALREADY_CONSUMED");

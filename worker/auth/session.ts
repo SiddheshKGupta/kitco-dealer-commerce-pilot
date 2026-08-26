@@ -1,5 +1,4 @@
 import type { AppRole } from "../middleware/auth";
-import type { DealerBusinessDetails } from "../routes/activation";
 
 export interface PendingLoginSession {
   kind: "login";
@@ -11,13 +10,15 @@ export interface PendingLoginSession {
   role: AppRole;
 }
 
-export interface PendingActivationSession {
-  kind: "activation";
+/** A password recovery in flight. `authUserId` is null when the identifier matched
+ *  nothing — the decoy that keeps the recovery form from confirming who is a KITCO
+ *  dealer (V5_AUTH_FLOW.md §4). `verified` flips only once the code is accepted, and
+ *  it is what authorises exactly one call to /api/login/password. */
+export interface PendingResetSession {
+  kind: "reset";
   challengeId: string;
-  dealerId: string;
-  organisationId: string;
-  email: string;
-  business: DealerBusinessDetails;
+  authUserId: string | null;
+  verified: boolean;
 }
 
 export interface PendingRegistrationSession {
@@ -28,7 +29,7 @@ export interface PendingRegistrationSession {
   email: string;
 }
 
-export type PendingSession = PendingLoginSession | PendingActivationSession | PendingRegistrationSession;
+export type PendingSession = PendingLoginSession | PendingResetSession | PendingRegistrationSession;
 
 export interface ApplicationSession {
   authUserId: string;

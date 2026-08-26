@@ -1,4 +1,4 @@
-export type EmailOtpPurpose = "ACTIVATION" | "LOGIN" | "ORDER_SUBMISSION" | "REVISION_ACCEPTANCE" | "REGISTRATION";
+export type EmailOtpPurpose = "LOGIN" | "PASSWORD_RESET" | "ORDER_SUBMISSION" | "REVISION_ACCEPTANCE" | "REGISTRATION";
 
 export interface EmailOtpMessage {
   to: string;

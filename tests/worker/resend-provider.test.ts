@@ -106,7 +106,7 @@ describe("ResendEmailProvider", () => {
       provider.sendOtp({
         to: "pilot@example.test",
         code: "482901",
-        purpose: "ACTIVATION",
+        purpose: "PASSWORD_RESET",
         correlationId: "corr-2",
         challengeId: "challenge-2",
       }),

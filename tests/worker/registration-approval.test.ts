@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { CaptureEmailProvider } from "../../worker/auth/email-provider";
 import { InMemoryOtpChallengeStore, OtpService } from "../../worker/auth/otp-service";
 import { SessionService } from "../../worker/auth/session";
-import type { ActivationStore } from "../../worker/routes/activation";
 import type { LoginIdentityResolver } from "../../worker/routes/login";
 import { registerOtpRoutes } from "../../worker/routes/otp";
 import {
@@ -49,11 +48,18 @@ class MemoryApplicationStore implements DealerApplicationStore {
   }
 }
 
-/** Counts calls so a test can prove no auth user was minted. */
+/** Every method records the call, so a test can prove the registration branch never
+ *  reaches for an identity at all. v5 removed createUser() outright -- there is no
+ *  longer any code path that mints an auth user outside admin credential issuance --
+ *  so the guard is now "the resolver was not touched", which is strictly stronger. */
 class CountingIdentityResolver implements LoginIdentityResolver {
-  created = 0;
-  async resolve() { return null; }
-  async createUser(email: string) { this.created += 1; return { authUserId: `user-${email}` }; }
+  readonly calls: string[] = [];
+  async resolve() { this.calls.push("resolve"); return null; }
+  async byAuthUserId() { this.calls.push("byAuthUserId"); return null; }
+  async verifyPassword() { this.calls.push("verifyPassword"); return false; }
+  async setPassword() { this.calls.push("setPassword"); }
+  async moveAccountState() { this.calls.push("moveAccountState"); }
+  async stampLogin() { this.calls.push("stampLogin"); }
 }
 
 function buildHarness() {
@@ -68,9 +74,7 @@ function buildHarness() {
   });
   const app = new Hono();
   registerRegistrationRoutes(app, { store, otp, sessions });
-  // No activation store is exercised by these paths; the registration branch of
-  // /api/otp/verify must not reach for one.
-  registerOtpRoutes(app, { otp, sessions, identity, activationStore: {} as ActivationStore, applicationStore: store });
+  registerOtpRoutes(app, { otp, sessions, identity, applicationStore: store });
   return { app, store, identity, provider };
 }
 
@@ -106,7 +110,7 @@ describe("new dealer registration", () => {
     expect(await response.json()).toEqual({ authenticated: false, submitted: true });
     expect(store.applications.get(applicationId)?.status).toBe("SUBMITTED");
     // No account was created and no session cookie was handed out.
-    expect(identity.created).toBe(0);
+    expect(identity.calls).toEqual([]);
     const cookies = response.headers.getSetCookie().join(" ");
     expect(cookies).not.toContain("kitco_session");
     expect(cookies).toContain("kitco_pending=;");
