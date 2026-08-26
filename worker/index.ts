@@ -26,6 +26,7 @@ export function createProductionCommerceApp(env: Env) {
   const otpStore = new SupabaseOtpChallengeStore(client);
   const mailer = new ResendEmailProvider(env);
   const otp = new OtpService(otpStore, mailer, { pepper: env.SESSION_SECRET, pilotBypassCode: env.PILOT_STATIC_OTP });
+  const adminDealers = new SupabaseAdminDealers(client);
   return createCommerceApp({
     repository: new SupabaseCommerceRepository(client),
     verifySession: createVerifiedSessionVerifier(client, sessions),
@@ -49,8 +50,8 @@ export function createProductionCommerceApp(env: Env) {
     dealerProfiles: new SupabaseDealerProfileStore(client),
     adminConsole: new SupabaseAdminConsoleReader(client),
     ordersExporter: new SupabaseOrdersExporter(client),
-    dealerApplications: new SupabaseDealerApplicationsAdmin(client, mailer),
-    adminDealers: new SupabaseAdminDealers(client),
+    dealerApplications: new SupabaseDealerApplicationsAdmin(client, mailer, undefined, adminDealers),
+    adminDealers,
     adminUsers: new SupabaseAdminUsersStore(client),
     sizeSetsAdmin: new SupabaseSizeSetsAdmin(client),
     dealerGroups: new SupabaseDealerGroups(client),

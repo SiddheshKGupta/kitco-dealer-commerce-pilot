@@ -3,6 +3,7 @@ import type { NoticeMailer } from "./auth/resend-provider";
 import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 import type { DealerApplicationRow, DealerApplicationsAdmin } from "./routes/admin-dealer-applications";
+import type { AdminDealersStore } from "./routes/admin-dealers";
 
 type Row = Record<string, any>;
 
@@ -16,6 +17,13 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 		private readonly client: SupabaseClient,
 		private readonly mailer?: NoticeMailer,
 		private readonly portalUrl = "https://partners.kitco.co.in",
+		// Auth v5 replaced self-service /activate (email + OTP, no password) with
+		// KITCO-issued Dealer Code + password. Approving an application used to be
+		// enough on its own -- the dealer could self-activate -- but under v5 an
+		// approval that stops here creates a dealer with no auth user and no way in
+		// at all. issueCredentials() closes that loop in the same action, so
+		// approving *is* onboarding, not the first of several separate admin steps.
+		private readonly adminDealers?: AdminDealersStore,
 	) {}
 
 	/** Tells the applicant what KITCO decided. Deliberately never throws: the
@@ -130,6 +138,14 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 		});
 		if (gstError) throw new ApiError(502, "DEALER_CREATE_FAILED", "GST registration could not be recorded");
 
+		// Issued before the application is marked APPROVED: if this fails, the
+		// application stays reviewable and the admin sees a real error to retry,
+		// rather than a "successful" approval that quietly produced a dealer nobody
+		// can sign in as.
+		const credentials = this.adminDealers
+			? await this.adminDealers.issueCredentials(session, dealerId, correlationId)
+			: null;
+
 		const { error: updateError } = await this.client.from("dealer_applications").update({
 			status: "APPROVED", reviewed_by: session.userId, reviewed_at: new Date().toISOString(), created_dealer_id: dealerId,
 		}).eq("id", applicationId);
@@ -137,9 +153,14 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 		await this.audit(session, correlationId, "DEALER_APPLICATION_APPROVED", applicationId, { dealerId, businessName: application.business_name });
 		await this.notify(String(application.primary_email), correlationId,
 			"Your KITCO dealer registration is approved",
-			`KITCO has approved your registration for ${application.business_name}.\n\n` +
-			`Activate your account at ${this.portalUrl}/activate using this email address. ` +
-			`You will be sent a one-time code to confirm it is you.`);
+			credentials
+				? `KITCO has approved your registration for ${application.business_name}.\n\n` +
+					`Sign in at ${this.portalUrl}/login with:\n\n` +
+					`Dealer Code: ${credentials.dealerCode}\n` +
+					`Password: ${credentials.password}\n\n` +
+					`You'll be sent a one-time code by email to confirm it's you, and asked to choose your own password on your first sign-in.`
+				: `KITCO has approved your registration for ${application.business_name}.\n\n` +
+					`KITCO will be in touch shortly with your sign-in details.`);
 		return { dealerId };
 	}
 

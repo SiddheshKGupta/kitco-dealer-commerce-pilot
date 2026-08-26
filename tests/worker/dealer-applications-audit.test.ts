@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
+import { ApiError } from "../../worker/middleware/errors";
 import { SupabaseDealerApplicationsAdmin, slugCode } from "../../worker/supabase-dealer-applications";
 import { admin } from "./fixtures";
 
@@ -146,14 +147,38 @@ describe("SupabaseDealerApplicationsAdmin.approve -- what the new dealer inherit
 		});
 	});
 
-	it("tells the applicant they were approved, and where to go next", async () => {
+	it("issues real sign-in credentials in the same action, and emails the Dealer Code and password", async () => {
+		// Auth v5 removed self-service /activate; an approval that stops at "here's a
+		// dealer row" leaves a real applicant with no auth user and no way in at all.
+		// This is the regression the client reported live: "he has no password or
+		// option for new password" after clicking the approval email's link.
 		const sent: Array<{ to: string; subject: string; text: string }> = [];
 		const mailer = { sendNotice: async (notice: any) => { sent.push(notice); return { deliveryId: "mail-1" }; } };
-		await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer).approve(admin, "app-1", "corr-1");
+		const issued: Array<{ dealerId: string }> = [];
+		const adminDealers = {
+			issueCredentials: async (_session: any, dealerId: string) => {
+				issued.push({ dealerId });
+				return { dealerId, dealerCode: "VLCOSP1234", loginEmail: "owner@vlco.test", password: "kitco-issued-Xyz1", accountState: "CREDENTIALS_ISSUED", credentialsIssuedAt: "2026-08-01T00:00:00.000Z", reissued: false };
+			},
+		};
+		await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer, undefined, adminDealers as any).approve(admin, "app-1", "corr-1");
 
+		expect(issued).toEqual([{ dealerId: "dealer-new-1" }]);
 		expect(sent).toHaveLength(1);
 		expect(sent[0]!.to).toBe("owner@vlco.test");
-		expect(sent[0]!.text).toContain("/activate");
+		expect(sent[0]!.text).toContain("/login");
+		expect(sent[0]!.text).not.toContain("/activate");
+		expect(sent[0]!.text).toContain("VLCOSP1234");
+		expect(sent[0]!.text).toContain("kitco-issued-Xyz1");
+	});
+
+	it("still approves and emails something sensible when no credential store is wired", async () => {
+		const sent: Array<{ text: string }> = [];
+		const mailer = { sendNotice: async (notice: any) => { sent.push(notice); return { deliveryId: "mail-1" }; } };
+		const result = await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer).approve(admin, "app-1", "corr-1");
+
+		expect(result).toEqual({ dealerId: "dealer-new-1" });
+		expect(sent[0]!.text).not.toContain("/activate");
 	});
 
 	it("still approves when the decision email bounces", async () => {
@@ -163,6 +188,16 @@ describe("SupabaseDealerApplicationsAdmin.approve -- what the new dealer inherit
 		const result = await new SupabaseDealerApplicationsAdmin(makeClient().client, mailer).approve(admin, "app-1", "corr-1");
 
 		expect(result).toEqual({ dealerId: "dealer-new-1" });
+	});
+
+	it("fails the whole approval, before the application is marked APPROVED, if credentials cannot be issued", async () => {
+		// A "successful" approval that quietly produced a dealer nobody can sign in
+		// as is worse than a clear error the admin can retry.
+		const { client, applicationUpdates } = makeClient();
+		const adminDealers = { issueCredentials: async () => { throw new ApiError(409, "DEALER_EMAIL_MISSING", "no email"); } };
+		await expect(new SupabaseDealerApplicationsAdmin(client, undefined, undefined, adminDealers as any).approve(admin, "app-1", "corr-1"))
+			.rejects.toMatchObject({ code: "DEALER_EMAIL_MISSING" });
+		expect(applicationUpdates).toEqual([]);
 	});
 
 	it("tells the applicant why they were rejected", async () => {
