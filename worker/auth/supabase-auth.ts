@@ -92,7 +92,7 @@ export class SupabaseLoginIdentityResolver implements LoginIdentityResolver {
       const email = await this.emailOfAuthUser(authUserId);
       if (!email) return null;
       return {
-        authUserId, dealerId: null, organisationId: user.organisation_id, email, role: user.app_role,
+        authUserId, dealerId: null, organisationId: user.organisation_id, email, authEmail: email, role: user.app_role,
         accountState: null, mustChangePassword: user.must_change_password === true, firstLoginAt: null,
       };
     }
@@ -116,11 +116,19 @@ export class SupabaseLoginIdentityResolver implements LoginIdentityResolver {
       user = (data as AppUserRow | null) ?? undefined;
     }
     if (!user || user.status !== "ACTIVE") return null;
+    // The dealer's OTP address and the auth user's actual email are two different
+    // facts that happen to start out equal (issueCredentials sets both from the same
+    // value) and can drift apart the moment either one is edited afterward. Fetching
+    // the real one here, always, is what stops that drift from silently breaking
+    // password sign-in.
+    const authEmail = await this.emailOfAuthUser(user.auth_user_id);
+    if (!authEmail) return null;
     return {
       authUserId: user.auth_user_id,
       dealerId: dealer.id,
       organisationId: dealer.organisation_id,
       email: email.toLowerCase(),
+      authEmail,
       role: "DEALER",
       accountState: dealer.account_state,
       mustChangePassword: user.must_change_password === true,
@@ -136,7 +144,7 @@ export class SupabaseLoginIdentityResolver implements LoginIdentityResolver {
     this.passwordClient ??= createClient(this.url, this.key, {
       auth: { autoRefreshToken: false, detectSessionInUrl: false, persistSession: false },
     });
-    const { data, error } = await this.passwordClient.auth.signInWithPassword({ email: identity.email, password });
+    const { data, error } = await this.passwordClient.auth.signInWithPassword({ email: identity.authEmail, password });
     if (error || !data.user) return false;
     await this.passwordClient.auth.signOut({ scope: "local" }).catch(() => undefined);
     return data.user.id === identity.authUserId;

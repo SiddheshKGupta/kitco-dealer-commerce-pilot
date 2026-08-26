@@ -68,6 +68,7 @@ function dealer(code: string, accountState: AccountState | null, overrides: Part
       dealerId: `dealer-${code}`,
       organisationId: "org-1",
       email: `${code.toLowerCase()}@dealer.test`,
+      authEmail: `${code.toLowerCase()}@dealer.test`,
       role: "DEALER",
       accountState,
       mustChangePassword: accountState === "CREDENTIALS_ISSUED",

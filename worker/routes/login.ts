@@ -11,8 +11,17 @@ export interface LoginIdentity {
   authUserId: string;
   dealerId: string | null;
   organisationId: string;
-  /** Where a one-time code is sent. Never echoed to the client. */
+  /** Where a one-time code is sent -- a dealer's chosen pilot/master/secondary address,
+   *  which is a business preference and has nothing to do with what Supabase Auth
+   *  authenticates the account by. Never echoed to the client. */
   email: string;
+  /** The auth.users.email tied to authUserId -- the only value password sign-in may be
+   *  checked against. Kept apart from `email` on purpose: a dealer's OTP address can be
+   *  edited long after their auth user was created (or inherited from v4 activation
+   *  under a different address entirely), and checking the password against the wrong
+   *  one fails every time with no way to tell from the error that the password was
+   *  actually right. */
+  authEmail: string;
   role: AppRole;
   /** null for admins, who have no dealer row -- `mustChangePassword` plays the
    *  PASSWORD_CHANGE_REQUIRED role for them (V5_AUTH_FLOW.md §3). */
