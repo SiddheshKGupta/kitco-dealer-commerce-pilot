@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Checkbox, OTPInput } from "../../components/ui";
+import { Button, Checkbox, EmptyState, OTPInput } from "../../components/ui";
 import { formatSizeQuantities, sizeSystemDisplayLabel } from "../../domain/order-sizes";
 import { formatRetailValue } from "../catalogue/types";
 import { fetchDealerGroup, fetchDraft, mediaUrl, submitOrder, type DealerGroupPayload, type DraftLine } from "./api";
+
+function navigate(path: string) {
+	window.history.pushState({}, "", path);
+	window.dispatchEvent(new PopStateEvent("popstate"));
+}
 
 type Stage = "review" | "otp" | "submitted";
 type DeliveryPreference = "ASAP" | "REQUESTED_DATE";
@@ -69,6 +74,10 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 	const locationOptions = shipToDealer?.locations ?? [];
 	// Switching Ship-To dealer invalidates a location that belonged to the previous one.
 	useEffect(() => { if (location && !locationOptions.some((item) => item.id === location)) setLocation(""); }, [shipTo]); // eslint-disable-line react-hooks/exhaustive-deps
+	// One location is not a choice -- a dropdown sitting on "Choose location" with a
+	// single greyed-out-looking option below it reads as broken, and left the Place
+	// Final Order button disabled with nothing on screen explaining why.
+	useEffect(() => { if (locationOptions.length === 1 && !location) setLocation(locationOptions[0]!.id); }, [locationOptions]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const totalPairs = useMemo(() => (lines ?? []).reduce((sum, line) => sum + pairs(line.quantities), 0), [lines]);
 	const totalValue = useMemo(() => (lines ?? []).reduce((sum, line) => sum + line.retailValueMinor, 0), [lines]);
@@ -92,7 +101,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 		try {
 			await submitOrder({
 				otpChallengeId: challengeId, otpCode: otp, idempotencyKey: idempotencyKey.current,
-				billToDealerId: billTo || undefined, shipToDealerId: shipTo || undefined, shipToLocationId: location || null,
+				billToDealerId: billTo || undefined, shipToDealerId: shipTo || undefined, shipToLocationId: location || undefined,
 				dealerPoNumber: poNumber.trim() || undefined,
 				deliveryPreference, requestedDeliveryDate: deliveryPreference === "REQUESTED_DATE" ? requestedDate : undefined,
 			});
@@ -127,7 +136,10 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 	}
 
 	if (lines.length === 0) {
-		return <main className="commerce-page"><h1>Review Order</h1><p className="field-note">Your Current Order is empty. <a href="/products">Browse products</a> to add articles.</p></main>;
+		return <main className="commerce-page">
+			<h1>Review Order</h1>
+			<EmptyState title="Your Current Order is empty" description="Browse the catalogue and add articles before reviewing your order." action={<Button onClick={() => navigate("/products")}>Browse Products</Button>} />
+		</main>;
 	}
 
 	return <main className="commerce-page commerce-review-page">
@@ -153,7 +165,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 					{locationOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
 				</select>
 			</label>
-			{groupStatus === "error" && <p className="commerce-validation" role="alert">Delivery details could not be loaded. Try again shortly.</p>}
+			{groupStatus === "error" && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> Delivery details could not be loaded. Try again shortly.</p>}
 		</section>
 
 		<section className="commerce-review-section">
@@ -208,7 +220,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 		{stage === "review" && <>
 			<Checkbox label="I confirm the above order details." checked={confirmed} onChange={(event) => setConfirmed(event.target.checked)} />
 			{profileBlock && <p className="commerce-validation" role="alert">
-				Add {profileBlock} to your profile before placing an order. <a href="/profile">Complete your profile</a>
+				<span aria-hidden="true">!</span> Add {profileBlock} to your profile before placing an order. <a href="/profile">Complete your profile</a>
 			</p>}
 			<Button full disabled={placeOrderDisabled} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
 		</>}
@@ -219,6 +231,6 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 			<Button full disabled={otp.length !== 6 || pending !== null} onClick={() => void submit()}>{pending === "submit" ? "Submitting…" : "Confirm Order"}</Button>
 			<Button variant="ghost" size="md" disabled={resendIn > 0} onClick={() => void resendOtp()}>{resendIn > 0 ? `Send me a new code in ${resendIn}s` : "Send me a new code"}</Button>
 		</div>}
-		{error && <p className="commerce-validation" role="alert">{error}</p>}
+		{error && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{error}</span></p>}
 	</main>;
 }

@@ -6,7 +6,53 @@ afterEach(() => vi.unstubAllGlobals());
 
 const GROUP_SINGLE_DEALER = { group: null, dealers: [{ dealerId: "dealer-a", dealerCode: "A", displayName: "Dealer A", isSelf: true, locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }] };
 
+const GROUP_NO_LOCATIONS = { group: null, dealers: [{ dealerId: "dealer-a", dealerCode: "A", displayName: "Dealer A", isSelf: true, locations: [] }] };
+
 describe("Review order (single consolidated OTP)", () => {
+  it("submits with no ship-to location at all, rather than a literal null the server rejects", async () => {
+    // Real bug: this used to send shipToLocationId: null, which fails the server's
+    // z.string().optional() schema (accepts a string or nothing, never null) with
+    // "Request validation failed" -- blocking every dealer with no location on file,
+    // which is most of the 136 real pilot dealers.
+    let submittedBody: string | undefined;
+    vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_NO_LOCATIONS), { status: 200 });
+      if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
+      if (input === "/api/orders/submit") { submittedBody = init?.body as string; return new Response(JSON.stringify({ order: { id: "order-1", version: 1, retailValueMinor: 40000 } }), { status: 201 }); }
+      throw new Error(`unexpected fetch ${input}`);
+    }));
+    render(<ReviewPage requestOrderOtp={async () => "otp-order-1"} />);
+
+    await screen.findByText(/Ships to the registered address/);
+    fireEvent.click(screen.getByLabelText("I confirm the above order details."));
+    fireEvent.click(screen.getByRole("button", { name: "Place Final Order" }));
+    await screen.findByLabelText("Verification code");
+    fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Order" }));
+    await screen.findByText("Order submitted");
+
+    expect(submittedBody).toBeDefined();
+    const parsed = JSON.parse(submittedBody!);
+    expect(parsed).not.toHaveProperty("shipToLocationId");
+    expect(JSON.stringify(parsed)).not.toContain("null");
+  });
+
+  it("auto-selects the one available ship-to location instead of leaving the dealer stuck on an unexplained disabled button", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
+      if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
+      throw new Error(`unexpected fetch ${input}`);
+    }));
+    render(<ReviewPage requestOrderOtp={async () => "otp-order-1"} />);
+
+    await screen.findByRole("option", { name: "Main showroom" });
+    await waitFor(() => expect(screen.getByLabelText("Ship-to location")).toHaveValue("location-main"));
+    fireEvent.click(screen.getByLabelText("I confirm the above order details."));
+    expect(screen.getByRole("button", { name: "Place Final Order" })).not.toBeDisabled();
+  });
+});
+
+describe("Review order (single consolidated OTP) -- legacy", () => {
   it("summarises the draft, requests one OTP, and confirms submission in plain language (no technical version identifier)", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
       if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
