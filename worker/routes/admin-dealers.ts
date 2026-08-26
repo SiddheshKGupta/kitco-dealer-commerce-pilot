@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { z } from "zod";
+import { GSTIN_REGEX } from "../../src/domain/gstin";
 import type { AuthVariables, SessionIdentity } from "../middleware/auth";
 import { csvEscape } from "./admin-export";
 import { parseBody } from "./shared";
@@ -174,7 +175,7 @@ export function parseCsv(text: string): string[][] {
 // Live dealer codes look like BIHAR-0001, so hyphens and underscores are in.
 const dealerCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9][A-Z0-9_-]{1,39}$/, "Use letters, numbers, hyphens and underscores, 2-40 characters");
 const groupCodeSchema = z.string().trim().toUpperCase().regex(/^[A-Z0-9_]{2,40}$/, "Use letters, numbers and underscores only, 2-40 characters");
-const gstinSchema = z.string().trim().toUpperCase().regex(/^[0-9A-Z]{15}$/u, "A GST number is 15 letters and digits");
+const gstinSchema = z.string().trim().toUpperCase().regex(GSTIN_REGEX, "A GST number is 15 letters and digits in the standard state/PAN/entity format");
 const text = (max: number) => z.string().trim().min(1).max(max);
 
 const dealerShape = {

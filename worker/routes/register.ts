@@ -1,4 +1,5 @@
 import type { Hono } from "hono";
+import { isValidGstin } from "../../src/domain/gstin";
 import type { OtpService } from "../auth/otp-service";
 import type { SessionService } from "../auth/session";
 
@@ -51,18 +52,24 @@ function nonEmptyString(value: unknown, max = 200): value is string {
 	return typeof value === "string" && value.trim().length > 0 && value.length <= max;
 }
 
+// A real Indian mobile number: 10 digits, first digit 6-9.
+const MOBILE_REGEX = /^[6-9][0-9]{9}$/u;
+const PIN_CODE_REGEX = /^[0-9]{6}$/u;
+
 function parseInput(body: unknown): DealerApplicationInput | null {
 	if (!body || typeof body !== "object") return null;
 	const b = body as Record<string, unknown>;
+	if (!nonEmptyString(b.gstin)) return null;
+	const gstin = b.gstin.toUpperCase().replaceAll(/\s+/g, "");
 	if (
-		!nonEmptyString(b.businessName) || !nonEmptyString(b.gstin, 15) || !nonEmptyString(b.addressLine1) ||
-		!nonEmptyString(b.city, 100) || !nonEmptyString(b.state, 100) || !nonEmptyString(b.pinCode, 10) ||
-		!nonEmptyString(b.contactPerson) || !isEmail(b.primaryEmail) || !nonEmptyString(b.mobile, 20) ||
+		!nonEmptyString(b.businessName) || !isValidGstin(gstin) || !nonEmptyString(b.addressLine1) ||
+		!nonEmptyString(b.city, 100) || !nonEmptyString(b.state, 100) || !nonEmptyString(b.pinCode) || !PIN_CODE_REGEX.test(b.pinCode) ||
+		!nonEmptyString(b.contactPerson) || !isEmail(b.primaryEmail) || !nonEmptyString(b.mobile) || !MOBILE_REGEX.test(b.mobile) ||
 		(b.secondaryEmail !== undefined && b.secondaryEmail !== "" && !isEmail(b.secondaryEmail)) ||
 		(b.addressLine2 !== undefined && typeof b.addressLine2 !== "string")
 	) return null;
 	return {
-		businessName: b.businessName as string, gstin: (b.gstin as string).toUpperCase().replaceAll(/\s+/g, ""),
+		businessName: b.businessName as string, gstin,
 		addressLine1: b.addressLine1 as string, addressLine2: (b.addressLine2 as string | undefined) || undefined,
 		city: b.city as string, state: b.state as string, pinCode: b.pinCode as string,
 		contactPerson: b.contactPerson as string, primaryEmail: (b.primaryEmail as string).trim().toLowerCase(),

@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Button, FormField, Input } from "../../components/ui";
+import { Button, Checkbox, FormField, Input } from "../../components/ui";
 import {
   PROFILE_FIELD_LABELS,
   type DealerProfile,
   type RequiredProfileField,
 } from "../../domain/dealer-profile";
+import { gstinMatchesState, isValidGstin, sameStateName } from "../../domain/gstin";
 import {
   fetchProfile,
+  lookupPincode,
   photoUrl,
   saveProfile,
   uploadStorefrontPhoto,
@@ -15,6 +17,20 @@ import {
 import "./profile.css";
 
 type Draft = Record<string, string>;
+
+const MOBILE_REGEX = /^[6-9][0-9]{9}$/u;
+const PIN_CODE_REGEX = /^[0-9]{6}$/u;
+
+/** Format errors on a filled-in value -- required-but-blank is handled
+ *  separately by the existing completeness banner, since a dealer is allowed
+ *  to save the profile one field at a time (see REQUIRED_PROFILE_FIELDS). */
+function formatError(key: keyof DealerProfile, value: string): string {
+  if (!value.trim()) return "";
+  if (key === "gstin") return isValidGstin(value.trim().toUpperCase()) ? "" : "Enter a valid 15-character GSTIN.";
+  if (key === "pinCode") return PIN_CODE_REGEX.test(value) ? "" : "Enter a 6-digit PIN code.";
+  if (key === "mobile") return MOBILE_REGEX.test(value) ? "" : "Enter a 10-digit mobile number starting with 6-9.";
+  return "";
+}
 
 const FIELDS: Array<{
   key: keyof DealerProfile;
@@ -31,9 +47,9 @@ const FIELDS: Array<{
   { key: "addressLine2", label: "Address line 2 (optional)", required: false, autoComplete: "address-line2" },
   { key: "city", label: "City", required: true, autoComplete: "address-level2" },
   { key: "state", label: "State", required: true, autoComplete: "address-level1" },
-  { key: "pinCode", label: "PIN code", required: true, inputMode: "numeric", maxLength: 10, autoComplete: "postal-code" },
+  { key: "pinCode", label: "PIN code", hint: "City and state fill in automatically", required: true, inputMode: "numeric", maxLength: 6, autoComplete: "postal-code" },
   { key: "contactPerson", label: "Contact person", hint: "Who should we speak to about orders?", required: true, autoComplete: "name" },
-  { key: "mobile", label: "Mobile number", required: true, type: "tel", inputMode: "tel", maxLength: 20, autoComplete: "tel" },
+  { key: "mobile", label: "Mobile number", required: true, type: "tel", inputMode: "tel", maxLength: 10, autoComplete: "tel" },
   { key: "secondaryEmail", label: "Second email (optional)", hint: "We'll copy order updates here too", required: false, type: "email", inputMode: "email", autoComplete: "email" },
 ];
 
@@ -49,6 +65,13 @@ export function ProfilePage() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [touched, setTouched] = useState<Partial<Record<string, boolean>>>({});
+  const [saveAttempted, setSaveAttempted] = useState(false);
+  // The PIN lookup's own state, for the pinCode it was fetched for -- the
+  // source of truth for the state cross-check below (never the PIN's first
+  // digit; see docs/spec/V5_GST_INTEGRATION.md). Stale once pinCode changes.
+  const [pinLookup, setPinLookup] = useState<{ pinCode: string; state: string } | null>(null);
+  const [mismatchAcknowledgedFor, setMismatchAcknowledgedFor] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   function apply(next: ProfileResponse) {
@@ -65,7 +88,63 @@ export function ProfilePage() {
     return () => { active = false; };
   }, []);
 
+  // Auto-fills city/state from the PIN once it's 6 digits -- but only into a
+  // blank field. A field the dealer already has a value in is left alone
+  // (still editable) so a genuine conflict surfaces as the mismatch warning
+  // below instead of being silently overwritten. Fails open: an unknown PIN
+  // or an unreachable provider just leaves the fields as they are.
+  const pinCode = draft.pinCode ?? "";
+  useEffect(() => {
+    const code = pinCode.trim();
+    if (!PIN_CODE_REGEX.test(code)) { setPinLookup(null); return; }
+    let active = true;
+    lookupPincode(code).then((result) => {
+      if (!active || !result.found || !result.state) return;
+      setPinLookup({ pinCode: code, state: result.state });
+      setDraft((current) => ((current.pinCode ?? "") === code
+        ? {
+          ...current,
+          city: (current.city ?? "").trim() ? current.city : (result.city ?? current.city ?? ""),
+          state: (current.state ?? "").trim() ? current.state : result.state!,
+        }
+        : current));
+    });
+    return () => { active = false; };
+  }, [pinCode]);
+
+  function blur(key: string) {
+    return () => setTouched((current) => ({ ...current, [key]: true }));
+  }
+
+  function showFieldError(key: keyof DealerProfile, required: boolean): string | undefined {
+    if (!touched[key] && !saveAttempted) return undefined;
+    const value = draft[key] ?? "";
+    if (!value.trim()) return required ? "This is required." : undefined;
+    return formatError(key, value) || undefined;
+  }
+
+  // Only meaningful once a PIN lookup has actually returned a state for the
+  // PIN code currently on screen -- that result is the source of truth this
+  // compares both the typed State field and the GSTIN's state code against.
+  // Never inferred from the PIN's first digit (postal zones span states).
+  const pinState = pinLookup && pinLookup.pinCode === pinCode.trim() ? pinLookup.state : null;
+  const draftGstin = draft.gstin ?? "";
+  const draftState = draft.state ?? "";
+  const mismatches: string[] = [];
+  if (pinState && !sameStateName(pinState, draftState)) {
+    mismatches.push(`the State field says "${draftState}", but PIN ${pinCode} is in ${pinState}`);
+  }
+  if (pinState && isValidGstin(draftGstin.trim().toUpperCase()) && !gstinMatchesState(draftGstin.trim().toUpperCase(), pinState)) {
+    mismatches.push(`the GST number's state doesn't match ${pinState} (from the PIN code)`);
+  }
+  const mismatchWarning = mismatches.length > 0 ? `Double check this before saving: ${mismatches.join("; ")}.` : null;
+  const mismatchAcknowledged = mismatchWarning !== null && mismatchAcknowledgedFor === mismatchWarning;
+  const needsAcknowledgement = mismatchWarning !== null && !mismatchAcknowledged;
+  const hasFormatError = FIELDS.some(({ key }) => formatError(key, draft[key] ?? ""));
+
   async function save() {
+    setSaveAttempted(true);
+    if (hasFormatError || needsAcknowledgement) return;
     setSaving(true); setError(""); setMessage("");
     try {
       // Only send what changed, and send "" as null for the optional fields so a
@@ -159,6 +238,7 @@ export function ProfilePage() {
             label={field.label}
             htmlFor={`profile-${field.key}`}
             hint={field.hint}
+            error={showFieldError(field.key, field.required)}
           >
             <Input
               id={`profile-${field.key}`}
@@ -170,15 +250,29 @@ export function ProfilePage() {
               spellCheck={false}
               aria-invalid={missing.has(field.key as RequiredProfileField) || undefined}
               onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+              onBlur={blur(field.key)}
             />
           </FormField>
         ))}
       </div>
     </section>
 
+    {mismatchWarning && <div className="profile-banner is-warning" role="alert">
+      <strong>Warning</strong> {mismatchWarning}
+      <Checkbox
+        label="Yes, I've checked these details and they're correct"
+        checked={mismatchAcknowledged}
+        onChange={(event) => setMismatchAcknowledgedFor(event.target.checked ? mismatchWarning : null)}
+      />
+    </div>}
+
     {error && <p className="profile-error" role="alert">{error}</p>}
     {message && <p className="profile-message" role="status">{message}</p>}
 
+    {/* Not disabled by hasFormatError/needsAcknowledgement up front: a dealer whose
+        already-saved profile predates this validation must still see why Save did
+        nothing, rather than find a dead button with no visible error (save() below
+        surfaces the same checks as inline errors on click). */}
     <Button full size="md" disabled={saving} onClick={() => void save()}>
       {saving ? "Saving…" : "Save my details"}
     </Button>

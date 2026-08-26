@@ -50,3 +50,23 @@ export async function uploadStorefrontPhoto(file: File): Promise<ProfileResponse
 export function photoUrl(key: string | null | undefined): string | null {
   return key ? `/api/media/${encodeURIComponent(key)}` : null;
 }
+
+export interface PincodeLookupResult {
+  found: boolean;
+  city?: string;
+  state?: string;
+}
+
+/** Public endpoint (no session needed), so it's a plain fetch rather than the
+ *  `credentials: "include"` helper above -- the Registration form calls this
+ *  before a dealer has any session at all. Never throws: a failed lookup just
+ *  means "let the dealer type it", never a blocked form. */
+export async function lookupPincode(pinCode: string): Promise<PincodeLookupResult> {
+  try {
+    const response = await fetch(`/api/pincode/${encodeURIComponent(pinCode)}`);
+    if (!response.ok) return { found: false };
+    return await response.json() as PincodeLookupResult;
+  } catch {
+    return { found: false };
+  }
+}

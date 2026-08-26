@@ -142,3 +142,42 @@ describe("new dealer registration", () => {
     expect(again.status).toBe(409);
   });
 });
+
+describe("POST /api/register validation", () => {
+  it("accepts a structurally valid GSTIN", async () => {
+    const { app, store } = buildHarness();
+    const response = await app.request("/api/register", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(APPLICATION),
+    });
+    expect(response.status).toBe(201);
+    expect(store.applications.size).toBe(1);
+  });
+
+  it("rejects a GSTIN that is 15 characters but the wrong structure -- the old check only counted length", async () => {
+    const { app } = buildHarness();
+    const response = await app.request("/api/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      // Digits where the 5-letter PAN block belongs.
+      body: JSON.stringify({ ...APPLICATION, gstin: "22123450000A1Z5" }),
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects a mobile number that isn't a valid Indian mobile shape", async () => {
+    const { app } = buildHarness();
+    const response = await app.request("/api/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...APPLICATION, mobile: "1234567890" }), // starts with 1, not 6-9
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects a PIN code that isn't 6 digits", async () => {
+    const { app } = buildHarness();
+    const response = await app.request("/api/register", {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...APPLICATION, pinCode: "12345" }),
+    });
+    expect(response.status).toBe(400);
+  });
+});

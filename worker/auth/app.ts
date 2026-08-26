@@ -7,6 +7,7 @@ import { registerLoginRoutes } from "../routes/login";
 import { registerLogoutRoutes } from "../routes/logout";
 import { registerOrderOtpRoutes } from "../routes/order-otp";
 import { registerOtpRoutes } from "../routes/otp";
+import { registerPincodeRoutes } from "../routes/pincode";
 import { registerRegistrationRoutes } from "../routes/register";
 import { OtpService } from "./otp-service";
 import { ResendEmailProvider } from "./resend-provider";
@@ -36,5 +37,6 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   registerOtpRoutes(app, { otp, sessions, identity, applicationStore });
   registerOrderOtpRoutes(app, otp);
   registerRegistrationRoutes(app, { store: applicationStore, otp, sessions });
+  registerPincodeRoutes(app);
   return app;
 }

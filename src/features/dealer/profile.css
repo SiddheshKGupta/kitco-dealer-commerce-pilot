@@ -13,6 +13,8 @@
 .profile-banner strong { display: block; font-size: 17px; }
 .profile-banner.is-blocked ul { margin: 10px 0 0; padding-left: 20px; }
 .profile-banner.is-blocked li { margin-bottom: 4px; }
+.profile-banner.is-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.profile-banner.is-warning .ui-checkbox { margin-top: 10px; }
 
 .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; margin-top: 16px; }
 @media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }

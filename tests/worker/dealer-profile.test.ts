@@ -134,6 +134,18 @@ describe("PUT /api/dealer/profile", () => {
     expect(store.registrations.size).toBe(0);
   });
 
+  it("rejects 15 characters in the wrong structure -- the old check only counted length", async () => {
+    const store = new FakeProfileStore();
+    // Digits where the 5-letter PAN block belongs: same length as a real GSTIN,
+    // but not the state/PAN/entity shape the old bare 15-char regex missed.
+    const response = await appWith(store).request("/api/dealer/profile", {
+      method: "PUT", headers: headers("a"), body: JSON.stringify({ gstin: "22123450000A1Z5" }),
+    });
+
+    expect(response.status).toBe(400);
+    expect(store.registrations.size).toBe(0);
+  });
+
   it("reuses one registration when a second dealer supplies the same GSTIN", async () => {
     // Several outlets in one state legitimately share a GSTIN, so the second save
     // must attach to the existing registration rather than create a duplicate.
@@ -143,6 +155,20 @@ describe("PUT /api/dealer/profile", () => {
     await app.request("/api/dealer/profile", { method: "PUT", headers: headers("a"), body: JSON.stringify({ gstin: COMPLETE.gstin }) });
 
     expect([...store.registrations.values()]).toEqual(["reg-1"]);
+  });
+
+  it("rejects a mobile number that is not a valid Indian mobile shape", async () => {
+    const response = await appWith(new FakeProfileStore()).request("/api/dealer/profile", {
+      method: "PUT", headers: headers("a"), body: JSON.stringify({ mobile: "1234567890" }), // starts with 1, not 6-9
+    });
+    expect(response.status).toBe(400);
+  });
+
+  it("rejects a PIN code that is not 6 digits", async () => {
+    const response = await appWith(new FakeProfileStore()).request("/api/dealer/profile", {
+      method: "PUT", headers: headers("a"), body: JSON.stringify({ pinCode: "12345" }),
+    });
+    expect(response.status).toBe(400);
   });
 
   it("rejects an unknown field instead of silently ignoring it", async () => {
