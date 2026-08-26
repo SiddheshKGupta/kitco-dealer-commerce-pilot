@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Button, Checkbox, FormField, Input } from "../../components/ui";
+import { Button, Checkbox, FormField, Input, SearchField } from "../../components/ui";
 import { PageHead, SectionState, StatusPill } from "./ControlSections";
 import { useAdminSection } from "./useAdminSection";
 
@@ -122,7 +122,14 @@ export function DealerOnboardingSection() {
 	const [busyId, setBusyId] = useState<string | null>(null);
 	const [issued, setIssued] = useState<IssuedCredentials | null>(null);
 	const [error, setError] = useState("");
-	const dealers = data?.dealers ?? [];
+	const [query, setQuery] = useState("");
+	const allDealers = data?.dealers ?? [];
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const needle = query.trim().toLowerCase();
+	const dealers = needle
+		? allDealers.filter((dealer) => [dealer.displayName, dealer.dealerCode, dealer.legalName, dealer.groupCode, dealer.gstin, dealer.loginEmail]
+			.some((field) => field?.toLowerCase().includes(needle)))
+		: allDealers;
 
 	async function act(dealerId: string, run: () => Promise<void>) {
 		setError(""); setBusyId(dealerId);
@@ -166,10 +173,16 @@ export function DealerOnboardingSection() {
 
 		{error && <p className="form-error" role="alert">{error}</p>}
 
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : dealers.length === 0
+		{status === "ready" && allDealers.length > 0 && <div style={{ marginTop: 18, maxWidth: 360 }}>
+			<SearchField label="Search dealers" placeholder="Name, code, group, GSTIN or email" value={query} onChange={(event) => setQuery(event.target.value)} />
+		</div>}
+
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : allDealers.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealers yet." />
+			: dealers.length === 0
+			? <section className="panel" style={{ marginTop: 18 }}><div className="panel-body"><p className="tiny">No dealers match "{query.trim()}".</p></div></section>
 			: <section className="panel" style={{ marginTop: 18 }}>
-				<div className="panel-head"><h3>{dealers.length.toLocaleString("en-IN")} dealers</h3></div>
+				<div className="panel-head"><h3>{dealers.length.toLocaleString("en-IN")}{dealers.length !== allDealers.length ? ` of ${allDealers.length.toLocaleString("en-IN")}` : ""} dealers</h3></div>
 				<div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Dealer</th><th>Group</th><th>GSTIN</th><th>Sign-in email</th><th>Account state</th><th>Credentials issued</th><th /></tr></thead>
 					<tbody>{dealers.map((dealer) => {

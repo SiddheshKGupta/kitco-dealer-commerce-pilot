@@ -45,6 +45,29 @@ describe("Dealer Onboarding", () => {
 		expect(screen.getByText("Not set")).toBeInTheDocument();
 	});
 
+	it("filters the dealer list by name, code, group, GSTIN or email, and clears back to the full list", async () => {
+		vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(dealers), { status: 200 })));
+		render(<DealerOnboardingSection />);
+		await screen.findByText("Alpha Footwear");
+		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
+
+		const search = screen.getByLabelText("Search dealers");
+		fireEvent.change(search, { target: { value: "GANESH" } });
+		expect(screen.getByText("Alpha Footwear")).toBeInTheDocument();
+		expect(screen.queryByText("Beta Shoes")).not.toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "BIHAR-0002" } });
+		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
+		expect(screen.queryByText("Alpha Footwear")).not.toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "no such dealer" } });
+		expect(screen.getByText(/No dealers match/)).toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "" } });
+		expect(screen.getByText("Alpha Footwear")).toBeInTheDocument();
+		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
+	});
+
 	it("shows an issued password once, with the warning that it is never stored", async () => {
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
 			if (init?.method === "POST") {
