@@ -219,6 +219,9 @@ describe("POST /api/admin/dealers", () => {
     const bad = [
       { dealerCode: "has spaces", legalName: "X PVT LTD" },
       { dealerCode: "BIHAR-0139", legalName: "X PVT LTD", gstin: "TOO-SHORT" },
+      // 15 characters, but digits where the 5-letter PAN block belongs -- the
+      // old bare-length regex would have let this through.
+      { dealerCode: "BIHAR-0139", legalName: "X PVT LTD", gstin: "22123450000A1Z5" },
       { dealerCode: "BIHAR-0139", legalName: "X PVT LTD", organisationId: "org-2" },
     ];
     for (const body of bad) {
@@ -254,6 +257,37 @@ describe("credential provisioning", () => {
     expect(event).toMatchObject({ event_type: "CREDENTIALS_ISSUED", dealer_id: "dealer-a" });
     expect(event.evidence).toEqual({ fields: ["account_state", "credentials_issued_at"], loginEmailColumn: "master_email", reissued: false });
     expect(JSON.stringify(event.evidence)).not.toContain(issued.password);
+  });
+
+  it("emails the dealer their Dealer Code and password when a mailer is wired", async () => {
+    // Reported live: an admin clicked "Issue credentials" twice for a real dealer
+    // and no email arrived, because this path only ever showed the password in
+    // the admin's own browser. The approval flow already emails; this one didn't.
+    const { db } = makeStore();
+    const sent: Array<{ to: string; subject: string; text: string }> = [];
+    const mailer = { sendNotice: async (notice: any) => { sent.push(notice); return { deliveryId: "mail-1" }; } };
+    const store = new SupabaseAdminDealers(db.asClient(), mailer);
+    const issued = await store.issueCredentials(admin, "dealer-a", "corr-1");
+
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.to).toBe(issued.loginEmail);
+    expect(sent[0]!.text).toContain(issued.dealerCode);
+    expect(sent[0]!.text).toContain(issued.password);
+    expect(sent[0]!.text).toContain("/login");
+  });
+
+  it("still issues credentials normally when no mailer is wired", async () => {
+    const { store } = makeStore();
+    const issued = await store.issueCredentials(admin, "dealer-a", "corr-1");
+    expect(issued.accountState).toBe("CREDENTIALS_ISSUED");
+  });
+
+  it("still issues credentials even when the notification email bounces", async () => {
+    const { db } = makeStore();
+    const mailer = { sendNotice: async () => { throw new Error("EMAIL_DELIVERY_FAILED"); } };
+    const store = new SupabaseAdminDealers(db.asClient(), mailer);
+    const issued = await store.issueCredentials(admin, "dealer-a", "corr-1");
+    expect(issued.accountState).toBe("CREDENTIALS_ISSUED");
   });
 
   it("re-passwords the dealer's existing login instead of creating a second identity", async () => {

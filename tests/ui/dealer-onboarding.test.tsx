@@ -62,7 +62,7 @@ describe("Dealer Onboarding", () => {
 
 		fireEvent.click(screen.getAllByRole("button", { name: "Issue credentials" })[0]);
 		await screen.findByText("KRDT4M9XPQBW2HJN");
-		expect(screen.getByText(/Shown once and never stored/)).toBeInTheDocument();
+		expect(screen.getByText(/Emailed to the dealer just now/)).toBeInTheDocument();
 		// Once in the credentials panel, once in the dealer row it came from.
 		expect(screen.getAllByText("alpha@dealer.example")).toHaveLength(2);
 	});

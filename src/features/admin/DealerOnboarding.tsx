@@ -150,8 +150,8 @@ export function DealerOnboardingSection() {
 			<div className="panel-head"><h3>Credentials for {issued.dealerCode}</h3></div>
 			<div className="panel-body">
 				<p className="notice">
-					Shown once and never stored. Copy these now and give them to the dealer yourself.
-					They'll be made to choose a new password the first time they sign in.
+					Emailed to the dealer just now. Shown here too, once, in case you need it -- it isn't
+					stored anywhere. They'll be made to choose their own password the first time they sign in.
 					{issued.reissued && " This replaced their previous password, which no longer works."}
 				</p>
 				<dl className="control-detail-grid" style={{ marginTop: 16 }}>

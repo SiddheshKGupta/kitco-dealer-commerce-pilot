@@ -26,7 +26,7 @@ export function createProductionCommerceApp(env: Env) {
   const otpStore = new SupabaseOtpChallengeStore(client);
   const mailer = new ResendEmailProvider(env);
   const otp = new OtpService(otpStore, mailer, { pepper: env.SESSION_SECRET, pilotBypassCode: env.PILOT_STATIC_OTP });
-  const adminDealers = new SupabaseAdminDealers(client);
+  const adminDealers = new SupabaseAdminDealers(client, mailer);
   return createCommerceApp({
     repository: new SupabaseCommerceRepository(client),
     verifySession: createVerifiedSessionVerifier(client, sessions),
@@ -72,6 +72,13 @@ app.all("/api/otp/*", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/register/*", (context) =>
+  createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
+);
+// Reference-data lookup with no tenant data in it (V5_GST_INTEGRATION.md-style
+// provider seam, minus the ceremony -- there is no realistic second PIN-lookup
+// provider). Needed unauthenticated for the registration form, so it is public
+// like /api/register/* rather than behind the session-requiring commerce app.
+app.all("/api/pincode/*", (context) =>
   createAuthApp(context.env).fetch(context.req.raw, context.env, context.executionCtx),
 );
 app.all("/api/orders/otp", (context) =>

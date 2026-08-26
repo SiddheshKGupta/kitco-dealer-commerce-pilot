@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertAccountTransition, type AccountState } from "./account-state";
+import type { NoticeMailer } from "./auth/resend-provider";
 import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 import {
@@ -63,7 +64,26 @@ interface PlannedWrite {
 }
 
 export class SupabaseAdminDealers implements AdminDealersStore {
-  constructor(private readonly client: SupabaseClient) {}
+  constructor(
+    private readonly client: SupabaseClient,
+    // Optional so every existing test double keeps working unchanged; production
+    // always wires one. Without it, credentials are issued exactly as before --
+    // shown once in the admin's response, never emailed -- rather than throwing.
+    private readonly mailer?: NoticeMailer,
+    private readonly portalUrl = "https://partners.kitco.co.in",
+  ) {}
+
+  /** Never throws: credentials are already issued and committed by the time this
+   *  runs, so a bounced mailbox must not turn a successful issuance into an error
+   *  the admin has to guess about. Mirrors SupabaseDealerApplicationsAdmin.notify. */
+  private async notify(to: string, correlationId: string, subject: string, text: string): Promise<void> {
+    if (!this.mailer) return;
+    try {
+      await this.mailer.sendNotice({ to, subject, text, correlationId });
+    } catch {
+      console.error("admin_dealers.notice_failed", { correlationId });
+    }
+  }
 
   private async audit(
     session: SessionIdentity,
@@ -260,6 +280,12 @@ export class SupabaseAdminDealers implements AdminDealersStore {
     await this.audit(session, correlationId, "CREDENTIALS_ISSUED", dealerId, {
       fields: ["account_state", "credentials_issued_at"], loginEmailColumn: emailColumn, reissued,
     });
+    await this.notify(loginEmail, correlationId,
+      reissued ? "Your KITCO password has been reset" : "Your KITCO dealer account is ready",
+      `Sign in at ${this.portalUrl}/login with:\n\n` +
+      `Dealer Code: ${dealer.code}\n` +
+      `Password: ${password}\n\n` +
+      `You'll be sent a one-time code by email to confirm it's you, and asked to choose your own password on your first sign-in.`);
 
     return { dealerId, dealerCode: String(dealer.code), loginEmail, password, accountState: state, credentialsIssuedAt, reissued };
   }
