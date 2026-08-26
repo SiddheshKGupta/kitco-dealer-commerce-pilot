@@ -4,10 +4,12 @@ import { ReviewPage } from "../../src/features/orders/ReviewPage";
 
 afterEach(() => vi.unstubAllGlobals());
 
+const GROUP_SINGLE_DEALER = { group: null, dealers: [{ dealerId: "dealer-a", dealerCode: "A", displayName: "Dealer A", isSelf: true, locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }] };
+
 describe("Review order (single consolidated OTP)", () => {
   it("summarises the draft, requests one OTP, and confirms submission in plain language (no technical version identifier)", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
-      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
       if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
       expect(input).toBe("/api/orders/submit");
       expect(init).toMatchObject({ method: "POST", credentials: "include" });
@@ -33,7 +35,7 @@ describe("Review order (single consolidated OTP)", () => {
     const submissionKeys: string[] = [];
     let attempts = 0;
     vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
-      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
       if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
       submissionKeys.push((init?.headers as Record<string, string>)["idempotency-key"]);
       attempts += 1;
@@ -59,7 +61,7 @@ describe("Review order (single consolidated OTP)", () => {
 
   it("offers a resend control on the order OTP step, disabled until the cooldown elapses", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string) => {
-      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
       if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
       throw new Error(`unexpected fetch ${input}`);
     }));
@@ -79,7 +81,7 @@ describe("Review order (single consolidated OTP)", () => {
     // Without this the dealer completes every step, receives a real emailed code,
     // and only then meets the server's 422 -- the code burnt for nothing.
     vi.stubGlobal("fetch", vi.fn(async (input: string) => {
-      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
       if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
       throw new Error(`unexpected fetch ${input}`);
     }));
@@ -100,7 +102,7 @@ describe("Review order (single consolidated OTP)", () => {
 
   it("leaves ordering alone when the profile is complete", async () => {
     vi.stubGlobal("fetch", vi.fn(async (input: string) => {
-      if (input === "/api/dealer/locations") return new Response(JSON.stringify({ locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] }), { status: 200 });
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
       if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
       throw new Error(`unexpected fetch ${input}`);
     }));
@@ -113,5 +115,52 @@ describe("Review order (single consolidated OTP)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Place Final Order" }));
 
     await waitFor(() => expect(requestOrderOtp).toHaveBeenCalledTimes(1));
+  });
+
+  it("hides the Bill-To/Ship-To pickers for the common ungrouped dealer -- checkout behaves exactly like v4", async () => {
+    vi.stubGlobal("fetch", vi.fn(async (input: string) => {
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_SINGLE_DEALER), { status: 200 });
+      if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
+      throw new Error(`unexpected fetch ${input}`);
+    }));
+    render(<ReviewPage requestOrderOtp={async () => "otp-order-1"} />);
+
+    await screen.findByRole("option", { name: "Main showroom" });
+    expect(screen.queryByLabelText("Bill-to dealer")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Ship-to dealer")).not.toBeInTheDocument();
+  });
+
+  it("offers Bill-To/Ship-To pickers for a grouped dealer and submits the chosen partners, PO number and requested date", async () => {
+    const GROUP_TWO_DEALERS = { group: { id: "grp-1", groupCode: "OPENAI", groupName: "OpenAI Group", status: "ACTIVE" }, dealers: [
+      { dealerId: "dealer-a", dealerCode: "A", displayName: "Dealer A", isSelf: true, locations: [{ id: "location-main", name: "Main showroom", locationType: "BOTH" }] },
+      { dealerId: "dealer-b", dealerCode: "B", displayName: "Dealer B", isSelf: false, locations: [{ id: "location-b", name: "Dealer B Warehouse", locationType: "SHIP_TO" }] },
+    ] };
+    let submittedBody: Record<string, unknown> | null = null;
+    vi.stubGlobal("fetch", vi.fn(async (input: string, init?: RequestInit) => {
+      if (input === "/api/dealer/group") return new Response(JSON.stringify(GROUP_TWO_DEALERS), { status: 200 });
+      if (input === "/api/drafts/current") return new Response(JSON.stringify({ lines: [{ offeringId: "offer-1", quantities: { "7": 4 }, retailValueMinor: 40000, articleNo: "NK-101", brand: "Northstar", colour: "Black", currencyCode: "INR" }], retailValueMinor: 40000, currencyCode: "INR" }), { status: 200 });
+      if (input === "/api/orders/submit") { submittedBody = JSON.parse(String(init?.body)); return new Response(JSON.stringify({ order: { id: "order-1", version: 1, retailValueMinor: 40000 } }), { status: 201 }); }
+      throw new Error(`unexpected fetch ${input}`);
+    }));
+    render(<ReviewPage requestOrderOtp={async () => "otp-order-1"} />);
+
+    await screen.findByLabelText("Ship-to dealer");
+    fireEvent.change(screen.getByLabelText("Ship-to dealer"), { target: { value: "dealer-b" } });
+    await screen.findByRole("option", { name: "Dealer B Warehouse" });
+    fireEvent.change(screen.getByLabelText("Ship-to location"), { target: { value: "location-b" } });
+    fireEvent.change(screen.getByLabelText("Dealer PO number"), { target: { value: "PO-42" } });
+    fireEvent.click(screen.getByLabelText("On a date"));
+    fireEvent.change(screen.getByLabelText("Requested delivery date"), { target: { value: "2026-09-20" } });
+    fireEvent.click(screen.getByLabelText("I confirm the above order details."));
+    fireEvent.click(screen.getByRole("button", { name: "Place Final Order" }));
+    await screen.findByLabelText("Verification code");
+    fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
+    fireEvent.click(screen.getByRole("button", { name: "Confirm Order" }));
+    await screen.findByText("Order submitted");
+
+    expect(submittedBody).toMatchObject({
+      shipToDealerId: "dealer-b", shipToLocationId: "location-b",
+      dealerPoNumber: "PO-42", deliveryPreference: "REQUESTED_DATE", requestedDeliveryDate: "2026-09-20",
+    });
   });
 });

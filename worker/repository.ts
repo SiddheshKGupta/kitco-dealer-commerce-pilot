@@ -48,6 +48,9 @@ export interface DraftLine {
   offeringId: string; quantities: SizeQuantities; retailValueMinor: number;
   articleNo?: string; brand?: string; familyName?: string; colour?: string;
   mrpMinor?: number; currencyCode?: string; mediaKey?: string | null;
+  /** Size System is never optional (V5_PRODUCT_SPEC.md §4) -- null when the size set's
+   *  size_system_id hasn't been confirmed yet (true for every size set today). */
+  sizeSystemLabel?: string | null;
 }
 export interface OrderVersionRecord { version: number; status: "SUBMITTED" | "PROPOSED" | "ACCEPTED"; retailValueMinor: number; lines: DraftLine[] }
 /** A single row of an order's real audit trail (see SupabaseCommerceRepository.attachAudit). action/detail
@@ -58,7 +61,7 @@ export interface OrderRecord {
   orderNumber: string;
   organisationId: string;
   dealerId: string;
-  status: "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "PARTIALLY_APPROVED" | "REJECTED" | "CANCELLED";
+  status: "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "PARTIALLY_APPROVED" | "CREDIT_REVIEW" | "REJECTED" | "CANCELLED";
   versions: OrderVersionRecord[];
   allocations: FulfilmentAllocation[];
   dealerName?: string;
@@ -73,6 +76,73 @@ export interface AuditEvent { correlationId: string; action: string; organisatio
 export interface DealerLocationRecord { id: string; name: string; locationType: "BILL_TO" | "SHIP_TO" | "BOTH" }
 export interface CommerceSeed { catalogue: CatalogueRecord[]; otpChallenges: OtpRecord[] }
 
+/* ------------------------------------------------------------- v5 order review
+ * Phase 5: the article-tile order review screen reads/writes through these,
+ * entirely additive to the OrderRecord/allocations pipeline above (which the
+ * dealer-facing routes and the admin order list/table still use unchanged). */
+export interface OrderLineSizeDecision {
+  orderLineId: string;
+  size: string;
+  orderedQty: number;
+  approvedQty: number;
+  creditReviewQty: number;
+  rejectedQty: number;
+  pendingQty: number;
+  creditReviewReason: string | null;
+  rejectionReason: string | null;
+}
+export interface OrderReviewArticle {
+  orderLineId: string;
+  articleNo?: string;
+  brand?: string;
+  familyName?: string;
+  colour?: string;
+  sizes: OrderLineSizeDecision[];
+}
+export interface OrderPartnerSnapshot {
+  dealerId?: string; code?: string; name?: string; gstin?: string;
+  addressLine1?: string; city?: string; state?: string; pinCode?: string;
+}
+export interface OrderReviewDetail {
+  id: string;
+  orderNumber: string;
+  status: string;
+  orderingDealer: OrderPartnerSnapshot | null;
+  billTo: OrderPartnerSnapshot | null;
+  shipTo: OrderPartnerSnapshot | null;
+  dealerPoNumber: string | null;
+  deliveryPreference: string | null;
+  requestedDeliveryDate: string | null;
+  estimatedDeliveryDate: string | null;
+  articles: OrderReviewArticle[];
+  totals: { ordered: number; approved: number; creditReview: number; rejected: number; pending: number };
+  audit: OrderAuditEvent[];
+}
+export interface DecideOrderLineV5Input {
+  orderId: string; orderLineId: string; size: string;
+  approvedQty: number; creditReviewQty: number; rejectedQty: number;
+  creditReviewReason: string | null; rejectionReason: string | null;
+}
+
+/** Phase 4: the partner functions/PO/delivery fields submitOrder needs on top of the
+ *  OTP/idempotency fields it already took. billToDealerId/shipToDealerId/shipToLocationId
+ *  arrive here already validated by SupabaseDealerGroups.resolveOrderPartners -- the
+ *  Worker route resolves them before calling submitOrder, so this input is trusted,
+ *  never the raw client body (V5_DEALER_GROUP_MODEL.md §4). */
+export interface SubmitOrderInput {
+  idempotencyKey: string;
+  otpChallengeId: string;
+  otpDigest?: string;
+  now: string;
+  correlationId: string;
+  billToDealerId: string;
+  shipToDealerId: string;
+  shipToLocationId: string | null;
+  dealerPoNumber: string | null;
+  deliveryPreference: "ASAP" | "REQUESTED_DATE";
+  requestedDeliveryDate: string | null;
+}
+
 export interface CommerceRepository {
   listCatalogue(session: SessionIdentity): Promise<CatalogueRecord[]>;
   findOffering(session: SessionIdentity, offeringId: string): Promise<CatalogueRecord | null>;
@@ -80,7 +150,7 @@ export interface CommerceRepository {
   getDraft(session: SessionIdentity): Promise<DraftLine[]>;
   removeDraftLine(session: SessionIdentity, offeringId: string, correlationId: string): Promise<DraftLine[]>;
   findSubmittedOrderByIdempotency(session: SessionIdentity, idempotencyKey: string): Promise<OrderRecord | null>;
-  submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest?: string; now: string; correlationId: string }): Promise<{ created: boolean; order: OrderRecord }>;
+  submitOrder(session: SessionIdentity, input: SubmitOrderInput): Promise<{ created: boolean; order: OrderRecord }>;
   listOrders(session: SessionIdentity): Promise<OrderRecord[]>;
   findOrder(session: SessionIdentity, orderId: string): Promise<OrderRecord | null>;
   listDealerLocations(session: SessionIdentity): Promise<DealerLocationRecord[]>;
@@ -91,6 +161,12 @@ export interface CommerceRepository {
   decideOrderLine(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; approvedPairs: number; heldPairs: number; holdReason: HoldReason | null }, correlationId: string): Promise<OrderRecord>;
   createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<OrderRecord>;
   stageImport(session: SessionIdentity, input: { sourceFileId: string; profileId: string }, correlationId: string): Promise<{ id: string; status: "UPLOADED" }>;
+
+  /** v5 Phase 5: article-tile order review, backed by order_line_decisions. */
+  getOrderReview(session: SessionIdentity, orderId: string): Promise<OrderReviewDetail | null>;
+  decideOrderLineV5(session: SessionIdentity, input: DecideOrderLineV5Input, correlationId: string): Promise<OrderReviewDetail>;
+  approveEntireOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderReviewDetail>;
+  rejectEntireOrder(session: SessionIdentity, orderId: string, reason: string, correlationId: string): Promise<OrderReviewDetail>;
 }
 
 function clone<T>(value: T): T { return structuredClone(value); }
@@ -155,7 +231,7 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     if (!session.dealerId) return null;
     return clone(this.submissions.get(`${session.organisationId}:${session.dealerId}:${idempotencyKey}`) ?? null);
   }
-  async submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; otpDigest?: string; now: string; correlationId: string }) {
+  async submitOrder(session: SessionIdentity, input: SubmitOrderInput) {
     if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
     const submissionKey = `${session.organisationId}:${session.dealerId}:${input.idempotencyKey}`;
     const existing = this.submissions.get(submissionKey);
@@ -258,6 +334,114 @@ export class InMemoryCommerceRepository implements CommerceRepository {
     order.allocations = result.allocations;
     this.audit(session, correlationId, "DISPATCH_FINALISED", input.orderId);
     return clone(order);
+  }
+
+  /** v5 order review decisions, kept separate from the legacy allocations/holds
+   *  model above -- a decision starts fully pending (0/0/0) regardless of the
+   *  old approvedPairs field, matching order_line_decisions' real backfill. */
+  private readonly reviewDecisions = new Map<string, { approvedQty: number; creditReviewQty: number; rejectedQty: number; creditReviewReason: string | null; rejectionReason: string | null }>();
+
+  private buildOrderReview(order: OrderRecord): OrderReviewDetail {
+    const articlesMap = new Map<string, OrderReviewArticle>();
+    for (const allocation of order.allocations) {
+      let article = articlesMap.get(allocation.orderLineId);
+      if (!article) {
+        article = { orderLineId: allocation.orderLineId, articleNo: allocation.articleNo, brand: allocation.brand, familyName: allocation.familyName, colour: allocation.colour, sizes: [] };
+        articlesMap.set(allocation.orderLineId, article);
+      }
+      const ordered = allocation.orderedPairs ?? allocation.approvedPairs;
+      const decision = this.reviewDecisions.get(`${order.id}:${allocation.orderLineId}:${allocation.size}`) ?? { approvedQty: 0, creditReviewQty: 0, rejectedQty: 0, creditReviewReason: null, rejectionReason: null };
+      article.sizes.push({
+        orderLineId: allocation.orderLineId, size: allocation.size, orderedQty: ordered,
+        approvedQty: decision.approvedQty, creditReviewQty: decision.creditReviewQty, rejectedQty: decision.rejectedQty,
+        pendingQty: ordered - decision.approvedQty - decision.creditReviewQty - decision.rejectedQty,
+        creditReviewReason: decision.creditReviewReason, rejectionReason: decision.rejectionReason,
+      });
+    }
+    const articles = [...articlesMap.values()];
+    const totals = articles.flatMap((article) => article.sizes).reduce((sum, size) => ({
+      ordered: sum.ordered + size.orderedQty, approved: sum.approved + size.approvedQty,
+      creditReview: sum.creditReview + size.creditReviewQty, rejected: sum.rejected + size.rejectedQty, pending: sum.pending + size.pendingQty,
+    }), { ordered: 0, approved: 0, creditReview: 0, rejected: 0, pending: 0 });
+    return {
+      id: order.id, orderNumber: order.orderNumber, status: order.status, articles, totals, audit: order.audit ?? [],
+      orderingDealer: null, billTo: null, shipTo: null, dealerPoNumber: null, deliveryPreference: null, requestedDeliveryDate: null, estimatedDeliveryDate: null,
+    };
+  }
+
+  private recomputeReviewStatus(order: OrderRecord, totals: OrderReviewDetail["totals"]): void {
+    if (totals.ordered === 0) return;
+    if (totals.pending > 0) {
+      order.status = totals.approved + totals.creditReview + totals.rejected === 0 ? "SUBMITTED" : "UNDER_REVIEW";
+    } else if (totals.rejected === totals.ordered) {
+      order.status = "REJECTED";
+    } else if (totals.approved === totals.ordered) {
+      order.status = "APPROVED";
+    } else if (totals.creditReview > 0) {
+      order.status = "CREDIT_REVIEW";
+    } else {
+      order.status = "PARTIALLY_APPROVED";
+    }
+  }
+
+  async getOrderReview(session: SessionIdentity, orderId: string): Promise<OrderReviewDetail | null> {
+    const order = await this.findOrder(session, orderId);
+    return order ? this.buildOrderReview(order) : null;
+  }
+
+  async decideOrderLineV5(session: SessionIdentity, input: DecideOrderLineV5Input, correlationId: string): Promise<OrderReviewDetail> {
+    const order = this.requireAdminOrder(session, input.orderId);
+    if (order.status === "REJECTED" || order.status === "CANCELLED") throw new ApiError(422, "ORDER_DECISIONS_CLOSED", "This order can no longer be decided");
+    const allocation = order.allocations.find((item) => item.orderLineId === input.orderLineId && item.size === input.size);
+    if (!allocation) throw new ApiError(404, "ALLOCATION_NOT_FOUND", "That order line and size could not be found");
+    const ordered = allocation.orderedPairs ?? allocation.approvedPairs;
+    if (input.approvedQty < 0 || input.creditReviewQty < 0 || input.rejectedQty < 0) throw new ApiError(422, "NEGATIVE_QUANTITY", "Decision quantities cannot be negative");
+    if (input.approvedQty + input.creditReviewQty + input.rejectedQty > ordered) throw new ApiError(422, "DECISION_EXCEEDS_ORDERED", "Approved, credit review and rejected pairs can't add up to more than what the dealer ordered for this size.");
+    if (input.creditReviewQty > 0 && !input.creditReviewReason?.trim()) throw new ApiError(422, "CREDIT_REVIEW_REASON_REQUIRED", "A credit review reason is required when placing pairs under credit review.");
+    if (input.rejectedQty > 0 && !input.rejectionReason?.trim()) throw new ApiError(422, "REJECTION_REASON_REQUIRED", "A rejection reason is required when rejecting pairs.");
+    this.reviewDecisions.set(`${order.id}:${input.orderLineId}:${input.size}`, {
+      approvedQty: input.approvedQty, creditReviewQty: input.creditReviewQty, rejectedQty: input.rejectedQty,
+      creditReviewReason: input.creditReviewQty > 0 ? input.creditReviewReason : null,
+      rejectionReason: input.rejectedQty > 0 ? input.rejectionReason : null,
+    });
+    const review = this.buildOrderReview(order);
+    this.recomputeReviewStatus(order, review.totals);
+    review.status = order.status;
+    this.audit(session, correlationId, "ORDER_LINE_DECIDED", input.orderId);
+    return review;
+  }
+
+  async approveEntireOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderReviewDetail> {
+    const order = this.requireAdminOrder(session, orderId);
+    if (order.status === "REJECTED" || order.status === "CANCELLED") throw new ApiError(422, "ORDER_DECISIONS_CLOSED", "This order can no longer be decided");
+    const review = this.buildOrderReview(order);
+    for (const article of review.articles) for (const size of article.sizes) {
+      if (size.pendingQty <= 0) continue;
+      const decision = this.reviewDecisions.get(`${order.id}:${size.orderLineId}:${size.size}`) ?? { approvedQty: 0, creditReviewQty: 0, rejectedQty: 0, creditReviewReason: null, rejectionReason: null };
+      this.reviewDecisions.set(`${order.id}:${size.orderLineId}:${size.size}`, { ...decision, approvedQty: decision.approvedQty + size.pendingQty });
+    }
+    const updated = this.buildOrderReview(order);
+    this.recomputeReviewStatus(order, updated.totals);
+    updated.status = order.status;
+    this.audit(session, correlationId, "ORDER_APPROVED_IN_FULL", orderId);
+    return updated;
+  }
+
+  async rejectEntireOrder(session: SessionIdentity, orderId: string, reason: string, correlationId: string): Promise<OrderReviewDetail> {
+    if (!reason.trim()) throw new ApiError(422, "REJECTION_REASON_REQUIRED", "A rejection reason is required.");
+    const order = this.requireAdminOrder(session, orderId);
+    if (order.status === "REJECTED" || order.status === "CANCELLED") throw new ApiError(422, "ORDER_DECISIONS_CLOSED", "This order can no longer be decided");
+    const review = this.buildOrderReview(order);
+    for (const article of review.articles) for (const size of article.sizes) {
+      if (size.pendingQty <= 0) continue;
+      const decision = this.reviewDecisions.get(`${order.id}:${size.orderLineId}:${size.size}`) ?? { approvedQty: 0, creditReviewQty: 0, rejectedQty: 0, creditReviewReason: null, rejectionReason: null };
+      this.reviewDecisions.set(`${order.id}:${size.orderLineId}:${size.size}`, { ...decision, rejectedQty: decision.rejectedQty + size.pendingQty, rejectionReason: reason });
+    }
+    const updated = this.buildOrderReview(order);
+    this.recomputeReviewStatus(order, updated.totals);
+    updated.status = order.status;
+    this.audit(session, correlationId, "ORDER_REJECTED_IN_FULL", orderId);
+    return updated;
   }
   async stageImport(session: SessionIdentity, _input: { sourceFileId: string; profileId: string }, correlationId: string) {
     if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");

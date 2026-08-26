@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, EmptyState } from "../../components/ui";
+import { formatSizeQuantities, sizeSystemDisplayLabel } from "../../domain/order-sizes";
 import { formatRetailValue } from "../catalogue/types";
 import { fetchDraft, mediaUrl, removeDraftLine, type DraftLine } from "./api";
 
@@ -56,7 +57,8 @@ export function CartPage() {
 				<div className="cart-line-copy">
 					<strong>{line.familyName ?? line.articleNo}</strong>
 					<span>{[line.brand, line.familyName ? line.articleNo : null, line.colour].filter(Boolean).join(" · ")}</span>
-					<span className="cart-line-sizes">{Object.entries(line.quantities).filter(([, value]) => value > 0).map(([size, value]) => `${size}×${value}`).join("  ")}</span>
+					<span className="cart-line-size-system">Size system: {sizeSystemDisplayLabel(line.sizeSystemLabel)}</span>
+					<span className="cart-line-sizes">{formatSizeQuantities(line.quantities)}</span>
 					<span>{pairs(line.quantities)} pairs</span>
 				</div>
 				<div className="cart-line-value">

@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Checkbox, OTPInput } from "../../components/ui";
+import { formatSizeQuantities, sizeSystemDisplayLabel } from "../../domain/order-sizes";
 import { formatRetailValue } from "../catalogue/types";
-import { fetchDealerLocations, fetchDraft, mediaUrl, submitOrder, type DealerLocation, type DraftLine } from "./api";
+import { fetchDealerGroup, fetchDraft, mediaUrl, submitOrder, type DealerGroupPayload, type DraftLine } from "./api";
 
 type Stage = "review" | "otp" | "submitted";
+type DeliveryPreference = "ASAP" | "REQUESTED_DATE";
 
 function pairs(quantities: Record<string, number>): number {
 	return Object.values(quantities).reduce((sum, value) => sum + value, 0);
 }
 
-function sizesLabel(quantities: Record<string, number>): string {
-	return Object.entries(quantities).filter(([, value]) => value > 0).map(([size, value]) => `${size}×${value}`).join("  ");
+function todayIso(): string {
+	return new Date().toISOString().slice(0, 10);
 }
 
 /** One OTP for the whole order, issued only here after every article has been
@@ -27,9 +29,19 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 	profileBlock?: string | null;
 }) {
 	const [lines, setLines] = useState<DraftLine[] | null>(null);
-	const [locations, setLocations] = useState<DealerLocation[]>([]);
-	const [locationsStatus, setLocationsStatus] = useState<"loading" | "ready" | "error">("loading");
+	// Bill-To/Ship-To dealer + Ship-To location all come from one payload: each candidate
+	// dealer already carries its own active SHIP_TO/BOTH locations, so switching Ship-To
+	// dealer re-reads this list instead of firing a second network call
+	// (V5_DEALER_GROUP_MODEL.md §3). A dealer with no group gets exactly one dealer back
+	// (itself) and the pickers below never render -- checkout behaves exactly like v4.
+	const [group, setGroup] = useState<DealerGroupPayload | null>(null);
+	const [groupStatus, setGroupStatus] = useState<"loading" | "ready" | "error">("loading");
+	const [billTo, setBillTo] = useState("");
+	const [shipTo, setShipTo] = useState("");
 	const [location, setLocation] = useState("");
+	const [poNumber, setPoNumber] = useState("");
+	const [deliveryPreference, setDeliveryPreference] = useState<DeliveryPreference>("ASAP");
+	const [requestedDate, setRequestedDate] = useState("");
 	const [confirmed, setConfirmed] = useState(false);
 	const [stage, setStage] = useState<Stage>("review");
 	const [challengeId, setChallengeId] = useState("");
@@ -42,10 +54,21 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 	useEffect(() => {
 		let active = true;
 		fetchDraft().then((body) => { if (active) setLines(body.lines); }).catch(() => { if (active) setError("Current Order could not be loaded."); });
-		void fetchDealerLocations().then((items) => { if (active) { setLocations((items ?? []).filter((item) => item.locationType !== "BILL_TO")); setLocationsStatus("ready"); } }, () => { if (active) setLocationsStatus("error"); });
+		fetchDealerGroup().then((body) => {
+			if (!active) return;
+			setGroup(body);
+			const self = body.dealers.find((dealer) => dealer.isSelf) ?? body.dealers[0];
+			if (self) { setBillTo(self.dealerId); setShipTo(self.dealerId); }
+			setGroupStatus("ready");
+		}).catch(() => { if (active) setGroupStatus("error"); });
 		return () => { active = false; };
 	}, []);
 	useEffect(() => { if (stage !== "otp" || resendIn <= 0) return; const timer = window.setTimeout(() => setResendIn((value) => value - 1), 1000); return () => window.clearTimeout(timer); }, [stage, resendIn]);
+
+	const shipToDealer = group?.dealers.find((dealer) => dealer.dealerId === shipTo);
+	const locationOptions = shipToDealer?.locations ?? [];
+	// Switching Ship-To dealer invalidates a location that belonged to the previous one.
+	useEffect(() => { if (location && !locationOptions.some((item) => item.id === location)) setLocation(""); }, [shipTo]); // eslint-disable-line react-hooks/exhaustive-deps
 
 	const totalPairs = useMemo(() => (lines ?? []).reduce((sum, line) => sum + pairs(line.quantities), 0), [lines]);
 	const totalValue = useMemo(() => (lines ?? []).reduce((sum, line) => sum + line.retailValueMinor, 0), [lines]);
@@ -67,11 +90,29 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 		setError(""); setPending("submit");
 		idempotencyKey.current ??= crypto.randomUUID();
 		try {
-			await submitOrder({ otpChallengeId: challengeId, otpCode: otp, idempotencyKey: idempotencyKey.current });
+			await submitOrder({
+				otpChallengeId: challengeId, otpCode: otp, idempotencyKey: idempotencyKey.current,
+				billToDealerId: billTo || undefined, shipToDealerId: shipTo || undefined, shipToLocationId: location || null,
+				dealerPoNumber: poNumber.trim() || undefined,
+				deliveryPreference, requestedDeliveryDate: deliveryPreference === "REQUESTED_DATE" ? requestedDate : undefined,
+			});
 			setStage("submitted");
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Order could not be submitted"); }
 		finally { setPending(null); }
 	}
+
+	// A dealer with locations on file must choose one; a dealer with none (still common
+	// for the 136 live pilot dealers) ships to the Ship-To dealer's registered address
+	// with no location selection (V5_DEALER_GROUP_MODEL.md, orders.ship_to_location_id
+	// comment) -- checkout must not dead-end on data that was never collected.
+	// Fail closed while delivery details are unresolved (loading or errored) -- same as
+	// v4's unconditional `!location` gate. Fail open only once resolved to genuinely zero
+	// locations, which is the case the migration explicitly carves out as safe.
+	const deliveryUnresolved = groupStatus !== "ready";
+	const locationRequired = groupStatus === "ready" && locationOptions.length > 0;
+	const dateRequired = deliveryPreference === "REQUESTED_DATE" && !requestedDate;
+	const placeOrderDisabled = !confirmed || pending !== null || profileBlock !== null
+		|| deliveryUnresolved || (locationRequired && !location) || dateRequired;
 
 	if (lines === null) return <main className="commerce-page"><h1 className="sr-only">Review Order</h1><p role="status">Loading your order…</p></main>;
 
@@ -93,14 +134,41 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 		<h1>Review Order</h1>
 
 		<section className="commerce-review-section">
-			<h2>Delivery to</h2>
+			<h2>Bill-to / Ship-to</h2>
+			{group && group.dealers.length > 1 && <>
+				<label>Bill-to dealer
+					<select aria-label="Bill-to dealer" value={billTo} onChange={(event) => setBillTo(event.target.value)}>
+						{group.dealers.map((dealer) => <option key={dealer.dealerId} value={dealer.dealerId}>{dealer.displayName} ({dealer.dealerCode})</option>)}
+					</select>
+				</label>
+				<label>Ship-to dealer
+					<select aria-label="Ship-to dealer" value={shipTo} onChange={(event) => setShipTo(event.target.value)}>
+						{group.dealers.map((dealer) => <option key={dealer.dealerId} value={dealer.dealerId}>{dealer.displayName} ({dealer.dealerCode})</option>)}
+					</select>
+				</label>
+			</>}
 			<label>Ship-to location
-				<select aria-label="Ship-to location" value={location} disabled={locationsStatus !== "ready" || locations.length === 0} onChange={(event) => setLocation(event.target.value)}>
-					<option value="">{locationsStatus === "loading" ? "Loading locations…" : locations.length === 0 ? "No ship-to locations available" : "Choose location"}</option>
-					{locations.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+				<select aria-label="Ship-to location" value={location} disabled={groupStatus !== "ready" || locationOptions.length === 0} onChange={(event) => setLocation(event.target.value)}>
+					<option value="">{groupStatus === "loading" ? "Loading locations…" : locationOptions.length === 0 ? "Ships to the registered address (no locations on file)" : "Choose location"}</option>
+					{locationOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
 				</select>
 			</label>
-			{locationsStatus === "error" && <p className="commerce-validation" role="alert">Ship-to locations could not be loaded. Try again shortly.</p>}
+			{groupStatus === "error" && <p className="commerce-validation" role="alert">Delivery details could not be loaded. Try again shortly.</p>}
+		</section>
+
+		<section className="commerce-review-section">
+			<h2>Order details</h2>
+			<label>PO number (optional)
+				<input type="text" aria-label="Dealer PO number" value={poNumber} maxLength={64} onChange={(event) => setPoNumber(event.target.value)} />
+			</label>
+			<fieldset className="commerce-delivery-preference">
+				<legend>Delivery</legend>
+				<label><input type="radio" name="delivery-preference" checked={deliveryPreference === "ASAP"} onChange={() => setDeliveryPreference("ASAP")} /> As soon as possible</label>
+				<label><input type="radio" name="delivery-preference" checked={deliveryPreference === "REQUESTED_DATE"} onChange={() => setDeliveryPreference("REQUESTED_DATE")} /> On a date</label>
+				{deliveryPreference === "REQUESTED_DATE" && <label>Requested delivery date
+					<input type="date" aria-label="Requested delivery date" value={requestedDate} min={todayIso()} onChange={(event) => setRequestedDate(event.target.value)} />
+				</label>}
+			</fieldset>
 		</section>
 
 		<section className="commerce-review-section">
@@ -114,7 +182,8 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 					<div className="cart-line-copy">
 						<strong>{line.familyName ?? line.articleNo}</strong>
 						<span>{[line.brand, line.familyName ? line.articleNo : null, line.colour].filter(Boolean).join(" · ")}</span>
-						<span className="cart-line-sizes">{sizesLabel(line.quantities)}</span>
+						<span className="cart-line-size-system">Size system: {sizeSystemDisplayLabel(line.sizeSystemLabel)}</span>
+						<span className="cart-line-sizes">{formatSizeQuantities(line.quantities)}</span>
 						<span>{pairs(line.quantities)} pairs</span>
 					</div>
 					<div className="cart-line-value"><strong>{formatRetailValue(line.retailValueMinor, line.currencyCode)}</strong></div>
@@ -134,7 +203,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 			{profileBlock && <p className="commerce-validation" role="alert">
 				Add {profileBlock} to your profile before placing an order. <a href="/profile">Complete your profile</a>
 			</p>}
-			<Button full disabled={!location || !confirmed || pending !== null || profileBlock !== null} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
+			<Button full disabled={placeOrderDisabled} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
 		</>}
 		{stage === "otp" && <div className="commerce-review">
 			<h2>Confirm your order</h2>

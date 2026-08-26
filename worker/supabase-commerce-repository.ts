@@ -8,10 +8,15 @@ import type {
   CatalogueRecord,
   CommerceRepository,
   DealerLocationRecord,
+  DecideOrderLineV5Input,
   DraftLine,
   OrderAuditEvent,
+  OrderPartnerSnapshot,
   OrderRecord,
+  OrderReviewArticle,
+  OrderReviewDetail,
   OrderVersionRecord,
+  SubmitOrderInput,
 } from "./repository";
 
 type Row = Record<string, any>;
@@ -22,6 +27,13 @@ type Row = Record<string, any>;
 // verbatim as the ApiError message instead of collapsing every RPC failure to one generic
 // string. Order matters: more specific patterns first.
 const FULFILMENT_ERROR_PATTERNS: Array<[RegExp, string, string]> = [
+  // v5 order review (decide_kitco_order_line_v5 / approve_entire_kitco_order / reject_entire_kitco_order,
+  // supabase/migrations/20260824110000_v5_order_line_decisions.sql) -- specific patterns first.
+  [/decision quantities cannot be negative/, "NEGATIVE_QUANTITY", "Decision quantities cannot be negative."],
+  [/a credit review reason is required/, "CREDIT_REVIEW_REASON_REQUIRED", "A credit review reason is required when placing pairs under credit review."],
+  [/a rejection reason is required/, "REJECTION_REASON_REQUIRED", "A rejection reason is required when rejecting pairs."],
+  [/administrator access required/, "ADMIN_REQUIRED", "Administrator access is required."],
+  [/order not found/, "ORDER_NOT_FOUND", "Order not found."],
   [/hold exceeds available pending quantity/, "HOLD_EXCEEDS_PENDING", "This hold would exceed the pairs still pending for this size."],
   [/dispatch exceeds available pending quantity/, "DISPATCH_EXCEEDS_PENDING", "This dispatch would exceed the pairs still pending for this size."],
   [/dealer location required when more than one active Ship-To exists/, "SHIP_TO_REQUIRED", "This dealer has more than one active Ship-To location -- choose one before dispatching."],
@@ -264,6 +276,81 @@ const ORDER_SELECT = `
       order_line_sizes(ordered_quantity_pairs,approved_quantity_pairs,size_values(label),
         dispatch_lines(quantity_pairs,dispatches(status)),hold_allocations(quantity_pairs,holds(status,hold_type)))))`;
 
+// v5 Phase 5 order review: entirely separate from ORDER_SELECT/orderFromRow above (which the
+// admin order list/table and dealer-facing routes still use unchanged) so this addition can't
+// disturb that pipeline. Reads order_line_decisions -- the mutable, invariant-enforced table --
+// rather than the legacy order_line_sizes.approved_quantity_pairs column the P0 fix replaced.
+const ORDER_REVIEW_SELECT = `
+  id,organisation_id,dealer_id,status,order_number,
+  bill_to_snapshot,ship_to_snapshot,ordering_dealer_snapshot,
+  dealer_po_number,delivery_preference,requested_delivery_date,estimated_delivery_date,
+  order_versions(version_no,
+    order_lines(id,
+      product_colourways(article_no,colour,product_families(name,brands(name))),
+      order_line_sizes(id,size_values(label),
+        order_line_decisions(ordered_qty,approved_qty,credit_review_qty,rejected_qty,pending_qty,credit_review_reason,rejection_reason))))`;
+
+function partnerSnapshot(value: unknown): OrderPartnerSnapshot | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Row;
+  return {
+    dealerId: row.dealerId ? String(row.dealerId) : undefined,
+    code: row.code ? String(row.code) : undefined,
+    name: row.name ? String(row.name) : undefined,
+    gstin: row.gstin ? String(row.gstin) : undefined,
+    addressLine1: row.addressLine1 ? String(row.addressLine1) : undefined,
+    city: row.city ? String(row.city) : undefined,
+    state: row.state ? String(row.state) : undefined,
+    pinCode: row.pinCode ? String(row.pinCode) : undefined,
+  };
+}
+
+function orderReviewFromRow(row: Row): OrderReviewDetail {
+  const versions = Array.isArray(row.order_versions) ? row.order_versions : [];
+  const latest = versions.length > 0 ? versions.reduce((max: Row, version: Row) => Number(version.version_no) > Number(max.version_no) ? version : max) : null;
+  const lines = latest && Array.isArray(latest.order_lines) ? latest.order_lines : [];
+  const articles: OrderReviewArticle[] = (lines as Row[]).map((line: Row) => {
+    const colourway = one(line.product_colourways);
+    const family = colourway ? one(colourway.product_families) : null;
+    const brand = family ? one(family.brands) : null;
+    const sizes = (Array.isArray(line.order_line_sizes) ? line.order_line_sizes : []).map((sizeLine: Row) => {
+      const decision = one(sizeLine.order_line_decisions);
+      return {
+        orderLineId: String(line.id),
+        size: String(one(sizeLine.size_values)?.label ?? ""),
+        orderedQty: Number(decision?.ordered_qty ?? 0),
+        approvedQty: Number(decision?.approved_qty ?? 0),
+        creditReviewQty: Number(decision?.credit_review_qty ?? 0),
+        rejectedQty: Number(decision?.rejected_qty ?? 0),
+        pendingQty: Number(decision?.pending_qty ?? 0),
+        creditReviewReason: decision?.credit_review_reason ? String(decision.credit_review_reason) : null,
+        rejectionReason: decision?.rejection_reason ? String(decision.rejection_reason) : null,
+      };
+    });
+    return {
+      orderLineId: String(line.id),
+      articleNo: colourway?.article_no ? String(colourway.article_no) : undefined,
+      colour: colourway?.colour ? String(colourway.colour) : undefined,
+      familyName: family?.name ? String(family.name) : undefined,
+      brand: brand?.name ? String(brand.name) : undefined,
+      sizes,
+    };
+  });
+  const totals = articles.flatMap((article) => article.sizes).reduce((sum, size) => ({
+    ordered: sum.ordered + size.orderedQty, approved: sum.approved + size.approvedQty,
+    creditReview: sum.creditReview + size.creditReviewQty, rejected: sum.rejected + size.rejectedQty, pending: sum.pending + size.pendingQty,
+  }), { ordered: 0, approved: 0, creditReview: 0, rejected: 0, pending: 0 });
+  return {
+    id: String(row.id), orderNumber: String(row.order_number), status: String(row.status),
+    orderingDealer: partnerSnapshot(row.ordering_dealer_snapshot), billTo: partnerSnapshot(row.bill_to_snapshot), shipTo: partnerSnapshot(row.ship_to_snapshot),
+    dealerPoNumber: row.dealer_po_number ? String(row.dealer_po_number) : null,
+    deliveryPreference: row.delivery_preference ? String(row.delivery_preference) : null,
+    requestedDeliveryDate: row.requested_delivery_date ? String(row.requested_delivery_date) : null,
+    estimatedDeliveryDate: row.estimated_delivery_date ? String(row.estimated_delivery_date) : null,
+    articles, totals, audit: [],
+  };
+}
+
 export class SupabaseCommerceRepository implements CommerceRepository {
   constructor(private readonly client: SupabaseClient) {}
 
@@ -324,9 +411,15 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     return data ? orderFromRow(data as Row) : null;
   }
 
-  async submitOrder(session: SessionIdentity, input: { idempotencyKey: string; otpChallengeId: string; now: string; correlationId: string }): Promise<{ created: boolean; order: OrderRecord }> {
+  /** Phase 4: calls submit_kitco_order_v5, not the original submit_kitco_order (left
+   *  untouched -- project convention since Phase 0 is a new versioned RPC alongside the
+   *  old one, never an in-place edit). billTo/shipTo/location here are already proven
+   *  by SupabaseDealerGroups.resolveOrderPartners in the route before this is called;
+   *  the RPC still re-checks organisation_id on every partner row itself
+   *  (defence in depth, V5_DEALER_GROUP_MODEL.md §4). */
+  async submitOrder(session: SessionIdentity, input: SubmitOrderInput): Promise<{ created: boolean; order: OrderRecord }> {
     if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
-    const { data, error } = await this.client.rpc("submit_kitco_order", {
+    const { data, error } = await this.client.rpc("submit_kitco_order_v5", {
       p_organisation_id: session.organisationId,
       p_dealer_id: session.dealerId,
       p_actor_auth_user_id: session.userId,
@@ -334,6 +427,12 @@ export class SupabaseCommerceRepository implements CommerceRepository {
       p_otp_challenge_id: input.otpChallengeId,
       p_now: input.now,
       p_correlation_id: input.correlationId,
+      p_bill_to_dealer_id: input.billToDealerId,
+      p_ship_to_dealer_id: input.shipToDealerId,
+      p_ship_to_location_id: input.shipToLocationId,
+      p_dealer_po_number: input.dealerPoNumber,
+      p_delivery_preference: input.deliveryPreference,
+      p_requested_delivery_date: input.requestedDeliveryDate,
     });
     if (error || !data) fail(error, "ORDER_SUBMISSION_FAILED");
     const result = data as { order_id: string; created: boolean };
@@ -458,6 +557,74 @@ export class SupabaseCommerceRepository implements CommerceRepository {
   }
   async stageImport(): Promise<{ id: string; status: "UPLOADED" }> { throw new ApiError(409, "IMPORT_COMMIT_UNAVAILABLE", "Import commit is disabled until a staged source file is ready"); }
 
+  /** v5 Phase 5 order review, admin-only. Self-scopes on organisation_id like every other
+   *  query here; the RPCs additionally re-check organisation_id server-side (defence in depth
+   *  against a client-supplied orderId that doesn't belong to the caller's organisation). */
+  async getOrderReview(session: SessionIdentity, orderId: string): Promise<OrderReviewDetail | null> {
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.from("orders").select(ORDER_REVIEW_SELECT)
+      .eq("organisation_id", session.organisationId).eq("id", orderId).maybeSingle();
+    if (error) fail(error, "ORDER_LOAD_FAILED");
+    if (!data) return null;
+    const review = orderReviewFromRow(data as Row);
+    const audit = await loadOrderAudit(this.client, session.organisationId, [review.id]);
+    review.audit = audit.get(review.id) ?? [];
+    return review;
+  }
+
+  async decideOrderLineV5(session: SessionIdentity, input: DecideOrderLineV5Input, correlationId: string): Promise<OrderReviewDetail> {
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("decide_kitco_order_line_v5", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: input.orderId,
+      p_order_line_id: input.orderLineId,
+      p_size_label: input.size,
+      p_approved_qty: input.approvedQty,
+      p_credit_review_qty: input.creditReviewQty,
+      p_rejected_qty: input.rejectedQty,
+      p_credit_review_reason: input.creditReviewReason,
+      p_rejection_reason: input.rejectionReason,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "ORDER_LINE_DECISION_FAILED");
+    const review = await this.getOrderReview(session, input.orderId);
+    if (!review) throw new ApiError(409, "ORDER_LINE_DECISION_FAILED", "The decided order could not be loaded");
+    return review;
+  }
+
+  async approveEntireOrder(session: SessionIdentity, orderId: string, correlationId: string): Promise<OrderReviewDetail> {
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("approve_entire_kitco_order", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: orderId,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "ORDER_APPROVAL_FAILED");
+    const review = await this.getOrderReview(session, orderId);
+    if (!review) throw new ApiError(409, "ORDER_APPROVAL_FAILED", "The approved order could not be loaded");
+    return review;
+  }
+
+  async rejectEntireOrder(session: SessionIdentity, orderId: string, reason: string, correlationId: string): Promise<OrderReviewDetail> {
+    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
+    const { data, error } = await this.client.rpc("reject_entire_kitco_order", {
+      p_organisation_id: session.organisationId,
+      p_actor_auth_user_id: session.userId,
+      p_order_id: orderId,
+      p_reason: reason,
+      p_now: new Date().toISOString(),
+      p_correlation_id: correlationId,
+    });
+    if (error || !data) fail(error, "ORDER_REJECTION_FAILED");
+    const review = await this.getOrderReview(session, orderId);
+    if (!review) throw new ApiError(409, "ORDER_REJECTION_FAILED", "The rejected order could not be loaded");
+    return review;
+  }
+
   async getDraft(session: SessionIdentity): Promise<DraftLine[]> {
     if (!session.dealerId) throw new ApiError(403, "DEALER_REQUIRED", "Dealer access is required");
     const draftId = await this.currentDraftId(session);
@@ -486,11 +653,18 @@ export class SupabaseCommerceRepository implements CommerceRepository {
     const { data, error } = await this.client.from("draft_order_lines").select(`commercial_offering_id,
       commercial_offerings(mrp_minor,currency_code,
         product_colourways!inner(article_no,colour,product_media(object_key,media_kind,published_at),product_families(name,brands!inner(name)))),
-      draft_order_line_sizes(quantity_pairs,size_values(label))`)
+      draft_order_line_sizes(quantity_pairs,size_values(label,size_sets(size_systems(label))))`)
       .eq("organisation_id", session.organisationId).eq("draft_order_id", draftId);
     if (error) fail(error, "DRAFT_LOAD_FAILED");
     return (data as Row[]).map((row) => {
-      const quantities: SizeQuantities = Object.fromEntries((row.draft_order_line_sizes as Row[]).map((size) => [String(one(size.size_values)?.label), Number(size.quantity_pairs)]));
+      const sizeRows = row.draft_order_line_sizes as Row[];
+      const quantities: SizeQuantities = Object.fromEntries(sizeRows.map((size) => [String(one(size.size_values)?.label), Number(size.quantity_pairs)]));
+      // Size System is never optional (V5_PRODUCT_SPEC.md §4) -- every size in a line comes
+      // from the same colourway's size_set, so the first row's system speaks for the line.
+      // size_system_id is unpopulated on every size_set today (the migration only added the
+      // column); a null here degrades to "not confirmed" in the UI rather than blocking checkout.
+      const sizeSet = sizeRows.length > 0 ? one(one(sizeRows[0]!.size_values)?.size_sets) : null;
+      const sizeSystemLabel = sizeSet ? one(sizeSet.size_systems)?.label ?? null : null;
       const offering = one(row.commercial_offerings);
       const colourway = offering ? one(offering.product_colourways) : null;
       const family = colourway ? one(colourway.product_families) : null;
@@ -507,6 +681,7 @@ export class SupabaseCommerceRepository implements CommerceRepository {
         mrpMinor: Number.isFinite(mrp) ? mrp : undefined,
         currencyCode: offering?.currency_code ? String(offering.currency_code) : undefined,
         mediaKey: media?.object_key ? `${session.organisationId}/${media.object_key}` : null,
+        sizeSystemLabel: sizeSystemLabel ? String(sizeSystemLabel) : null,
       };
     });
   }
