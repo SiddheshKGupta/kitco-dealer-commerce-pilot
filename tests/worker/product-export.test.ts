@@ -11,6 +11,8 @@ const dealerSession: SessionIdentity = { userId: "u-2", organisationId: "org-1",
 function baseRow(overrides: Partial<OrderExportRow> = {}): OrderExportRow {
 	return {
 		orderNo: "KIT-1024", orderDate: "2026-08-01", dealerCode: "VLCO", dealerName: "VLCO Sports", city: "Patna", state: "Bihar", gstin: "",
+		dealerGroupCode: "", dealerGroupName: "", billToCode: "VLCO", billToName: "VLCO Sports", shipToCode: "VLCO", shipToName: "VLCO Sports", shipToLocation: "",
+		dealerPoNumber: "", deliveryPreference: "ASAP", requestedDeliveryDate: "", estimatedDeliveryDate: "",
 		brand: "Nike", productFamily: "Air Max", articleNo: "NK-101", colour: "Black", gender: "MEN", category: "Running", offering: "STOCK_IN_HAND", season: "",
 		size: "8", orderedQty: 12, approvedQty: 12, heldQty: 0, dispatchedQty: 0, pendingQty: 12,
 		dispatchDate: "", dispatchNumber: "",

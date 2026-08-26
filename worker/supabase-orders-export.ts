@@ -23,7 +23,10 @@ function buildExportSelect(filters: OrderExportFilters): string {
 		: "hold_allocations(quantity_pairs,holds(status,reason))";
 	return `
   id,order_number,status,submitted_at,dealer_id,
-  dealers!inner(code,name,city,state),
+  dealer_po_number,delivery_preference,requested_delivery_date,estimated_delivery_date,
+  bill_to_snapshot,ship_to_snapshot,
+  dealers!inner(code,name,city,state,dealer_groups(group_code,group_name)),
+  dealer_locations!ship_to_location_id(name),
   order_versions(version_no,
     order_lines(id,mrp_minor,
       commercial_offerings(offering_type),
@@ -75,6 +78,13 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 		const out: OrderExportRow[] = [];
 		for (const order of (orderRows ?? []) as Row[]) {
 			const dealer = one(order.dealers);
+			const dealerGroup = dealer ? one(dealer.dealer_groups) : null;
+			// bill_to/ship_to come from the immutable jsonb snapshots taken at submission time, never
+			// by re-joining dealers -- reflects what was true when the order was placed, not today
+			// (matters once a dealer edits its own name/GSTIN after older orders already exist).
+			const billTo = (order.bill_to_snapshot ?? null) as Row | null;
+			const shipTo = (order.ship_to_snapshot ?? null) as Row | null;
+			const shipToLocation = one(order.dealer_locations);
 			const versions = Array.isArray(order.order_versions) ? order.order_versions : [];
 			const latest = [...versions].sort((a: Row, b: Row) => Number(b.version_no) - Number(a.version_no))[0] as Row | undefined;
 			if (!latest) continue;
@@ -105,6 +115,17 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 						city: dealer?.city ? String(dealer.city) : "",
 						state: dealer?.state ? String(dealer.state) : "",
 						gstin: gstByDealer.get(String(order.dealer_id)) ?? "",
+						dealerGroupCode: dealerGroup?.group_code ? String(dealerGroup.group_code) : "",
+						dealerGroupName: dealerGroup?.group_name ? String(dealerGroup.group_name) : "",
+						billToCode: billTo?.code ? String(billTo.code) : "",
+						billToName: billTo?.name ? String(billTo.name) : "",
+						shipToCode: shipTo?.code ? String(shipTo.code) : "",
+						shipToName: shipTo?.name ? String(shipTo.name) : "",
+						shipToLocation: shipToLocation?.name ? String(shipToLocation.name) : "",
+						dealerPoNumber: order.dealer_po_number ? String(order.dealer_po_number) : "",
+						deliveryPreference: order.delivery_preference ? String(order.delivery_preference) : "",
+						requestedDeliveryDate: order.requested_delivery_date ? dateOnly(order.requested_delivery_date) : "",
+						estimatedDeliveryDate: order.estimated_delivery_date ? dateOnly(order.estimated_delivery_date) : "",
 						brand: brand?.name ? String(brand.name) : "",
 						productFamily: family?.name ? String(family.name) : "",
 						articleNo: colourway?.article_no ? String(colourway.article_no) : "",

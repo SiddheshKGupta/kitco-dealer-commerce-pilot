@@ -3,6 +3,12 @@ import type { AuthVariables, SessionIdentity } from "../middleware/auth";
 
 export interface OrderExportRow {
 	orderNo: string; orderDate: string; dealerCode: string; dealerName: string; city: string; state: string; gstin: string;
+	// v5 Phase 7: dealer group and order partner functions -- all order-level (not per-line), so
+	// they repeat identically across every line/size row of the same order, exactly like orderNo
+	// and orderDate already do. Blank, never "null", when a dealer has no group (the common case).
+	dealerGroupCode: string; dealerGroupName: string;
+	billToCode: string; billToName: string; shipToCode: string; shipToName: string; shipToLocation: string;
+	dealerPoNumber: string; deliveryPreference: string; requestedDeliveryDate: string; estimatedDeliveryDate: string;
 	brand: string; productFamily: string; articleNo: string; colour: string; gender: string; category: string; offering: string; season: string;
 	size: string; orderedQty: number; approvedQty: number; heldQty: number; dispatchedQty: number; pendingQty: number;
 	dispatchDate: string; dispatchNumber: string;
@@ -19,10 +25,15 @@ export interface OrdersExporter {
 	exportRows(session: SessionIdentity, filters: OrderExportFilters): Promise<OrderExportRow[]>;
 }
 
-// 30 columns per the export spec (§29): the original 26 plus dispatch date/number and a
-// per-line hold status/reason pair -- see commit message for the column additions rationale.
+// 41 columns per the export spec (§29): the original 30 (26 base + dispatch date/number +
+// per-line hold status/reason) plus v5 Phase 7's dealer group / bill-to / ship-to / PO /
+// delivery-date columns (V5_EXECUTION_PLAN.md §4 row 7). The new columns sit right after GSTIN,
+// alongside the rest of the dealer/order identity block, ahead of the per-line product columns.
 const HEADERS = [
 	"Order No", "Order Date", "Dealer Code", "Dealer Name", "City", "State", "GSTIN",
+	"Dealer Group Code", "Dealer Group Name",
+	"Bill To Code", "Bill To Name", "Ship To Code", "Ship To Name", "Ship To Location",
+	"Dealer PO Number", "Delivery Preference", "Requested Delivery Date", "Estimated Delivery Date",
 	"Brand", "Product Family", "Article No", "Colour", "Gender", "Category", "Offering", "Season",
 	"Size", "Ordered Qty", "Approved Qty", "Held Qty", "Dispatched Qty", "Pending Qty",
 	"Dispatch Date", "Dispatch Number",
@@ -39,6 +50,9 @@ function toCsv(rows: OrderExportRow[]): string {
 	for (const row of rows) {
 		lines.push([
 			row.orderNo, row.orderDate, row.dealerCode, row.dealerName, row.city, row.state, row.gstin,
+			row.dealerGroupCode, row.dealerGroupName,
+			row.billToCode, row.billToName, row.shipToCode, row.shipToName, row.shipToLocation,
+			row.dealerPoNumber, row.deliveryPreference, row.requestedDeliveryDate, row.estimatedDeliveryDate,
 			row.brand, row.productFamily, row.articleNo, row.colour, row.gender, row.category, row.offering, row.season,
 			row.size, row.orderedQty, row.approvedQty, row.heldQty, row.dispatchedQty, row.pendingQty,
 			row.dispatchDate, row.dispatchNumber,
