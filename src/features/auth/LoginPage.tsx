@@ -116,8 +116,8 @@ export function LoginPage() {
 	if (stage === "recover") return <section className="auth-page">
 		<div className="auth-kicker">Forgotten password <span>01 / 03</span></div>
 		<h1>Let's get you back in.</h1>
-		<p className="auth-intro">Type your Dealer Code — or the email KITCO has on file — and we'll send you a code.</p>
-		<FormField label="Dealer Code or email" htmlFor="recover-identifier">
+		<p className="auth-intro">Type any email KITCO has on file for you, or your Dealer Code, and we'll send you a code.</p>
+		<FormField label="Email or Dealer Code" htmlFor="recover-identifier">
 			<Input id="recover-identifier" value={identifier} autoComplete="username"
 				onChange={(event) => setIdentifier(event.target.value)} />
 		</FormField>
@@ -129,8 +129,8 @@ export function LoginPage() {
 	return <section className="auth-page">
 		<div className="auth-kicker">Dealer sign in <span>01 / 03</span></div>
 		<h1>Welcome back.</h1>
-		<p className="auth-intro">Sign in with the Dealer Code and password KITCO gave you. We'll email you a code to confirm it's you.</p>
-		<FormField label="Dealer Code" htmlFor="login-identifier" hint="Your email works too">
+		<p className="auth-intro">Sign in with the password KITCO gave you. We'll email you a code to confirm it's you.</p>
+		<FormField label="Email or Dealer Code" htmlFor="login-identifier" hint="Your primary email, secondary email, or Dealer Code -- whichever you have">
 			<Input id="login-identifier" value={identifier} autoComplete="username"
 				onChange={(event) => setIdentifier(event.target.value)} />
 		</FormField>

@@ -25,7 +25,7 @@ export function createProductionCommerceApp(env: Env) {
   const sessions = new SessionService(env.SESSION_SECRET);
   const otpStore = new SupabaseOtpChallengeStore(client);
   const mailer = new ResendEmailProvider(env);
-  const otp = new OtpService(otpStore, mailer, { pepper: env.SESSION_SECRET });
+  const otp = new OtpService(otpStore, mailer, { pepper: env.SESSION_SECRET, pilotBypassCode: env.PILOT_STATIC_OTP });
   return createCommerceApp({
     repository: new SupabaseCommerceRepository(client),
     verifySession: createVerifiedSessionVerifier(client, sessions),

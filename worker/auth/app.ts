@@ -19,10 +19,11 @@ export function createAuthApp(env: Env): Hono<{ Variables: AuthVariables }> {
   const client = createSupabaseAdminClient(env);
   const applicationStore = new SupabaseDealerApplicationStore(client);
   const identity = new SupabaseLoginIdentityResolver(client, env.SUPABASE_URL, env.SUPABASE_SECRET_KEY);
-  // No bypass code is accepted here or anywhere else: PILOT_STATIC_OTP is gone from the
-  // service, from Env and from the Worker's secrets (V5_AUTH_FLOW.md §7).
+  // Reinstated 2026-08-26 as a pilot-only testing aid -- see the comment on
+  // OtpOptions.pilotBypassCode. Unset in production by default.
   const otp = new OtpService(new SupabaseOtpChallengeStore(client), new ResendEmailProvider(env), {
     pepper: env.SESSION_SECRET,
+    pilotBypassCode: env.PILOT_STATIC_OTP,
   });
   const sessions = new SessionService(env.SESSION_SECRET);
   const verifyApplicationSession = createVerifiedSessionVerifier(client, sessions);

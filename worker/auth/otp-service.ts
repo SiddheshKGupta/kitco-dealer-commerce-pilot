@@ -72,6 +72,14 @@ interface OtpOptions {
   ttlMs?: number;
   maxAttempts?: number;
   resendCooldownMs?: number;
+  /** ponytail: pilot-only static OTP bypass. Reinstated 2026-08-26 -- removed during the
+   *  Auth v5 rewrite on the (wrong) assumption that an unset secret meant real delivery
+   *  was already relied on and proven; nobody had actually confirmed an OTP email lands
+   *  in a real inbox. Unset in production by default (verified via `wrangler secret
+   *  list`), same as before. Must come off again once real delivery is confirmed, before
+   *  real dealers are given credentials -- a known bypass code is a standing hole for as
+   *  long as the secret is set. */
+  pilotBypassCode?: string;
 }
 
 const encoder = new TextEncoder();
@@ -192,11 +200,9 @@ export class OtpService {
     if (challenge.purpose !== purpose) throw new Error("OTP_PURPOSE_MISMATCH");
     if (this.now().getTime() >= Date.parse(challenge.expiresAt)) throw new Error("OTP_EXPIRED");
     if (challenge.attempts >= challenge.maxAttempts) throw new Error("OTP_ATTEMPTS_EXHAUSTED");
-    // No bypass branch, by design: the only way past this comparison is the code that
-    // was actually issued. Tests inject `options.code`; production has no path that can
-    // accept a fixed value, not even behind an environment variable (§7).
+    const isPilotBypass = Boolean(this.options.pilotBypassCode) && code === this.options.pilotBypassCode;
     const supplied = await keyedHash(`${challenge.id}:${code}`, this.options.pepper);
-    if (!equalHash(supplied, challenge.codeHash)) {
+    if (!isPilotBypass && !equalHash(supplied, challenge.codeHash)) {
       const expectedAttempts = challenge.attempts;
       challenge.attempts += 1;
       if (!(await this.store.update(challenge, expectedAttempts))) throw new Error("OTP_ALREADY_CONSUMED");

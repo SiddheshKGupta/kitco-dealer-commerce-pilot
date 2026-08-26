@@ -28,7 +28,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);
 
-		fireEvent.change(screen.getByLabelText("Dealer Code"), { target: { value: "BIHAR-0001" } });
+		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "BIHAR-0001" } });
 		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery" } });
 		fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 		await screen.findByText("Enter your code.");
@@ -55,7 +55,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		vi.stubGlobal("fetch", fetchMock);
 		render(<App />);
 
-		fireEvent.change(screen.getByLabelText("Dealer Code"), { target: { value: "BIHAR-0001" } });
+		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "BIHAR-0001" } });
 		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "kitco-issued-temp" } });
 		fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 		await screen.findByText("Enter your code.");
@@ -78,7 +78,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		window.history.replaceState({}, "", "/login");
 		vi.stubGlobal("fetch", vi.fn(async () => response({ error: "INVALID_CREDENTIALS" }, 401)));
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Dealer Code"), { target: { value: "NOT-A-REAL-CODE" } });
+		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "NOT-A-REAL-CODE" } });
 		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "whatever" } });
 		fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 		await screen.findByText(/Those sign-in details are incorrect/);
@@ -89,7 +89,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		let resolveLogin: (value: Response) => void = () => undefined;
 		vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { resolveLogin = resolve; })));
 		render(<App />);
-		fireEvent.change(screen.getByLabelText("Dealer Code"), { target: { value: "BIHAR-0001" } });
+		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "BIHAR-0001" } });
 		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery" } });
 		const signIn = screen.getByRole("button", { name: "Sign in" });
 		fireEvent.click(signIn);
@@ -112,7 +112,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		render(<App />);
 
 		fireEvent.click(screen.getByRole("button", { name: "I've forgotten my password" }));
-		fireEvent.change(screen.getByLabelText("Dealer Code or email"), { target: { value: "nobody@example.test" } });
+		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "nobody@example.test" } });
 		fireEvent.click(screen.getByRole("button", { name: "Send me a code" }));
 		await screen.findByText("Enter your code.");
 

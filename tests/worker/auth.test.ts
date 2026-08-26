@@ -259,14 +259,37 @@ describe("v5 password recovery", () => {
   });
 });
 
-describe("OTP service after PILOT_STATIC_OTP removal", () => {
-  it("rejects 123456 against a production-configured service", async () => {
-    // V5_AUTH_FLOW.md §7: there is no options field, no env var and no branch that can
-    // switch this back on -- the bypass is absent, not disabled.
+describe("OTP service pilot bypass", () => {
+  it("rejects 123456 when no pilotBypassCode is configured", async () => {
+    // The bypass is opt-in per instance: a service built without pilotBypassCode
+    // accepts nothing but the code it actually issued, same as if the option never
+    // existed. Production has the option wired but the secret unset (verified via
+    // `wrangler secret list`), which reaches exactly this branch.
     const provider = new CaptureEmailProvider();
     const otp = new OtpService(new InMemoryOtpChallengeStore(), provider, { pepper: "production-pepper-at-least-32-characters" });
     const challenge = await otp.issue({ organisationId: "org-1", dealerId: "dealer-1", to: "owner@dealer.test", purpose: "LOGIN" });
     await expect(otp.verify(challenge.id, "123456", "LOGIN")).rejects.toThrow(/OTP_INVALID|OTP_ATTEMPTS_EXHAUSTED/u);
+  });
+
+  it("accepts the configured bypass code without touching the real code, only when the secret is set", async () => {
+    const provider = new CaptureEmailProvider();
+    const otp = new OtpService(new InMemoryOtpChallengeStore(), provider, {
+      pepper: "production-pepper-at-least-32-characters",
+      pilotBypassCode: "123456",
+    });
+    const challenge = await otp.issue({ organisationId: "org-1", dealerId: "dealer-1", to: "owner@dealer.test", purpose: "LOGIN" });
+    await expect(otp.verify(challenge.id, "123456", "LOGIN")).resolves.toMatchObject({ id: challenge.id });
+  });
+
+  it("still enforces every other rule -- purpose, expiry, single use -- around a configured bypass", async () => {
+    const otp = new OtpService(new InMemoryOtpChallengeStore(), new CaptureEmailProvider(), {
+      pepper: "production-pepper-at-least-32-characters",
+      pilotBypassCode: "123456",
+    });
+    const challenge = await otp.issue({ organisationId: "org-1", dealerId: "dealer-1", to: "owner@dealer.test", purpose: "LOGIN" });
+    await expect(otp.verify(challenge.id, "123456", "ORDER_SUBMISSION")).rejects.toThrow("OTP_PURPOSE_MISMATCH");
+    await otp.verify(challenge.id, "123456", "LOGIN");
+    await expect(otp.verify(challenge.id, "123456", "LOGIN")).rejects.toThrow("OTP_ALREADY_CONSUMED");
   });
 
   it("consumes a challenge whose code could not be delivered instead of leaving it live", async () => {
