@@ -131,17 +131,19 @@ export function DealerOnboardingSection() {
 			.some((field) => field?.toLowerCase().includes(needle)))
 		: allDealers;
 
-	async function act(dealerId: string, run: () => Promise<void>) {
-		setError(""); setBusyId(dealerId);
+	// Key is `${dealerId}:${action}` so two buttons in the same row never both read as busy
+	// when only one was clicked.
+	async function act(key: string, run: () => Promise<void>) {
+		setError(""); setBusyId(key);
 		try { await run(); reload(); }
 		catch (caught) { setError(caught instanceof Error ? caught.message : "That did not work. Try again."); }
 		finally { setBusyId(null); }
 	}
 
-	const issue = (dealerId: string) => act(dealerId, async () => {
+	const issue = (dealerId: string) => act(`${dealerId}:issue`, async () => {
 		setIssued(await post<IssuedCredentials>(`/api/admin/dealers/${dealerId}/credentials`));
 	});
-	const changeState = (dealerId: string, action: "SUSPEND" | "RESTORE") => act(dealerId, async () => {
+	const changeState = (dealerId: string, action: "SUSPEND" | "RESTORE") => act(`${dealerId}:${action}`, async () => {
 		await post(`/api/admin/dealers/${dealerId}/account-state`, { action });
 	});
 
@@ -186,7 +188,13 @@ export function DealerOnboardingSection() {
 				<div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Dealer</th><th>Group</th><th>GSTIN</th><th>Sign-in email</th><th>Account state</th><th>Credentials issued</th><th /></tr></thead>
 					<tbody>{dealers.map((dealer) => {
-						const busy = busyId === dealer.id;
+						// A row can have two actionable buttons; disable both while either is in
+						// flight (no concurrent actions on one dealer) but only the clicked one
+						// shows the loading label -- the other reads as merely waiting, not busy.
+						const rowBusy = busyId?.startsWith(`${dealer.id}:`) ?? false;
+						const issuing = busyId === `${dealer.id}:issue`;
+						const suspending = busyId === `${dealer.id}:SUSPEND`;
+						const restoring = busyId === `${dealer.id}:RESTORE`;
 						const suspended = dealer.accountState === "SUSPENDED" || dealer.accountState === "DISABLED";
 						return <tr key={dealer.id}>
 							<td><b>{dealer.displayName}</b><div className="tiny">{dealer.dealerCode}{dealer.isMainDealer && " · main dealer"}</div></td>
@@ -198,13 +206,13 @@ export function DealerOnboardingSection() {
 							<td>{dealer.accountState ? <StatusPill value={dealer.accountState} /> : <span className="tiny">Not set</span>}</td>
 							<td>{shortDate(dealer.credentialsIssuedAt)}</td>
 							<td className="right" style={{ whiteSpace: "nowrap" }}>
-								<Button variant="secondary" size="sm" loading={busy} disabled={busy} onClick={() => void issue(dealer.id)}>
+								<Button variant="secondary" size="sm" loading={issuing} disabled={rowBusy} onClick={() => void issue(dealer.id)}>
 									{dealer.credentialsIssuedAt ? "Re-issue" : "Issue credentials"}
 								</Button>
 								{" "}
 								{suspended
-									? <Button variant="secondary" size="sm" loading={busy} disabled={busy} onClick={() => void changeState(dealer.id, "RESTORE")}>Restore</Button>
-									: <Button variant="secondary" size="sm" loading={busy} disabled={busy} onClick={() => void changeState(dealer.id, "SUSPEND")}>Suspend</Button>}
+									? <Button variant="secondary" size="sm" loading={restoring} disabled={rowBusy} onClick={() => void changeState(dealer.id, "RESTORE")}>Restore</Button>
+									: <Button variant="secondary" size="sm" loading={suspending} disabled={rowBusy} onClick={() => void changeState(dealer.id, "SUSPEND")}>Suspend</Button>}
 							</td>
 						</tr>;
 					})}</tbody>

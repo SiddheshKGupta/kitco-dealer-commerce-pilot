@@ -25,6 +25,10 @@
   /* Focus ring — must clear WCAG contrast on white and on --soft */
   --focus: #1151ff;
 
+  /* Brand credit only (footer "Developed by V L & CO") — not the interaction
+     accent, not a status colour. Contrast on --canvas: ~12:1. */
+  --brand-plum: #4b1942;
+
   /* Depth: one shadow level only. Cards are flat; this is for lifted surfaces
      (sticky order bar, modals, toast). */
   --shadow: 0 18px 45px rgba(0, 0, 0, .10);

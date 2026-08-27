@@ -59,7 +59,7 @@ export function DealerOrderJourney({ product, colourways = [], onSelectColourway
 						<Button full disabled={totalPairs === 0 || Boolean(validation) || pending} onClick={() => void add()}>{pending ? "Saving…" : "Add to Current Order"}</Button>
 					</>}
 				</section>
-				{error && <p className="commerce-validation" role="alert">{error}</p>}
+				{error && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{error}</span></p>}
 			</section></div>
 	</main>;
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Button, FormField, Input, Select } from "../../components/ui";
+import { Button, FormField, Input, SearchField, Select } from "../../components/ui";
 import { formatRetailValue } from "../catalogue/types";
 import { groupByArticle, summarizeFulfilment } from "../dispatch/fulfilment";
 import { AdminOrderPanel, type ControlOrder } from "./AdminOrderPanel";
@@ -19,12 +19,14 @@ const shortDate = (value: string) => new Date(value).toLocaleDateString("en-IN",
 
 /* --------------------------------------------------------------- Admin Users */
 interface AdminUserRow { id: string; email: string; status: string; createdAt: string }
-function AdminUsersSection() {
+export function AdminUsersSection() {
 	const { data, status, reload } = useAdminSection<{ users: AdminUserRow[] }>("/api/admin/users");
 	const [email, setEmail] = useState("");
 	const [creating, setCreating] = useState(false);
 	const [created, setCreated] = useState<string | null>(null);
 	const [error, setError] = useState("");
+	// Which user row has a status change in flight, so only that row's button goes busy.
+	const [busyUserId, setBusyUserId] = useState<string | null>(null);
 	const users = data?.users ?? [];
 
 	async function addAdmin() {
@@ -41,13 +43,14 @@ function AdminUsersSection() {
 	}
 
 	async function setUserStatus(id: string, nextStatus: "ACTIVE" | "INACTIVE") {
-		setError("");
+		setError(""); setBusyUserId(id);
 		try {
 			const response = await fetch(`/api/admin/users/${id}/status`, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: nextStatus }) });
 			const body = await response.json() as { error?: { message?: string } };
 			if (!response.ok) throw new Error(body.error?.message ?? "Admin account could not be updated");
 			reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Admin account could not be updated"); }
+		finally { setBusyUserId(null); }
 	}
 
 	return <>
@@ -58,7 +61,7 @@ function AdminUsersSection() {
 				<FormField label="Email" htmlFor="new-admin-email">
 					<Input id="new-admin-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@kitco.example" />
 				</FormField>
-				<Button disabled={!email || creating} onClick={() => void addAdmin()}>{creating ? "Creating…" : "Create admin account"}</Button>
+				<Button disabled={!email || creating} loading={creating} onClick={() => void addAdmin()}>{creating ? "Creating…" : "Create admin account"}</Button>
 				{created && <p className="notice">Account created for {created}. They'll sign in with their email and a one-time code — no password needed.</p>}
 				{error && <p className="form-error" role="alert">{error}</p>}
 			</div>
@@ -74,8 +77,8 @@ function AdminUsersSection() {
 						<td><StatusPill value={user.status} /></td>
 						<td>{shortDate(user.createdAt)}</td>
 						<td className="right">{user.status === "ACTIVE"
-							? <Button variant="secondary" size="sm" onClick={() => void setUserStatus(user.id, "INACTIVE")}>Deactivate</Button>
-							: <Button variant="secondary" size="sm" onClick={() => void setUserStatus(user.id, "ACTIVE")}>Reactivate</Button>}</td>
+							? <Button variant="secondary" size="sm" loading={busyUserId === user.id} disabled={busyUserId === user.id} onClick={() => void setUserStatus(user.id, "INACTIVE")}>Deactivate</Button>
+							: <Button variant="secondary" size="sm" loading={busyUserId === user.id} disabled={busyUserId === user.id} onClick={() => void setUserStatus(user.id, "ACTIVE")}>Reactivate</Button>}</td>
 					</tr>)}</tbody>
 				</table></div>
 			</section>}
@@ -86,19 +89,26 @@ const number = (value: number) => value.toLocaleString("en-IN");
 
 /* ------------------------------------------------------------ Dealer Applications */
 interface DealerApplicationRow { id: string; businessName: string; gstin: string; city: string; state: string; contactPerson: string; primaryEmail: string; secondaryEmail: string | null; mobile: string; status: string; reviewNotes: string | null; createdAt: string }
-function DealerApplicationsSection() {
+export function DealerApplicationsSection() {
 	const { data, status, reload } = useAdminSection<{ applications: DealerApplicationRow[] }>("/api/admin/dealer-applications");
 	const [openId, setOpenId] = useState<string | null>(null);
 	const [notes, setNotes] = useState("");
-	const [busy, setBusy] = useState(false);
+	const [busy, setBusy] = useState<"approve" | "reject" | "request-more-info" | null>(null);
 	const [error, setError] = useState("");
-	const applications = data?.applications ?? [];
-	const open = applications.find((item) => item.id === openId);
+	const [query, setQuery] = useState("");
+	const allApplications = data?.applications ?? [];
+	const needle = query.trim().toLowerCase();
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const applications = needle
+		? allApplications.filter((item) => [item.businessName, item.city, item.state, item.contactPerson, item.gstin, item.primaryEmail]
+			.some((field) => field?.toLowerCase().includes(needle)))
+		: allApplications;
+	const open = allApplications.find((item) => item.id === openId);
 	const reviewable = new Set(["SUBMITTED", "UNDER_REVIEW", "MORE_INFO_REQUIRED"]);
 
 	async function decide(action: "approve" | "reject" | "request-more-info") {
 		if (!open) return;
-		setError(""); setBusy(true);
+		setError(""); setBusy(action);
 		try {
 			const response = await fetch(`/api/admin/dealer-applications/${open.id}/${action}`, {
 				method: "POST", credentials: "include", headers: { "content-type": "application/json" },
@@ -108,7 +118,7 @@ function DealerApplicationsSection() {
 			if (!response.ok) throw new Error(body.error ?? "Application could not be updated");
 			setOpenId(null); setNotes(""); reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Application could not be updated"); }
-		finally { setBusy(false); }
+		finally { setBusy(null); }
 	}
 
 	if (open) return <>
@@ -128,9 +138,9 @@ function DealerApplicationsSection() {
 			{reviewable.has(open.status) && <>
 				<FormField label="Notes (required to reject or ask for more info)" htmlFor="app-notes"><Input id="app-notes" value={notes} onChange={(event) => setNotes(event.target.value)} /></FormField>
 				<div className="control-actions-row">
-					<Button onClick={() => void decide("approve")} disabled={busy}>{busy ? "Working…" : "Approve and create dealer"}</Button>
-					<Button variant="secondary" onClick={() => void decide("request-more-info")} disabled={busy || !notes}>Request more info</Button>
-					<Button variant="secondary" onClick={() => void decide("reject")} disabled={busy || !notes}>Reject</Button>
+					<Button onClick={() => void decide("approve")} loading={busy === "approve"} disabled={busy !== null}>{busy === "approve" ? "Approving…" : "Approve and create dealer"}</Button>
+					<Button variant="secondary" onClick={() => void decide("request-more-info")} loading={busy === "request-more-info"} disabled={busy !== null || !notes}>{busy === "request-more-info" ? "Sending…" : "Request more info"}</Button>
+					<Button variant="secondary" onClick={() => void decide("reject")} loading={busy === "reject"} disabled={busy !== null || !notes}>{busy === "reject" ? "Rejecting…" : "Reject"}</Button>
 				</div>
 			</>}
 			{error && <p className="form-error" role="alert">{error}</p>}
@@ -139,11 +149,14 @@ function DealerApplicationsSection() {
 
 	return <>
 		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="New dealers who aren't in our system yet can sign up here during the pilot. This is the list of who's applied." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : applications.length === 0
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : allApplications.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer applications yet." />
 			: <section className="panel">
-				<div className="panel-head"><h3>{applications.length} applications</h3></div>
-				<div className="table-wrap"><table className="data-table">
+				<div className="panel-head">
+					<h3>{applications.length.toLocaleString("en-IN")}{applications.length !== allApplications.length ? ` of ${allApplications.length.toLocaleString("en-IN")}` : ""} applications</h3>
+					<SearchField label="Search dealer applications" style={{ minWidth: 220 }} placeholder="Search business, city, contact or GSTIN" value={query} onChange={(event) => setQuery(event.target.value)} />
+				</div>
+				{applications.length === 0 ? <div className="empty"><h3>No matching applications</h3><p>Try a different search.</p></div> : <div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Business</th><th>City</th><th>Contact</th><th>Submitted</th><th>Status</th><th /></tr></thead>
 					<tbody>{applications.map((item) => <tr key={item.id}>
 						<td><b>{item.businessName}</b></td>
@@ -153,7 +166,7 @@ function DealerApplicationsSection() {
 						<td><StatusPill value={item.status} /></td>
 						<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenId(item.id)}>Review</Button></td>
 					</tr>)}</tbody>
-				</table></div>
+				</table></div>}
 			</section>}
 	</>;
 }
@@ -163,7 +176,7 @@ function DealerApplicationsSection() {
  *  SupabaseCommerceRepository.orderFromRow) but LiveOrder doesn't declare. */
 type QueueOrder = LiveOrder & { dealerId?: string; dealerCity?: string; dealerState?: string };
 
-function OrdersSection() {
+export function OrdersSection() {
 	const { data, status, reload } = useAdminSection<{ orders: QueueOrder[] }>("/api/admin/orders");
 	const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 	const [statusFilter, setStatusFilter] = useState("");
@@ -171,17 +184,22 @@ function OrdersSection() {
 	const [stateFilter, setStateFilter] = useState("");
 	const [dateFrom, setDateFrom] = useState("");
 	const [dateTo, setDateTo] = useState("");
+	const [query, setQuery] = useState("");
 	const orders = (data?.orders ?? []).map((order) => ({ ...order, allocations: order.allocations ?? [], audit: order.audit ?? [] }));
 	const open = orders.find((order) => order.id === openOrderId);
 	const statuses = [...new Set(orders.map((order) => order.status))];
 	const dealers = [...new Map(orders.filter((order) => order.dealerId).map((order) => [order.dealerId as string, order.dealerName ?? order.dealerId as string])).entries()];
 	const states = [...new Set(orders.map((order) => order.dealerState).filter((value): value is string => Boolean(value)))];
+	const needle = query.trim().toLowerCase();
 	const rows = orders.filter((order) =>
 		(!statusFilter || order.status === statusFilter)
 		&& (!dealerFilter || order.dealerId === dealerFilter)
 		&& (!stateFilter || order.dealerState === stateFilter)
 		&& (!dateFrom || (order.submittedAt ?? "").slice(0, 10) >= dateFrom)
-		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo));
+		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo)
+		// Client-side only, on top of the structured filters above -- the export endpoint has
+		// no free-text param, so this never reaches exportParams below.
+		&& (!needle || `${order.orderNumber ?? ""} ${order.dealerName ?? ""}`.toLowerCase().includes(needle)));
 	const exportParams = new URLSearchParams();
 	if (statusFilter) exportParams.set("orderStatus", statusFilter);
 	if (dealerFilter) exportParams.set("dealerId", dealerFilter);
@@ -207,6 +225,7 @@ function OrdersSection() {
 				<div className="panel-head">
 					<h3>{number(rows.length)} orders</h3>
 					<div className="control-filter-row">
+						<Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search order no. or dealer" aria-label="Search order number or dealer" />
 						<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
 							<option value="">All statuses</option>
 							{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}

@@ -38,15 +38,29 @@ function Table({ head, children }: { head: string[]; children: ReactNode }) {
 	</table></div>;
 }
 
-function statusTone(value: string): string {
+type StatusTone = "red" | "green" | "amber" | "blue";
+function statusTone(value: string): StatusTone {
 	const text = value.toUpperCase();
 	if (["REJECT", "CANCEL", "ERROR", "FAILED", "INACTIVE"].some((token) => text.includes(token))) return "red";
 	if (["APPROVED", "ACTIVE", "COMMITTED", "DISPATCHED", "RELEASED", "PUBLISHED"].some((token) => text.includes(token))) return "green";
 	if (["SUBMITTED", "REVIEW", "REVISION", "PENDING", "UPLOADED", "PARTIAL", "HOLD"].some((token) => text.includes(token))) return "amber";
 	return "blue";
 }
+/** Colour is never the only signal (project rule) -- every status pill pairs its tone with
+ *  one of these four glyphs, same family as AdminOrderPanel's BucketIcon and DealerGroups'
+ *  VerificationBadge. Kept local rather than shared to match how those two already do it. */
+function StatusIcon({ tone }: { tone: StatusTone }) {
+	return <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+		<circle cx="8" cy="8" r="6.4" stroke="currentColor" strokeWidth="1.4" />
+		{tone === "green" && <path d="M5 8.2 7.1 10.3 11 6.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />}
+		{tone === "red" && <path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />}
+		{tone === "amber" && <path d="M8 4.8v3.6l2.3 1.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />}
+		{tone === "blue" && <path d="M5.2 8h5.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />}
+	</svg>;
+}
 export function StatusPill({ value }: { value: string }) {
-	return <span className={`status ${statusTone(value)}`}>{value.replaceAll("_", " ")}</span>;
+	const tone = statusTone(value);
+	return <span className={`status ${tone}`}><StatusIcon tone={tone} />{value.replaceAll("_", " ")}</span>;
 }
 
 /* ---------------------------------------------------------------- Dashboard */
@@ -136,8 +150,8 @@ export function CatalogueSection() {
 						<td>{row.brand ?? dash}<div className="tiny">{row.family ?? dash}</div></td>
 						<td>{row.colour ?? dash}</td>
 						<td>{row.mrpMinor === null ? dash : formatRetailValue(row.mrpMinor)}</td>
-						<td><span className={`status ${row.hasMedia ? "green" : "amber"}`}>{row.hasMedia ? "Ready" : "Awaiting"}</span></td>
-						<td><span className={`status ${row.published ? "green" : "blue"}`}>{row.published ? "Published" : "Draft"}</span></td>
+						<td><span className={`status ${row.hasMedia ? "green" : "amber"}`}><StatusIcon tone={row.hasMedia ? "green" : "amber"} />{row.hasMedia ? "Ready" : "Awaiting"}</span></td>
+						<td><span className={`status ${row.published ? "green" : "blue"}`}><StatusIcon tone={row.published ? "green" : "blue"} />{row.published ? "Published" : "Draft"}</span></td>
 					</tr>)}
 				</Table>
 				{all.length > rows.length && <div className="panel-body"><p className="tiny">Showing {number(rows.length)} of {number(all.length)}. Search to see more.</p></div>}
@@ -168,7 +182,7 @@ export function OfferingsSection() {
 						<td>{row.mrpMinor === null ? dash : formatRetailValue(row.mrpMinor)}</td>
 						<td>{row.moqPairs ?? dash}</td>
 						<td>{row.orderMultiple ?? dash}</td>
-						<td><span className={`status ${row.published ? "green" : "blue"}`}>{row.published ? "Published" : "Draft"}</span></td>
+						<td><span className={`status ${row.published ? "green" : "blue"}`}><StatusIcon tone={row.published ? "green" : "blue"} />{row.published ? "Published" : "Draft"}</span></td>
 					</tr>)}
 				</Table>
 			</Panel>
@@ -222,6 +236,11 @@ export function SizeSetsSection() {
 
 	const [error, setError] = useState("");
 	const [showSizeChart, setShowSizeChart] = useState(false);
+	const [assignmentQuery, setAssignmentQuery] = useState("");
+	const assignmentNeedle = assignmentQuery.trim().toLowerCase();
+	const visibleAssignments = assignmentNeedle
+		? assignments.filter((row) => `${row.brandName} ${row.gender} ${row.sizeSetName ?? ""} ${row.sizeSetCode ?? ""}`.toLowerCase().includes(assignmentNeedle))
+		: assignments;
 
 	const [savingSystemSetId, setSavingSystemSetId] = useState<string | null>(null);
 	const [newSystemCode, setNewSystemCode] = useState("");
@@ -367,7 +386,7 @@ export function SizeSetsSection() {
 							<tbody>{set.values.map((value) => <tr key={value.id}>
 								<td><b>{value.label}</b></td>
 								<td>{value.sortOrder}</td>
-								<td>{value.inUseCount > 0 ? <span className="status green">{value.inUseCount} product{value.inUseCount === 1 ? "" : "s"}</span> : <span className="tiny">Not used</span>}</td>
+								<td>{value.inUseCount > 0 ? <span className="status green"><StatusIcon tone="green" />{value.inUseCount} product{value.inUseCount === 1 ? "" : "s"}</span> : <span className="tiny">Not used</span>}</td>
 								<td className="right">
 									{confirmingValueId === value.id ? <div style={{ display: "flex", gap: 6, alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap" }}>
 										<Input aria-label={`Type ${value.label} to confirm removing this size`} placeholder={`Type ${value.label}`} value={confirmText} onChange={(event) => setConfirmText(event.target.value)} style={{ width: 110 }} />
@@ -433,13 +452,16 @@ export function SizeSetsSection() {
 		</section>
 
 		{assignments.length > 0 && <section className="panel">
-			<div className="panel-head"><h3>What's turned on today</h3></div>
-			<div className="table-wrap"><table className="data-table">
+			<div className="panel-head">
+				<h3>What's turned on today</h3>
+				<SearchField label="Search size set assignments" style={{ minWidth: 220 }} placeholder="Search brand, gender or size set" value={assignmentQuery} onChange={(event) => setAssignmentQuery(event.target.value)} />
+			</div>
+			{visibleAssignments.length === 0 ? <div className="empty"><h3>No matching assignments</h3><p>Try a different search.</p></div> : <div className="table-wrap"><table className="data-table">
 				<thead><tr><th>Brand</th><th>Gender</th><th>Size set</th><th>Products</th></tr></thead>
-				<tbody>{assignments.map((row) => <tr key={`${row.brandName}-${row.gender}-${row.sizeSetCode}`}>
+				<tbody>{visibleAssignments.map((row) => <tr key={`${row.brandName}-${row.gender}-${row.sizeSetCode}`}>
 					<td><b>{row.brandName}</b></td><td>{row.gender}</td><td>{row.sizeSetName ?? dash}</td><td>{number(row.colourwayCount)}</td>
 				</tr>)}</tbody>
-			</table></div>
+			</table></div>}
 		</section>}
 
 		<SizeChartSheet open={showSizeChart} onClose={() => setShowSizeChart(false)} />
@@ -492,7 +514,7 @@ export function SchemesSection() {
 		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No schemes have been created yet." /> :
 			<Panel title={`${number(rows.length)} schemes`}>
 				<Table head={["Code", "Name", "Starts", "Ends", "Published"]}>
-					{rows.map((row) => <tr key={row.id}><td><b>{row.code}</b></td><td>{row.name}</td><td>{date(row.starts_at)}</td><td>{date(row.ends_at)}</td><td>{row.published_at ? <span className="status green">Live</span> : <span className="status blue">Draft</span>}</td></tr>)}
+					{rows.map((row) => <tr key={row.id}><td><b>{row.code}</b></td><td>{row.name}</td><td>{date(row.starts_at)}</td><td>{date(row.ends_at)}</td><td>{row.published_at ? <span className="status green"><StatusIcon tone="green" />Live</span> : <span className="status blue"><StatusIcon tone="blue" />Draft</span>}</td></tr>)}
 				</Table>
 			</Panel>}
 	</>;
@@ -540,7 +562,7 @@ export function AuditSection() {
 					{rows.map((row) => <tr key={row.id}>
 						<td>{dateTime(row.occurredAt)}</td>
 						<td>{row.actorEmail ?? dash}</td>
-						<td><span className="status blue">{row.eventType.replaceAll("_", " ")}</span></td>
+						<td><span className="status blue"><StatusIcon tone="blue" />{row.eventType.replaceAll("_", " ")}</span></td>
 						<td>{row.entityType ?? dash}<div className="tiny">{row.entityId?.slice(0, 8) ?? ""}</div></td>
 						<td className="tiny">{row.correlationId?.slice(0, 8) ?? dash}</td>
 					</tr>)}
@@ -570,19 +592,19 @@ export function SettingsSection() {
 			</Panel>
 			<Panel title="Authentication">
 				<div className="panel-body">
-					<div className="kpi-mini"><span>Dealer sign-in</span><span className="status green">Email + password</span></div>
-					<div className="kpi-mini"><span>Extra check</span><span className="status green">Email code</span></div>
-					<div className="kpi-mini"><span>Order submission</span><span className="status green">Extra code required</span></div>
+					<div className="kpi-mini"><span>Dealer sign-in</span><span className="status green"><StatusIcon tone="green" />Email + password</span></div>
+					<div className="kpi-mini"><span>Extra check</span><span className="status green"><StatusIcon tone="green" />Email code</span></div>
+					<div className="kpi-mini"><span>Order submission</span><span className="status green"><StatusIcon tone="green" />Extra code required</span></div>
 					<p style={{ marginTop: 12 }}>This pilot only sends codes by email — no SMS or WhatsApp yet.</p>
 				</div>
 			</Panel>
 			<Panel title={`${number(data.brands.length)} brands`}>
 				<div className="panel-body">{data.brands.length === 0 ? <p className="tiny">No brands registered.</p>
-					: data.brands.map((brand) => <div className="kpi-mini" key={brand.id}><span>{brand.name}</span><span className={`status ${brand.active ? "green" : "blue"}`}>{brand.active ? "Active" : "Inactive"}</span></div>)}</div>
+					: data.brands.map((brand) => <div className="kpi-mini" key={brand.id}><span>{brand.name}</span><span className={`status ${brand.active ? "green" : "blue"}`}><StatusIcon tone={brand.active ? "green" : "blue"} />{brand.active ? "Active" : "Inactive"}</span></div>)}</div>
 			</Panel>
 			<Panel title={`${number(data.importProfiles.length)} import profiles`}>
 				<div className="panel-body">{data.importProfiles.length === 0 ? <p className="tiny">No import profiles registered.</p>
-					: data.importProfiles.map((profile) => <div className="kpi-mini" key={profile.id}><div><b>{profile.code}</b><div className="tiny">{profile.sourceKind ?? dash}</div></div><span className={`status ${profile.active ? "green" : "blue"}`}>{profile.active ? "Active" : "Inactive"}</span></div>)}</div>
+					: data.importProfiles.map((profile) => <div className="kpi-mini" key={profile.id}><div><b>{profile.code}</b><div className="tiny">{profile.sourceKind ?? dash}</div></div><span className={`status ${profile.active ? "green" : "blue"}`}><StatusIcon tone={profile.active ? "green" : "blue"} />{profile.active ? "Active" : "Inactive"}</span></div>)}</div>
 			</Panel>
 		</div>}
 	</>;

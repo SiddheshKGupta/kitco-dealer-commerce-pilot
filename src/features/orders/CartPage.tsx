@@ -70,7 +70,7 @@ export function CartPage() {
 				</div>
 			</article>;
 		})}</div>
-		{error && <p className="commerce-validation" role="alert">{error}</p>}
+		{error && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{error}</span></p>}
 		<section className="cart-summary">
 			<div><span>{totalPairs} pairs · {lines.length} article{lines.length === 1 ? "" : "s"}</span><strong>{formatRetailValue(totalValue, currencyCode)}</strong></div>
 			<Button full onClick={() => navigate("/checkout/review")}>Review Order</Button>

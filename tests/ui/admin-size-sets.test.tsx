@@ -26,6 +26,33 @@ describe("Admin Size Sets", () => {
 		expect(screen.getByText("77")).toBeInTheDocument();
 	});
 
+	it("filters the assignments list by brand, gender or size set, and clears back to the full list", async () => {
+		const twoAssignments = {
+			...payload,
+			assignments: [
+				{ brandName: "Reebok", gender: "MENS", sizeSetCode: "REEBOK_7_12", sizeSetName: "Reebok 7 12", colourwayCount: 77 },
+				{ brandName: "Nike", gender: "WOMENS", sizeSetCode: "NIKE_5_10", sizeSetName: "Nike 5 10", colourwayCount: 12 },
+			],
+		};
+		vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(twoAssignments), { status: 200 })));
+		render(<SizeSetsSection />);
+		await screen.findByText("What's turned on today");
+		expect(screen.getByText("Reebok")).toBeInTheDocument();
+		expect(screen.getByText("Nike")).toBeInTheDocument();
+
+		const search = screen.getByLabelText("Search size set assignments");
+		fireEvent.change(search, { target: { value: "Nike" } });
+		expect(screen.getByText("Nike")).toBeInTheDocument();
+		expect(screen.queryByText("Reebok")).not.toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "no such brand" } });
+		expect(screen.getByText("No matching assignments")).toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "" } });
+		expect(screen.getByText("Reebok")).toBeInTheDocument();
+		expect(screen.getByText("Nike")).toBeInTheDocument();
+	});
+
 	it("blocks removing a size in use by products, but requires typing the label to confirm removing an unused one", async () => {
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
 			if (!init || init.method === undefined) return new Response(JSON.stringify(payload), { status: 200 });

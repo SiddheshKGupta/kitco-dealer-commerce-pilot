@@ -32,7 +32,7 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 
 .dealer-nav { display: flex; justify-content: center; gap: clamp(var(--space-5), 6vw, var(--space-8)); border-bottom: 1px solid var(--border); padding: 0 clamp(var(--space-4), 4vw, var(--space-7)); }
 
-.dealer-nav a { position: relative; padding: var(--space-4) 0 var(--space-3); font-size: 14px; font-weight: 700; transition: color var(--motion-standard) var(--ease-standard); }
+.dealer-nav a { position: relative; display: inline-flex; align-items: center; min-height: 48px; padding: var(--space-4) 0; font-size: 16px; font-weight: 700; transition: color var(--motion-standard) var(--ease-standard); }
 
 .dealer-nav a::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: var(--text); transform: scaleX(0); transform-origin: left; transition: transform var(--motion-standard) var(--ease-standard); }
 
@@ -101,6 +101,7 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 footer { margin-top: auto; padding: var(--space-5) clamp(var(--space-4), 4vw, var(--space-7)); border-top: 1px solid var(--border); font-size: 12px; }
 footer p { margin: 0 0 var(--space-1); }
 footer p:last-child { margin-bottom: 0; }
+.footer-brand { color: var(--brand-plum); }
 
 @media (max-width: 640px) {
   .site-header { min-height: 68px; }

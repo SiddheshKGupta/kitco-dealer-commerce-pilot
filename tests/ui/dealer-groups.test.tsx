@@ -86,6 +86,25 @@ describe("Dealer Groups", () => {
 		expect(posts).toEqual([{ path: "/api/admin/dealer-groups", body: { groupCode: "vlco", groupName: "V L & Co" } }]);
 	});
 
+	it("filters the group list by name or code, and clears back to the full list", async () => {
+		stubApi([]);
+		render(<DealerGroupsSection />);
+		await screen.findByText("Shree Ganesh Retail");
+		expect(screen.getByText("Frozen Group")).toBeInTheDocument();
+
+		const search = screen.getByLabelText("Search dealer groups");
+		fireEvent.change(search, { target: { value: "FROZEN" } });
+		expect(screen.getByText("Frozen Group")).toBeInTheDocument();
+		expect(screen.queryByText("Shree Ganesh Retail")).not.toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "no such group" } });
+		expect(screen.getByText("No matching groups")).toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "" } });
+		expect(screen.getByText("Shree Ganesh Retail")).toBeInTheDocument();
+		expect(screen.getByText("Frozen Group")).toBeInTheDocument();
+	});
+
 	it("says plainly that a group code is needed before any import can use it", async () => {
 		stubApi([], { "/api/admin/dealer-groups": { groups: [] } });
 		render(<DealerGroupsSection />);

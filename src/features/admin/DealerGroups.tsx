@@ -180,11 +180,17 @@ export function DealerGroupsSection() {
 	const [creating, setCreating] = useState(false);
 	const [created, setCreated] = useState<string | null>(null);
 	const [error, setError] = useState("");
+	const [query, setQuery] = useState("");
 
 	const groups = groupsSection.data?.groups ?? [];
 	const dealers = dealersSection.data?.dealers ?? [];
 	const open = groups.find((group) => group.id === openId);
 	const reload = () => { groupsSection.reload(); dealersSection.reload(); };
+	const needle = query.trim().toLowerCase();
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const visibleGroups = needle
+		? groups.filter((group) => `${group.groupName} ${group.groupCode}`.toLowerCase().includes(needle))
+		: groups;
 
 	async function create() {
 		setError(""); setCreated(null); setCreating(true);
@@ -227,10 +233,13 @@ export function DealerGroupsSection() {
 		{groupsSection.status !== "ready" ? <SectionState status={groupsSection.status} retry={reload} /> : groups.length === 0
 			? <div className="empty"><h3>No dealer groups yet</h3><p>Until a group exists, a group code in Add Dealer or a CSV import has nothing to point at and the row will be refused.</p></div>
 			: <section className="panel" style={{ marginTop: 18 }}>
-				<div className="panel-head"><h3>{count(groups.length)} {groups.length === 1 ? "group" : "groups"}</h3></div>
-				<div className="table-wrap"><table className="data-table">
+				<div className="panel-head">
+					<h3>{count(visibleGroups.length)}{visibleGroups.length !== groups.length ? ` of ${count(groups.length)}` : ""} {visibleGroups.length === 1 ? "group" : "groups"}</h3>
+					<SearchField label="Search dealer groups" style={{ minWidth: 220 }} placeholder="Search group name or code" value={query} onChange={(event) => setQuery(event.target.value)} />
+				</div>
+				{visibleGroups.length === 0 ? <div className="empty"><h3>No matching groups</h3><p>Try a different search.</p></div> : <div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Group</th><th>Code</th><th>Main dealer</th><th>Dealers</th><th>Status</th><th /></tr></thead>
-					<tbody>{groups.map((group) => {
+					<tbody>{visibleGroups.map((group) => {
 						// Derived from the dealer rows, which is the same fact the member
 						// table renders -- so the two screens can never disagree.
 						const main = dealers.find((dealer) => dealer.groupCode === group.groupCode && dealer.isMainDealer);
@@ -243,7 +252,7 @@ export function DealerGroupsSection() {
 							<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenId(group.id)}>View</Button></td>
 						</tr>;
 					})}</tbody>
-				</table></div>
+				</table></div>}
 			</section>}
 	</>;
 }

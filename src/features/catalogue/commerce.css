@@ -105,8 +105,8 @@
 .cart-line-media { display: grid; overflow: hidden; aspect-ratio: 1; place-items: center; background: var(--commerce-soft); }
 .cart-line-media img { width: 100%; height: 100%; object-fit: contain; }
 .cart-line-media .commerce-placeholder b { font-size: 11px; }
-.cart-line-copy { display: grid; gap: 3px; min-width: 0; font-size: 13px; }
-.cart-line-copy strong { font-size: 15px; }
+.cart-line-copy { display: grid; gap: 3px; min-width: 0; font-size: 15px; }
+.cart-line-copy strong { font-size: 16px; }
 .cart-line-copy span { color: var(--commerce-mid); }
 .cart-line-sizes { font-weight: 700; color: var(--commerce-ink) !important; }
 .cart-line-value { display: grid; justify-items: end; align-content: space-between; gap: 8px; text-align: right; }
