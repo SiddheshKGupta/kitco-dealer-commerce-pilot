@@ -272,7 +272,7 @@ export function OrdersSection() {
  *  SupabaseCommerceRepository.orderFromRow) but LiveOrder doesn't declare. */
 type ReportOrder = LiveOrder & { dealerId?: string; dealerState?: string };
 
-function ReportsSection() {
+export function ReportsSection() {
 	const { data, status, reload } = useAdminSection<{ orders: ReportOrder[] }>("/api/admin/orders");
 	const [statusFilter, setStatusFilter] = useState("");
 	const [dealerFilter, setDealerFilter] = useState("");
@@ -281,18 +281,23 @@ function ReportsSection() {
 	const [holdStatusFilter, setHoldStatusFilter] = useState("");
 	const [dateFrom, setDateFrom] = useState("");
 	const [dateTo, setDateTo] = useState("");
+	const [query, setQuery] = useState("");
 	const orders = data?.orders ?? [];
 	const statuses = [...new Set(orders.map((order) => order.status))];
 	const dealers = [...new Map(orders.filter((order) => order.dealerId).map((order) => [order.dealerId as string, order.dealerName ?? order.dealerId as string])).entries()];
 	const brands = [...new Set(orders.flatMap((order) => (order.allocations ?? []).map((item) => item.brand)).filter((value): value is string => Boolean(value)))];
 	const states = [...new Set(orders.map((order) => order.dealerState).filter((value): value is string => Boolean(value)))];
+	const needle = query.trim().toLowerCase();
 	const rows = orders.filter((order) =>
 		(!statusFilter || order.status === statusFilter)
 		&& (!dealerFilter || order.dealerId === dealerFilter)
 		&& (!brandFilter || (order.allocations ?? []).some((item) => item.brand === brandFilter))
 		&& (!stateFilter || order.dealerState === stateFilter)
 		&& (!dateFrom || (order.submittedAt ?? "").slice(0, 10) >= dateFrom)
-		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo));
+		&& (!dateTo || (order.submittedAt ?? "").slice(0, 10) <= dateTo)
+		// Client-side only, on top of the structured filters above -- the export endpoint has
+		// no free-text param, so this never reaches exportParams below.
+		&& (!needle || `${order.orderNumber ?? ""} ${order.dealerName ?? ""}`.toLowerCase().includes(needle)));
 	const totalValue = rows.reduce((sum, order) => sum + (order.retailValueMinor ?? 0), 0);
 	const totalPairs = rows.reduce((sum, order) => sum + (order.allocations ?? []).reduce((lines, item) => lines + item.approvedPairs, 0), 0);
 
@@ -326,6 +331,7 @@ function ReportsSection() {
 					<div className="panel-head">
 						<h3>Order list</h3>
 						<div className="control-filter-row">
+							<Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search order no. or dealer" aria-label="Search order number or dealer" />
 							<Select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Filter by status">
 								<option value="">All statuses</option>
 								{statuses.map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}

@@ -264,8 +264,14 @@ export function GroupRequestsSection() {
 	const [notes, setNotes] = useState("");
 	const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
 	const [error, setError] = useState("");
-	const requests = data?.requests ?? [];
-	const open = requests.find((request) => request.id === openId);
+	const [query, setQuery] = useState("");
+	const allRequests = data?.requests ?? [];
+	const needle = query.trim().toLowerCase();
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const requests = needle
+		? allRequests.filter((request) => `${request.dealerName} ${request.dealerCode} ${request.requestedGroupCode}`.toLowerCase().includes(needle))
+		: allRequests;
+	const open = allRequests.find((request) => request.id === openId);
 
 	async function decide(action: "approve" | "reject") {
 		if (!open) return;
@@ -315,11 +321,14 @@ export function GroupRequestsSection() {
 			title="Group Requests"
 			lead="Dealers ask to join a group by quoting its code. Nobody joins automatically — a KITCO admin decides every one."
 		/>
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : requests.length === 0
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : allRequests.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer is waiting to join a group." />
 			: <section className="panel">
-				<div className="panel-head"><h3>{count(requests.length)} awaiting a decision</h3></div>
-				<div className="table-wrap"><table className="data-table">
+				<div className="panel-head">
+					<h3>{count(requests.length)}{requests.length !== allRequests.length ? ` of ${count(allRequests.length)}` : ""} awaiting a decision</h3>
+					<SearchField label="Search group requests" style={{ minWidth: 220 }} placeholder="Search dealer or group code" value={query} onChange={(event) => setQuery(event.target.value)} />
+				</div>
+				{requests.length === 0 ? <div className="empty"><h3>No matching requests</h3><p>Try a different search.</p></div> : <div className="table-wrap"><table className="data-table">
 					<thead><tr><th>Dealer</th><th>Group code quoted</th><th>Requested</th><th>Status</th><th /></tr></thead>
 					<tbody>{requests.map((request) => <tr key={request.id}>
 						<td><b>{request.dealerName || dash}</b><div className="tiny">{request.dealerCode}</div></td>
@@ -328,7 +337,7 @@ export function GroupRequestsSection() {
 						<td><StatusPill value={request.status} /></td>
 						<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenId(request.id)}>Review</Button></td>
 					</tr>)}</tbody>
-				</table></div>
+				</table></div>}
 			</section>}
 	</>;
 }

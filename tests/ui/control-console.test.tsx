@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AdminUsersSection, DealerApplicationsSection, OrdersSection } from "../../src/features/admin/ControlConsole";
+import { AdminUsersSection, DealerApplicationsSection, OrdersSection, ReportsSection } from "../../src/features/admin/ControlConsole";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -71,6 +71,31 @@ describe("Orders queue", () => {
 	it("filters orders by order number or dealer name, and clears back to the full list", async () => {
 		vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(orders), { status: 200 })));
 		render(<OrdersSection />);
+		await screen.findByText("Alpha Footwear");
+		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
+
+		const search = screen.getByLabelText("Search order number or dealer");
+		fireEvent.change(search, { target: { value: "00002" } });
+		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
+		expect(screen.queryByText("Alpha Footwear")).not.toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "" } });
+		expect(screen.getByText("Alpha Footwear")).toBeInTheDocument();
+		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
+	});
+});
+
+describe("Reports", () => {
+	const orders = {
+		orders: [
+			{ id: "order-1", orderNumber: "KIT-2608-00001", status: "SUBMITTED", allocations: [], audit: [], dealerName: "Alpha Footwear", dealerState: "Bihar", submittedAt: "2026-08-20T00:00:00Z" },
+			{ id: "order-2", orderNumber: "KIT-2608-00002", status: "APPROVED", allocations: [], audit: [], dealerName: "Beta Shoes", dealerState: "West Bengal", submittedAt: "2026-08-21T00:00:00Z" },
+		],
+	};
+
+	it("filters the report's order list by order number or dealer, on top of the structured filters", async () => {
+		vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(orders), { status: 200 })));
+		render(<ReportsSection />);
 		await screen.findByText("Alpha Footwear");
 		expect(screen.getByText("Beta Shoes")).toBeInTheDocument();
 
