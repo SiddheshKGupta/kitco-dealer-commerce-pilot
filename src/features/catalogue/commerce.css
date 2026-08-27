@@ -1,11 +1,10 @@
 .commerce-page { --commerce-ink: var(--ink); --commerce-soft: var(--soft-cloud); --commerce-mid: var(--mute); width: min(100% - 32px, 1440px); margin: 0 auto; padding: 32px 0 96px; color: var(--commerce-ink); font-family: var(--font-ui); }
 .commerce-page button, .commerce-page input, .commerce-page select { font: inherit; }
-.commerce-page button:focus-visible, .commerce-page input:focus-visible, .commerce-page select:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.commerce-page button:focus-visible, .commerce-page input:focus-visible, .commerce-page select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .commerce-pdp-copy h1 { margin: 0; max-width: none; font-family: var(--font-ui); font-size: 32px; font-weight: 500; line-height: 1.2; letter-spacing: 0; text-transform: none; }
 .commerce-eyebrow { margin: 0 0 12px; color: var(--commerce-mid); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .commerce-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto; gap: 18px; align-items: end; padding: 24px 0 36px; }
 .commerce-sort { display: grid; gap: 7px; color: var(--commerce-mid); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.commerce-current-order select, .commerce-review input { min-height: 48px; border: 0; border-bottom: 1px solid var(--commerce-ink); border-radius: 0; background: #fff; padding: 0 4px; color: var(--commerce-ink); }
 .commerce-sort .ui-select { min-width: 170px; }
 .commerce-filter-trigger { display: none; }
 .commerce-results { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: clamp(28px, 4vw, 64px); }
@@ -30,7 +29,7 @@
 .commerce-product-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(22px, 3vw, 44px) 16px; }
 .commerce-product-open { width: 100%; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; }
 .commerce-media-stage, .commerce-pdp-media { display: grid; overflow: hidden; aspect-ratio: 1; place-items: center; background: var(--commerce-soft); }
-.commerce-media-stage img, .commerce-pdp-media img { width: 100%; height: 100%; object-fit: contain; transition: transform 190ms cubic-bezier(.2,.8,.2,1); }
+.commerce-media-stage img, .commerce-pdp-media img { width: 100%; height: 100%; object-fit: contain; transition: transform var(--motion-standard) var(--ease-standard); }
 .commerce-product-open:hover img { transform: scale(1.025); }
 .commerce-placeholder { display: grid; place-items: center; color: var(--commerce-mid); }
 .commerce-placeholder b { font-family: var(--font-ui); font-size: clamp(20px, 3vw, 32px); font-weight: 500; letter-spacing: 0; }
@@ -48,75 +47,114 @@
 .commerce-pdp-copy { padding-top: clamp(12px, 4vw, 50px); }
 .commerce-colour { margin: 18px 0 0; color: var(--commerce-mid); font-size: 18px; }
 .commerce-colourway-switcher { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
-.commerce-colourway-swatch { width: 56px; height: 56px; padding: 0; border: 2px solid var(--hairline); border-radius: var(--radius-sm); background: var(--commerce-soft); overflow: hidden; cursor: pointer; }
+.commerce-colourway-swatch { width: 56px; height: 56px; padding: 0; border: 2px solid var(--hairline); border-radius: var(--radius-sm); background: var(--commerce-soft); overflow: hidden; cursor: pointer; transition: border-color var(--motion-standard) var(--ease-standard), transform var(--motion-standard) var(--ease-standard); }
 .commerce-colourway-swatch img { width: 100%; height: 100%; object-fit: contain; }
 .commerce-colourway-swatch span { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; padding: 4px; font-size: 10px; font-weight: 700; text-align: center; line-height: 1.2; color: var(--commerce-mid); }
-.commerce-colourway-swatch[aria-current="true"] { border-color: var(--commerce-ink); }
+.commerce-colourway-swatch:hover:not([aria-current="true"]) { border-color: var(--commerce-mid); }
+.commerce-colourway-swatch:active { transform: scale(0.96); }
+/* Ink border plus an inset canvas gap: a hairline-to-ink border swap alone is far too
+   quiet at 56px to answer "which colour am I looking at?" at a glance. */
+.commerce-colourway-swatch[aria-current="true"] { border-color: var(--commerce-ink); box-shadow: inset 0 0 0 2px var(--canvas); cursor: default; }
 .commerce-colourway-swatch:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .commerce-mrp { margin: 10px 0 26px; font-size: 18px; }
-.commerce-policy { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
-.commerce-policy span { border: 1px solid var(--hairline); border-radius: 999px; padding: 8px 12px; font-size: 16px; font-weight: 700; }
+.commerce-policy { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-6); }
+/* Filled, not outlined: an outlined pill here is pixel-for-pixel the app's own .chip,
+   so two static order rules looked like controls you could tap. */
+.commerce-policy span { border-radius: var(--radius-pill); background: var(--commerce-soft); padding: var(--space-2) var(--space-3); font-size: 14px; font-weight: 700; }
 /* One row per size, not a dense grid of small boxes: a proper QuantityStepper (48px
    +/- buttons either side of the value) doesn't fit in a compact multi-column cell,
-   and a stacked list reads easier at a glance regardless of screen width. */
-.commerce-size-grid { display: grid; gap: 8px; border: 0; padding: 0; }
-.commerce-size-grid legend { margin-bottom: 10px; font-size: 14px; font-weight: 800; }
-.commerce-size-system { margin: -4px 0 4px; color: var(--commerce-mid); font-size: 13px; }
-.commerce-size-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; border: 1px solid var(--hairline); padding: 8px 14px; }
-.commerce-size-row:focus-within { border-color: var(--commerce-ink); }
+   and a stacked list reads easier at a glance regardless of screen width.
+   Rules, not boxes: a dozen fully-bordered rows stacked with gaps between them read
+   as a dozen separate widgets rather than one list of sizes for one article. */
+.commerce-size-grid { display: block; border: 0; margin: 0; padding: 0; }
+.commerce-size-grid legend { margin: 0; padding: 0; font-size: 14px; font-weight: 800; }
+/* Bound to the legend above it (4px), well clear of the first row (16px): this is the
+   second line of the block's heading, not a note floating over the size list. */
+.commerce-size-system { margin: var(--space-1) 0 var(--space-4); color: var(--commerce-mid); font-size: 13px; }
+.commerce-size-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 64px; border-top: 1px solid var(--hairline); padding: var(--space-2) 0; }
+.commerce-size-row:last-child { border-bottom: 1px solid var(--hairline); }
 .commerce-size-row span { font-size: 16px; font-weight: 700; color: var(--commerce-ink); }
-.commerce-validation { border-left: 3px solid var(--commerce-ink); background: var(--commerce-soft); padding: 12px 14px; font-size: 16px; }
-.commerce-order-tray { display: flex; flex-direction: column; gap: 14px; margin-top: 24px; border: 1px solid var(--hairline); background: var(--commerce-soft); padding: 18px; }
-.commerce-order-tray > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.commerce-order-tray span { color: var(--commerce-mid); font-size: 12px; }
-.commerce-order-tray strong { font-size: 14px; }
+.commerce-validation { border-left: 3px solid var(--commerce-ink); background: var(--commerce-soft); padding: var(--space-3) 14px; font-size: 16px; line-height: 1.5; }
+.commerce-order-tray { display: flex; flex-direction: column; gap: 14px; margin-top: var(--space-5); border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--commerce-soft); padding: 18px; }
+.commerce-order-tray > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
+.commerce-order-tray span { color: var(--commerce-mid); font-size: 13px; }
 .commerce-order-tray .ui-btn { width: 100%; }
-.commerce-order-tray-actions { display: flex; gap: 12px; }
+.commerce-order-tray-actions { display: flex; gap: var(--space-3); }
 .commerce-order-tray-actions .ui-btn { flex: 1; width: auto; }
+/* The tray is the one place on this page that confirms a write landed, and the swap
+   is otherwise silent -- 180ms of movement says "that just changed". */
+.commerce-order-tray-saved { animation: commerce-tray-in var(--motion-standard) var(--ease-standard) both; }
+/* Tick as generated content so the label stays one text node: icon and word together,
+   never the tint alone. */
+.commerce-order-tray-saved > div > span { color: var(--success); font-weight: 700; }
+.commerce-order-tray-saved > div > span::before { content: "✓"; margin-right: 6px; }
+@keyframes commerce-tray-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 .commerce-review label { display: grid; gap: 8px; margin-bottom: 18px; font-size: 12px; font-weight: 700; }
 .commerce-review { margin-top: 24px; border-top: 1px solid var(--hairline); padding-top: 24px; }
 .commerce-review h2 { margin: 0 0 16px; font-size: 20px; font-weight: 700; }
 .commerce-review p { color: var(--commerce-mid); line-height: 1.5; }
-.commerce-submitted { display: flex; gap: 18px; align-items: flex-start; margin-top: 24px; background: var(--commerce-soft); padding: 22px; }
-.commerce-submitted > span { display: grid; width: 28px; height: 28px; border-radius: 50%; place-items: center; background: var(--commerce-ink); color: white; }
-.commerce-submitted p { margin: 5px 0 0; color: var(--commerce-mid); font-size: 13px; }
+.commerce-submitted { display: flex; gap: 18px; align-items: flex-start; margin-top: var(--space-5); border-radius: var(--radius); background: var(--success-soft); padding: 22px; }
+.commerce-submitted > span { display: grid; width: 32px; height: 32px; flex: none; border-radius: 50%; place-items: center; background: var(--success); color: var(--canvas); }
+.commerce-submitted strong { font-size: 20px; letter-spacing: -.02em; }
+/* This is the confirmation for a real order: it reads at body size like the rest of
+   the dealer surface, not at the 13px of a footnote. */
+.commerce-submitted p { margin: var(--space-2) 0 var(--space-5); color: var(--commerce-ink); font-size: 16px; }
 .commerce-review-page { max-width: 720px; }
 .commerce-review-section { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--hairline); }
 .commerce-review-section:first-of-type { margin-top: 24px; }
 .commerce-review-section h2 { margin: 0 0 16px; font-size: 20px; font-weight: 700; }
-.commerce-review-section > label { display: block; margin-bottom: 16px; font-size: 15px; font-weight: 700; }
+.commerce-review-section > label { display: block; margin-bottom: var(--space-4); font-size: 15px; font-weight: 700; }
 .commerce-review-section > label:last-child { margin-bottom: 0; }
-.commerce-review-section select, .commerce-review-section input[type="text"], .commerce-review-section input[type="date"] {
-	display: block; margin-top: 8px; min-height: 48px; width: 100%; max-width: 320px;
-	border: 1px solid var(--hairline); border-radius: var(--radius-sm); padding: 0 12px;
-	background: white; color: var(--commerce-ink); font: inherit;
+/* Shared .ui-input/.ui-select, not a second input system: only the gap under the label
+   and the measure are this screen's business. */
+.commerce-review-section .ui-input, .commerce-review-section .ui-select, .commerce-delivery-date .ui-input {
+	margin-top: var(--space-2); max-width: 320px;
 }
 .commerce-delivery-preference { margin: 0; padding: 0; border: 0; }
-.commerce-delivery-preference legend { margin-bottom: 12px; padding: 0; font-size: 15px; font-weight: 700; }
+.commerce-delivery-preference legend { margin-bottom: var(--space-3); padding: 0; font-size: 15px; font-weight: 700; }
 .commerce-delivery-option { display: flex; align-items: center; gap: 10px; min-height: 48px; font-size: 16px; font-weight: 400; cursor: pointer; }
-.commerce-delivery-option input { flex: none; width: 20px; height: 20px; }
-.commerce-delivery-date { margin-top: 12px; }
-.commerce-delivery-date label { display: block; margin-bottom: 8px; font-size: 15px; font-weight: 700; }
+.commerce-delivery-option input { flex: none; width: 20px; height: 20px; accent-color: var(--commerce-ink); }
+.commerce-delivery-date { margin-top: var(--space-3); }
+.commerce-delivery-date label { display: block; margin-bottom: 0; font-size: 15px; font-weight: 700; }
+/* The confirm checkbox and Place Final Order sat flush against the summary above and
+   against each other -- the last thing a dealer reads before committing needs air. */
+.commerce-review-page > .ui-checkbox { margin: var(--space-6) 0 var(--space-4); font-size: 16px; }
+.commerce-review-page > .commerce-validation { margin-bottom: var(--space-4); }
 .commerce-review-summary { display: grid; gap: 8px; }
 .commerce-review-summary > div { display: flex; justify-content: space-between; }
 .commerce-review-summary span { color: var(--commerce-mid); }
 .commerce-review-summary .field-note { margin-top: 12px; }
-.cart-lines { display: grid; gap: 14px; margin-top: 24px; }
-.cart-line { display: grid; grid-template-columns: 84px 1fr auto; gap: 16px; border: 1px solid var(--hairline); padding: 14px; }
-.cart-line-media { display: grid; overflow: hidden; aspect-ratio: 1; place-items: center; background: var(--commerce-soft); }
+.cart-lines { display: grid; gap: 14px; margin-top: var(--space-5); }
+.cart-line { display: grid; grid-template-columns: 84px 1fr auto; gap: var(--space-4); border: 1px solid var(--hairline); border-radius: var(--radius); padding: 14px; }
+.cart-line-media { display: grid; overflow: hidden; aspect-ratio: 1; place-items: center; border-radius: var(--radius-sm); background: var(--commerce-soft); }
 .cart-line-media img { width: 100%; height: 100%; object-fit: contain; }
 .cart-line-media .commerce-placeholder b { font-size: 11px; }
 .cart-line-copy { display: grid; gap: 3px; min-width: 0; font-size: 15px; }
 .cart-line-copy strong { font-size: 16px; }
 .cart-line-copy span { color: var(--commerce-mid); }
+/* 13px muted, identical to .commerce-size-system on the product page: the size system
+   is the same fact in all three places a line appears (product, cart, review). */
+.cart-line-size-system { font-size: 13px; }
 .cart-line-sizes { font-weight: 700; color: var(--commerce-ink) !important; }
-.cart-line-value { display: grid; justify-items: end; align-content: space-between; gap: 8px; text-align: right; }
-.cart-line-actions { display: flex; gap: 12px; }
-.cart-summary { position: sticky; bottom: 14px; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 28px; border: 1px solid var(--hairline); background: white; padding: 16px 18px; }
-.cart-summary > div { display: grid; gap: 4px; }
-.cart-summary span { color: var(--commerce-mid); font-size: 12px; }
-.cart-summary strong { font-size: 16px; }
+.cart-line-value { display: grid; justify-items: end; align-content: space-between; gap: var(--space-2); text-align: right; }
+.cart-line-actions { display: flex; gap: var(--space-4); }
+/* .text-action defaults to a full-width stacked auth link; on a card it is one of two
+   inline actions, so only its 48px tap-target floor carries over. */
+.cart-line-actions .text-action { width: auto; margin-top: 0; font-size: 15px; }
+/* --shadow is the app's one lifted-surface level, and tokens.css names the sticky order
+   bar as its case: without it this reads as text colliding with the lines behind it. */
+.cart-summary { position: sticky; bottom: 14px; z-index: 10; display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-top: 28px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--canvas); padding: var(--space-4) 18px; box-shadow: var(--shadow); }
+.cart-summary > div { display: grid; gap: var(--space-1); }
+.cart-summary span { color: var(--commerce-mid); font-size: 13px; }
 .cart-summary .ui-btn { width: auto; min-width: 180px; }
+
+/* One rule for what a value looks like, wherever a value appears on the dealer surface.
+   A retail total must not render one way in the cart and another on review. */
+.cart-line-value strong, .cart-summary strong, .commerce-review-summary strong, .commerce-order-tray strong { font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.commerce-mrp { font-variant-numeric: tabular-nums; }
+/* Same breakpoint the fixed bottom nav appears at: a sticky bar parked at bottom: 14px
+   sits behind that nav (z-index 50 vs 10), so the order total was hidden on a phone. */
+@media (max-width: 850px) { .cart-summary { bottom: calc(65px + env(safe-area-inset-bottom, 0)); } }
 @media (max-width: 560px) { .cart-line { grid-template-columns: 64px 1fr; } .cart-line-value { grid-column: 1 / -1; justify-items: start; text-align: left; flex-direction: row; display: flex; justify-content: space-between; align-items: center; } .cart-summary { flex-direction: column; align-items: stretch; } .cart-summary .ui-btn { width: 100%; } }
 @media (max-width: 880px) { .commerce-results { grid-template-columns: 1fr; } .commerce-results > .commerce-filter-rail { display: none; } .commerce-filter-trigger { display: inline-flex; grid-column: 1 / -1; min-height: 56px; font-size: 17px; } .commerce-toolbar { grid-template-columns: 1fr auto; } .commerce-product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .commerce-pdp-grid { grid-template-columns: 1fr; } .commerce-pdp-media { position: static; } }
 @media (prefers-reduced-motion: reduce) { .commerce-page *, .commerce-page *::before, .commerce-page *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }

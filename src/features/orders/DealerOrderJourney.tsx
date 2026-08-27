@@ -47,7 +47,7 @@ export function DealerOrderJourney({ product, colourways = [], onSelectColourway
 				<SizeGrid sizes={product.offering.enabledSizes} quantities={quantities} sizeSystemLabel={product.offering.sizeSystemLabel} onChange={(size, pairs) => { setQuantities((current) => ({ ...current, [size]: pairs })); setSaved(false); }} />
 				{validation && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{validation}</span></p>}
 				<SizeChartSheet open={showSizeChart} onClose={() => setShowSizeChart(false)} />
-				<section className="commerce-order-tray" aria-label="Current Order action">
+				<section className={`commerce-order-tray${saved ? " commerce-order-tray-saved" : ""}`} aria-label="Current Order action">
 					{saved ? <>
 						<div><span>Saved to Current Order</span><strong>{totalPairs} pairs</strong></div>
 						<div className="commerce-order-tray-actions">
@@ -56,7 +56,7 @@ export function DealerOrderJourney({ product, colourways = [], onSelectColourway
 						</div>
 					</> : <>
 						<div><span>{totalPairs} pairs selected</span><strong>Retail Value calculated by KITCO</strong></div>
-						<Button full disabled={totalPairs === 0 || Boolean(validation) || pending} onClick={() => void add()}>{pending ? "Saving…" : "Add to Current Order"}</Button>
+						<Button full disabled={totalPairs === 0 || Boolean(validation)} loading={pending} onClick={() => void add()}>{pending ? "Saving…" : "Add to Current Order"}</Button>
 					</>}
 				</section>
 				{error && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{error}</span></p>}
