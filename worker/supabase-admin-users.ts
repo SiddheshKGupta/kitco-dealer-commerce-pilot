@@ -68,7 +68,7 @@ export class SupabaseAdminUsersStore implements AdminUsersStore {
 				.select("id", { count: "exact", head: true })
 				.eq("organisation_id", session.organisationId).eq("app_role", "ADMIN").eq("status", "ACTIVE");
 			if (countError) throw new ApiError(502, "ADMIN_USER_UPDATE_FAILED", "Admin account could not be updated");
-			const { data: target } = await this.client.from("app_users").select("status").eq("id", userId).maybeSingle();
+			const { data: target } = await this.client.from("app_users").select("status").eq("id", userId).eq("organisation_id", session.organisationId).maybeSingle();
 			if ((count ?? 0) <= 1 && target?.status === "ACTIVE") {
 				throw new ApiError(409, "LAST_ADMIN_ACTIVE", "At least one active admin account must remain");
 			}
