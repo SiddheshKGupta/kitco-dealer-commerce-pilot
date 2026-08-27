@@ -107,7 +107,7 @@ describe("SupabaseOrdersExporter", () => {
 			dealer_po_number: "PO-555", delivery_preference: "REQUESTED_DATE", requested_delivery_date: "2026-08-10", estimated_delivery_date: "2026-08-12",
 			bill_to_snapshot: { dealerId: "dealer-1", code: "VLCO", name: "VLCO Sports", gstin: "10ABCDE1234F1Z5", addressLine1: "1 MG Road", city: "Patna", state: "Bihar", pinCode: "800001" },
 			ship_to_snapshot: { dealerId: "dealer-2", code: "VLCO2", name: "VLCO Sports Annex", gstin: "10ABCDE1234F1Z5", addressLine1: "2 MG Road", city: "Patna", state: "Bihar", pinCode: "800001" },
-			dealers: { code: "VLCO", name: "VLCO Sports", city: "Patna", state: "Bihar", dealer_groups: { group_code: "OPENAI001", group_name: "OpenAI Group" } },
+			dealers: { code: "VLCO", name: "VLCO Sports", city: "Patna", state: "Bihar", gst_registrations: { gstin: "10ABCDE1234F1Z5" }, dealer_groups: { group_code: "OPENAI001", group_name: "OpenAI Group" } },
 			dealer_locations: { name: "Warehouse 2" },
 			order_versions: [{
 				version_no: 1,
@@ -126,7 +126,6 @@ describe("SupabaseOrdersExporter", () => {
 		};
 		const from = vi.fn((table: string) => {
 			if (table === "orders") return chain({ data: [orderRow], error: null });
-			if (table === "dealer_gst_registrations") return chain({ data: [{ dealer_id: "dealer-1", gstin: "10ABCDE1234F1Z5", is_primary: true }], error: null });
 			throw new Error(`unexpected table ${table}`);
 		});
 		const client = { from } as unknown as SupabaseClient;
@@ -151,7 +150,7 @@ describe("SupabaseOrdersExporter", () => {
 			dealer_po_number: null, delivery_preference: "ASAP", requested_delivery_date: null, estimated_delivery_date: null,
 			bill_to_snapshot: { dealerId: "dealer-1", code: "VLCO", name: "VLCO Sports", gstin: "10ABCDE1234F1Z5", addressLine1: "1 MG Road", city: "Patna", state: "Bihar", pinCode: "800001" },
 			ship_to_snapshot: { dealerId: "dealer-1", code: "VLCO", name: "VLCO Sports", gstin: "10ABCDE1234F1Z5", addressLine1: "1 MG Road", city: "Patna", state: "Bihar", pinCode: "800001" },
-			dealers: { code: "VLCO", name: "VLCO Sports", city: "Patna", state: "Bihar", dealer_groups: null },
+			dealers: { code: "VLCO", name: "VLCO Sports", city: "Patna", state: "Bihar", gst_registrations: { gstin: "10ABCDE1234F1Z5" }, dealer_groups: null },
 			dealer_locations: null,
 			order_versions: [{
 				version_no: 1,
@@ -168,7 +167,6 @@ describe("SupabaseOrdersExporter", () => {
 		};
 		const from = vi.fn((table: string) => {
 			if (table === "orders") return chain({ data: [orderRow], error: null });
-			if (table === "dealer_gst_registrations") return chain({ data: [{ dealer_id: "dealer-1", gstin: "10ABCDE1234F1Z5", is_primary: true }], error: null });
 			throw new Error(`unexpected table ${table}`);
 		});
 		const client = { from } as unknown as SupabaseClient;
@@ -187,7 +185,6 @@ describe("SupabaseOrdersExporter", () => {
 		const ordersQuery = chain({ data: [], error: null });
 		const from = vi.fn((table: string) => {
 			if (table === "orders") return ordersQuery;
-			if (table === "dealer_gst_registrations") return chain({ data: [], error: null });
 			throw new Error(`unexpected table ${table}`);
 		});
 		const client = { from } as unknown as SupabaseClient;
@@ -214,7 +211,6 @@ describe("SupabaseOrdersExporter", () => {
 	it("never queries hold_allocations as an inner join unless a hold-status filter is supplied", async () => {
 		const from = vi.fn((table: string) => {
 			if (table === "orders") return chain({ data: [], error: null });
-			if (table === "dealer_gst_registrations") return chain({ data: [], error: null });
 			throw new Error(`unexpected table ${table}`);
 		});
 		const client = { from } as unknown as SupabaseClient;

@@ -25,16 +25,17 @@ function makeClient(row: Row = applicationRow) {
 			};
 		}
 		if (table === "dealers") {
-			return { insert: (patch: Row) => { dealerInserts.push(patch); return { select: () => ({ maybeSingle: async () => ({ data: { id: "dealer-new-1" }, error: null }) }) }; } };
+			return {
+				// No dealer already tied to this application -- the common case, a fresh approval.
+				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
+				insert: (patch: Row) => { dealerInserts.push(patch); return { select: () => ({ maybeSingle: async () => ({ data: { id: "dealer-new-1" }, error: null }) }) }; },
+			};
 		}
 		if (table === "gst_registrations") {
 			return {
 				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
 				insert: () => ({ select: () => ({ maybeSingle: async () => ({ data: { id: "gst-reg-1" }, error: null }) }) }),
 			};
-		}
-		if (table === "dealer_gst_registrations") {
-			return { insert: async () => ({ error: null }) };
 		}
 		if (table === "audit_events") {
 			return { insert: async (event: Row) => { auditInserts.push(event); return { error: null }; } };
@@ -104,6 +105,7 @@ function makeDealersInsertClient(failuresBeforeSuccess: number, errorCode = "235
 		}
 		if (table === "dealers") {
 			return {
+				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }) }),
 				insert: () => ({
 					select: () => ({
 						maybeSingle: async () => {
@@ -120,7 +122,6 @@ function makeDealersInsertClient(failuresBeforeSuccess: number, errorCode = "235
 				select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "gst-reg-1" }, error: null }) }) }) }),
 			};
 		}
-		if (table === "dealer_gst_registrations") return { insert: async () => ({ error: null }) };
 		if (table === "audit_events") return { insert: async () => ({ error: null }) };
 		throw new Error(`unexpected table ${table}`);
 	});
@@ -235,6 +236,40 @@ describe("SupabaseDealerApplicationsAdmin.approve -- dealer-code collision retry
 
 		await expect(store.approve(admin, "app-1", "corr-x")).rejects.toMatchObject({ code: "DEALER_CREATE_FAILED" });
 		expect(getAttempts()).toBe(1);
+	});
+});
+
+describe("SupabaseDealerApplicationsAdmin.approve -- resumes after a partial failure instead of duplicating", () => {
+	it("reuses the existing dealer row tied to this application by source_reference, rather than inserting a second", async () => {
+		// The real bug: issueCredentials() throws (no email, login-email collision), the
+		// application stays reviewable, but the dealers row from that attempt already
+		// exists. A retry must find it via source_reference and resume, not duplicate.
+		const dealerInserts: Row[] = [];
+		const from = vi.fn((table: string) => {
+			if (table === "dealer_applications") {
+				return {
+					select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: applicationRow, error: null }) }) }) }),
+					update: () => ({ eq: async () => ({ error: null }) }),
+				};
+			}
+			if (table === "dealers") {
+				return {
+					select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "dealer-existing-1" }, error: null }) }) }) }),
+					insert: (patch: Row) => { dealerInserts.push(patch); return { select: () => ({ maybeSingle: async () => ({ data: { id: "dealer-should-not-be-used" }, error: null }) }) }; },
+				};
+			}
+			if (table === "gst_registrations") {
+				return { select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: { id: "gst-reg-1" }, error: null }) }) }) }) };
+			}
+			if (table === "audit_events") return { insert: async () => ({ error: null }) };
+			throw new Error(`unexpected table ${table}`);
+		});
+		const client = { from } as unknown as SupabaseClient;
+
+		const result = await new SupabaseDealerApplicationsAdmin(client).approve(admin, "app-1", "corr-retry");
+
+		expect(result).toEqual({ dealerId: "dealer-existing-1" });
+		expect(dealerInserts).toEqual([]);
 	});
 });
 

@@ -25,7 +25,7 @@ function buildExportSelect(filters: OrderExportFilters): string {
   id,order_number,status,submitted_at,dealer_id,
   dealer_po_number,delivery_preference,requested_delivery_date,estimated_delivery_date,
   bill_to_snapshot,ship_to_snapshot,
-  dealers!dealer_id!inner(code,name,city,state,dealer_groups!dealers_dealer_group_fk(group_code,group_name)),
+  dealers!dealer_id!inner(code,name,city,state,gst_registrations(gstin),dealer_groups!dealers_dealer_group_fk(group_code,group_name)),
   dealer_locations!ship_to_location_id(name),
   order_versions(version_no,
     order_lines(id,mrp_minor,
@@ -65,21 +65,14 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 		const { data: orderRows, error: orderError } = await query.order("submitted_at", { ascending: false });
 		if (orderError) throw new Error("EXPORT_QUERY_FAILED");
 
-		const { data: gstRows, error: gstError } = await this.client
-			.from("dealer_gst_registrations")
-			.select("dealer_id,gstin,is_primary")
-			.eq("organisation_id", session.organisationId);
-		if (gstError) throw new Error("EXPORT_QUERY_FAILED");
-		const gstByDealer = new Map<string, string>();
-		for (const row of (gstRows ?? []) as Row[]) {
-			const existing = gstByDealer.get(String(row.dealer_id));
-			if (!existing || row.is_primary) gstByDealer.set(String(row.dealer_id), String(row.gstin));
-		}
-
 		const out: OrderExportRow[] = [];
 		for (const order of (orderRows ?? []) as Row[]) {
 			const dealer = one(order.dealers);
 			const dealerGroup = dealer ? one(dealer.dealer_groups) : null;
+			// v5 source of truth: dealers.gst_registration_id -> gst_registrations.gstin.
+			// The v4 dealer_gst_registrations mirror table is no longer written, so it is
+			// no longer read either -- reading it here would silently go stale.
+			const dealerGst = dealer ? one(dealer.gst_registrations) : null;
 			// bill_to/ship_to come from the immutable jsonb snapshots taken at submission time, never
 			// by re-joining dealers -- reflects what was true when the order was placed, not today
 			// (matters once a dealer edits its own name/GSTIN after older orders already exist).
@@ -119,7 +112,7 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 						dealerName: dealer?.name ? String(dealer.name) : "",
 						city: dealer?.city ? String(dealer.city) : "",
 						state: dealer?.state ? String(dealer.state) : "",
-						gstin: gstByDealer.get(String(order.dealer_id)) ?? "",
+						gstin: dealerGst?.gstin ? String(dealerGst.gstin) : "",
 						dealerGroupCode: dealerGroup?.group_code ? String(dealerGroup.group_code) : "",
 						dealerGroupName: dealerGroup?.group_name ? String(dealerGroup.group_name) : "",
 						billToCode: billTo?.code ? String(billTo.code) : "",

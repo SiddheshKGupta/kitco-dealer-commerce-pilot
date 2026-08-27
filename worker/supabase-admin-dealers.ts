@@ -1,8 +1,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { assertAccountTransition, type AccountState } from "./account-state";
 import type { NoticeMailer } from "./auth/resend-provider";
+import { resolveGstRegistration } from "./gst-registration";
 import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
+import { syncMainDealer } from "./sync-main-dealer";
 import {
   createDealerSchema,
   updateDealerSchema,
@@ -167,56 +169,6 @@ export class SupabaseAdminDealers implements AdminDealersStore {
     return this.toDealerRow(await this.loadRow(session.organisationId, dealerId), groupCodeById, gstinById);
   }
 
-  /** Resolves a GSTIN to a `gst_registrations` row, reusing the existing one. Several
-   *  dealers legitimately share a GSTIN (one per PAN per state, covering unlimited
-   *  additional places of business), so the registration is stored once and pointed at.
-   *  verification_status stays UNVERIFIED: no GST provider is wired yet, and a
-   *  self-declared number must never be presented as GST-verified. */
-  private async resolveGstRegistration(organisationId: string, gstin: string): Promise<string> {
-    const { data: existing, error: findError } = await this.client
-      .from("gst_registrations").select("id").eq("organisation_id", organisationId).eq("gstin", gstin).maybeSingle();
-    if (findError) throw new ApiError(502, "GST_LOOKUP_FAILED", "That GST number could not be checked");
-    if (existing) return String(existing.id);
-
-    const { data: created, error: insertError } = await this.client
-      .from("gst_registrations")
-      .insert({ organisation_id: organisationId, gstin, verification_status: "UNVERIFIED" })
-      .select("id").maybeSingle();
-    if (insertError?.code === "23505") {
-      const { data: raced } = await this.client
-        .from("gst_registrations").select("id").eq("organisation_id", organisationId).eq("gstin", gstin).maybeSingle();
-      if (raced) return String(raced.id);
-    }
-    if (insertError || !created) throw new ApiError(502, "GST_SAVE_FAILED", "That GST number could not be saved");
-    return String(created.id);
-  }
-
-  /** v4's `dealer_gst_registrations` is what the admin console's GST count and the
-   *  orders CSV export still read, so a dealer created here has to appear in it too --
-   *  otherwise the admin types a GSTIN and the export shows a blank.
-   *
-   *  That table is `unique (organisation_id, gstin)`, so it structurally cannot hold a
-   *  GSTIN shared by two dealers, which is precisely the limitation `gst_registrations`
-   *  exists to fix. A duplicate is therefore expected and tolerated: the v5 table is
-   *  already authoritative, and failing a dealer's creation over a v4 mirror row would
-   *  be the tail wagging the dog. Reconciling the two is a Phase 8 cutover job. */
-  private async mirrorV4Gst(organisationId: string, dealerId: string, gstin: string): Promise<void> {
-    const { error } = await this.client.from("dealer_gst_registrations")
-      .insert({ organisation_id: organisationId, dealer_id: dealerId, gstin, is_primary: true });
-    if (error && error.code !== "23505") throw new ApiError(502, "GST_SAVE_FAILED", "That GST number could not be saved");
-  }
-
-  /** `dealers.is_main_dealer` and `dealer_groups.primary_dealer_id` are the same fact
-   *  stored twice and nothing in the schema keeps them agreeing, so do it here: exactly
-   *  one main dealer per group, mirrored onto the group row. Same rule as
-   *  SupabaseDealerGroups.assignDealer, which is the other writer of this pair. */
-  private async syncMainDealer(organisationId: string, groupId: string, dealerId: string): Promise<void> {
-    await this.client.from("dealers").update({ is_main_dealer: false })
-      .eq("organisation_id", organisationId).eq("dealer_group_id", groupId).neq("id", dealerId);
-    await this.client.from("dealer_groups").update({ primary_dealer_id: dealerId })
-      .eq("id", groupId).eq("organisation_id", organisationId);
-  }
-
   async create(session: SessionIdentity, input: AdminDealerInput, correlationId: string): Promise<AdminDealerRow> {
     const org = session.organisationId;
     const { groupIdByCode } = await this.lookups(org);
@@ -225,7 +177,7 @@ export class SupabaseAdminDealers implements AdminDealersStore {
 
     const patch = dealerPatch(input);
     if (groupId) patch.dealer_group_id = groupId;
-    if (input.gstin) patch.gst_registration_id = await this.resolveGstRegistration(org, input.gstin);
+    if (input.gstin) patch.gst_registration_id = await resolveGstRegistration(this.client, org, input.gstin);
 
     const { data, error } = await this.client.from("dealers").insert({
       organisation_id: org,
@@ -238,8 +190,7 @@ export class SupabaseAdminDealers implements AdminDealersStore {
     if (error || !data) throw new ApiError(502, "DEALER_CREATE_FAILED", "Dealer could not be created");
     const dealerId = String(data.id);
 
-    if (input.gstin) await this.mirrorV4Gst(org, dealerId, input.gstin);
-    if (input.isMainDealer && groupId) await this.syncMainDealer(org, groupId, dealerId);
+    if (input.isMainDealer && groupId) await syncMainDealer(this.client, org, groupId, dealerId);
 
     // Field names only. This log is read by KITCO staff and the values are dealer PII.
     await this.audit(session, correlationId, "DEALER_CREATED", dealerId, { fields: Object.keys(patch), source: "ADMIN_CONSOLE" });
@@ -456,7 +407,7 @@ export class SupabaseAdminDealers implements AdminDealersStore {
     const now = new Date().toISOString();
     const patch: Row = { ...write.patch, source_system: "CSV_IMPORT", source_reference: `${fileName}#${write.line}`, last_synced_at: now };
     if (write.groupId) patch.dealer_group_id = write.groupId;
-    if (write.gstin) patch.gst_registration_id = await this.resolveGstRegistration(org, write.gstin);
+    if (write.gstin) patch.gst_registration_id = await resolveGstRegistration(this.client, org, write.gstin);
 
     let dealerId = write.dealerId;
     if (dealerId) {
@@ -470,8 +421,7 @@ export class SupabaseAdminDealers implements AdminDealersStore {
       dealerId = String(data.id);
     }
 
-    if (write.gstin) await this.mirrorV4Gst(org, dealerId, write.gstin);
-    if (write.isMainDealer && write.groupId) await this.syncMainDealer(org, write.groupId, dealerId);
+    if (write.isMainDealer && write.groupId) await syncMainDealer(this.client, org, write.groupId, dealerId);
     // One audit row per dealer rather than one per file: every row of the batch shares
     // this correlation id, so the batch is still reconstructable, and the dealer's own
     // trail stays complete. fileName is KITCO's, not dealer PII.
