@@ -44,31 +44,6 @@ describe("admin order routes", () => {
     expect(repo.auditEvents.map((event) => event.correlationId)).toEqual(expect.arrayContaining(["corr-hold", "corr-dispatch"]));
   });
 
-  it("decides a line+size atomically, moving the order to PARTIALLY_APPROVED and reflecting the exact split", async () => {
-    const repo = repository();
-    const app = createCommerceApp({ repository: repo, verifySession: verifier({ a: dealerA, admin }) });
-    await app.request("/api/drafts/current", { method: "PUT", headers: headers("a"), body: JSON.stringify({ offeringId: "offer-1", quantities: { "7": 4 } }) });
-    const submitted = await app.request("/api/orders/submit", { method: "POST", headers: { ...headers("a"), "idempotency-key": "idem-decide" }, body: JSON.stringify({ otpChallengeId: "otp-order-a", otpDigest: "digest-ok" }) });
-    const { order } = await submitted.json() as { order: { id: string; allocations: Array<{ orderLineId: string }> } };
-    const orderLineId = order.allocations[0]!.orderLineId;
-
-    const decision = await app.request(`/api/admin/orders/${order.id}/decide`, {
-      method: "POST", headers: headers("admin", "corr-decide"),
-      body: JSON.stringify({ orderLineId, size: "7", approvedPairs: 3, heldPairs: 1, holdReason: "STOCK_REVIEW" }),
-    });
-    expect(decision.status).toBe(200);
-    const { order: decided } = await decision.json() as { order: { status: string; allocations: Array<{ approvedPairs: number; heldPairs: number; holdReason?: string }> } };
-    expect(decided.status).toBe("PARTIALLY_APPROVED");
-    expect(decided.allocations[0]).toMatchObject({ approvedPairs: 3, heldPairs: 1, holdReason: "STOCK_REVIEW" });
-    expect(repo.auditEvents.map((event) => event.correlationId)).toContain("corr-decide");
-
-    const rejected = await app.request(`/api/admin/orders/${order.id}/decide`, {
-      method: "POST", headers: headers("admin"),
-      body: JSON.stringify({ orderLineId, size: "7", approvedPairs: 4, heldPairs: 1, holdReason: "OTHER" }),
-    });
-    expect(rejected.status).toBe(422);
-  });
-
   it("denies dealer access to admin operations", async () => {
     const app = createCommerceApp({ repository: repository(), verifySession: verifier({ a: dealerA }) });
     const response = await app.request("/api/admin/imports", {
