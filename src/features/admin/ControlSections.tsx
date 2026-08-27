@@ -472,12 +472,21 @@ export function SizeSetsSection() {
 interface ImportJobRow { id: string; status: string; sourceName: string | null; profileCode: string | null; createdAt: string; committedAt: string | null; rows: number }
 export function ImportsSection() {
 	const { data, status, reload } = useAdminSection<{ imports: ImportJobRow[] }>("/api/admin/console/imports");
-	const rows = data?.imports ?? [];
+	const [query, setQuery] = useState("");
+	const all = data?.imports ?? [];
+	const needle = query.trim().toLowerCase();
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const rows = needle
+		? all.filter((row) => `${row.sourceName ?? ""} ${row.profileCode ?? ""} ${row.status}`.toLowerCase().includes(needle))
+		: all;
 	return <>
 		<PageHead eyebrow="Catalogue imports" title="Catalogue Imports" lead="Every file you've uploaded, which template read it, and how many rows came in." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No files uploaded yet." /> :
-			<Panel title={`${number(rows.length)} import jobs`}>
-				<Table head={["Source file", "Profile", "Rows", "Status", "Uploaded", "Confirmed"]}>
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No files uploaded yet." /> :
+			<Panel
+				title={`${number(rows.length)}${rows.length !== all.length ? ` of ${number(all.length)}` : ""} import jobs`}
+				meta={<SearchField label="Search catalogue imports" style={{ minWidth: 220 }} placeholder="Search file name, profile or status" value={query} onChange={(event) => setQuery(event.target.value)} />}
+			>
+				{rows.length === 0 ? <div className="empty"><h3>No matching imports</h3><p>Try a different search.</p></div> : <Table head={["Source file", "Profile", "Rows", "Status", "Uploaded", "Confirmed"]}>
 					{rows.map((row) => <tr key={row.id}>
 						<td><b>{row.sourceName ?? dash}</b></td>
 						<td>{row.profileCode ?? dash}</td>
@@ -486,7 +495,7 @@ export function ImportsSection() {
 						<td>{date(row.createdAt)}</td>
 						<td>{date(row.committedAt)}</td>
 					</tr>)}
-				</Table>
+				</Table>}
 			</Panel>}
 	</>;
 }
@@ -523,28 +532,46 @@ export function SchemesSection() {
 /* ------------------------------------------------------- Dispatch & holds */
 export function DispatchSection() {
 	const { data, status, reload } = useAdminSection<{ dispatches: Array<Record<string, string>> }>("/api/admin/console/dispatches");
-	const rows = data?.dispatches ?? [];
+	const [query, setQuery] = useState("");
+	const all = data?.dispatches ?? [];
+	const needle = query.trim().toLowerCase();
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const rows = needle
+		? all.filter((row) => `${row.dispatch_number ?? row.id} ${row.order_id ?? ""} ${row.status ?? ""}`.toLowerCase().includes(needle))
+		: all;
 	return <>
 		<PageHead eyebrow="Fulfilment" title="Dispatch" lead="Dispatches recorded against approved orders. One order may dispatch many times." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No dispatches recorded yet. Approve an order, then record dispatch against it." /> :
-			<Panel title={`${number(rows.length)} dispatches`}>
-				<Table head={["Dispatch", "Order", "Status", "Dispatched"]}>
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No dispatches recorded yet. Approve an order, then record dispatch against it." /> :
+			<Panel
+				title={`${number(rows.length)}${rows.length !== all.length ? ` of ${number(all.length)}` : ""} dispatches`}
+				meta={<SearchField label="Search dispatches" style={{ minWidth: 220 }} placeholder="Search dispatch or order number" value={query} onChange={(event) => setQuery(event.target.value)} />}
+			>
+				{rows.length === 0 ? <div className="empty"><h3>No matching dispatches</h3><p>Try a different search.</p></div> : <Table head={["Dispatch", "Order", "Status", "Dispatched"]}>
 					{rows.map((row) => <tr key={row.id}><td><b>{row.dispatch_number ?? row.id.slice(0, 8)}</b></td><td>{row.order_id?.slice(0, 8)}</td><td><StatusPill value={row.status ?? "UNKNOWN"} /></td><td>{date(row.dispatched_at)}</td></tr>)}
-				</Table>
+				</Table>}
 			</Panel>}
 	</>;
 }
 
 export function HoldsSection() {
 	const { data, status, reload } = useAdminSection<{ holds: Array<Record<string, string>> }>("/api/admin/console/holds");
-	const rows = data?.holds ?? [];
+	const [query, setQuery] = useState("");
+	const all = data?.holds ?? [];
+	const needle = query.trim().toLowerCase();
+	// Client-side only: the list is a few hundred rows at most, never paginated.
+	const rows = needle
+		? all.filter((row) => `${row.order_id ?? ""} ${row.hold_type ?? ""} ${row.status ?? ""} ${row.reason ?? ""}`.toLowerCase().includes(needle))
+		: all;
 	return <>
 		<PageHead eyebrow="Commercial control" title="Credit Holds" lead="Holds are a separate dimension from order status and can be partial." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No credit holds are active." /> :
-			<Panel title={`${number(rows.length)} holds`}>
-				<Table head={["Order", "Type", "Status", "Reason", "Raised", "Released"]}>
+		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No credit holds are active." /> :
+			<Panel
+				title={`${number(rows.length)}${rows.length !== all.length ? ` of ${number(all.length)}` : ""} holds`}
+				meta={<SearchField label="Search credit holds" style={{ minWidth: 220 }} placeholder="Search order, type or reason" value={query} onChange={(event) => setQuery(event.target.value)} />}
+			>
+				{rows.length === 0 ? <div className="empty"><h3>No matching holds</h3><p>Try a different search.</p></div> : <Table head={["Order", "Type", "Status", "Reason", "Raised", "Released"]}>
 					{rows.map((row) => <tr key={row.id}><td>{row.order_id?.slice(0, 8)}</td><td>{row.hold_type}</td><td><StatusPill value={row.status ?? "UNKNOWN"} /></td><td>{row.reason ?? dash}</td><td>{date(row.created_at)}</td><td>{date(row.released_at)}</td></tr>)}
-				</Table>
+				</Table>}
 			</Panel>}
 	</>;
 }

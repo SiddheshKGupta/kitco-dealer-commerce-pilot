@@ -159,10 +159,40 @@ describe("Group Requests", () => {
 		}],
 	};
 
+	const twoRequests = {
+		requests: [
+			...requests.requests,
+			{
+				id: "req-2", dealerId: "dealer-d", dealerCode: "WB-0004", dealerName: "Frontier Footwear",
+				requestedGroupCode: "FROZEN", status: "PENDING", requestedAt: "2026-08-21T00:00:00Z",
+				decidedAt: null, decisionNotes: null,
+			},
+		],
+	};
+
 	it("shows an empty queue rather than implying dealers joined on their own", async () => {
 		stubApi([]);
 		render(<GroupRequestsSection />);
 		expect(await screen.findByText("No dealer is waiting to join a group.")).toBeInTheDocument();
+	});
+
+	it("filters requests by dealer or group code, and clears back to the full list", async () => {
+		stubApi([], { "/api/admin/dealer-groups/requests": twoRequests });
+		render(<GroupRequestsSection />);
+		await screen.findByText("Outsider");
+		expect(screen.getByText("Frontier Footwear")).toBeInTheDocument();
+
+		const search = screen.getByLabelText("Search group requests");
+		fireEvent.change(search, { target: { value: "FROZEN" } });
+		expect(screen.getByText("Frontier Footwear")).toBeInTheDocument();
+		expect(screen.queryByText("Outsider")).not.toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "no such dealer" } });
+		expect(screen.getByText("No matching requests")).toBeInTheDocument();
+
+		fireEvent.change(search, { target: { value: "" } });
+		expect(screen.getByText("Outsider")).toBeInTheDocument();
+		expect(screen.getByText("Frontier Footwear")).toBeInTheDocument();
 	});
 
 	it("approves a request, and only lets a decline through with a reason", async () => {
