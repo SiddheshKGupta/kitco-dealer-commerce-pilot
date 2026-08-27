@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createCommerceApp } from "../../worker/app";
 import { SupabaseDealerGroups } from "../../worker/supabase-dealer-groups";
 import { dealerA, headers, repository, verifier } from "./fixtures";
@@ -88,6 +88,29 @@ describe("POST /api/orders/submit -- partner-function wiring", () => {
     });
     expect(response.status).toBe(403);
     expect(await repo.getDraft(dealerA)).not.toEqual([]); // draft untouched -- nothing was submitted
+  });
+
+  it("never spends the OTP challenge when the partner selection is rejected -- a dealer who fixes their Bill-To can still use the same code", async () => {
+    // Regression for a real bug: verifyOrderOtp used to run before resolveOrderPartners,
+    // so a rejected Bill-To/Ship-To burned a valid, already-emailed OTP for nothing --
+    // the dealer's only recourse was requesting a brand new code from scratch.
+    const dealerGroups = groupStore({
+      dealer_groups: [{ id: "grp-1", organisation_id: "org-1", status: "ACTIVE" }],
+      dealers: [
+        { id: "dealer-a", organisation_id: "org-1", dealer_group_id: "grp-1", ...ACTIVE },
+        { id: "dealer-outsider", organisation_id: "org-1", dealer_group_id: "grp-2", ...ACTIVE },
+      ],
+    });
+    const verifyOrderOtp = vi.fn(async () => undefined);
+    const app = createCommerceApp({ repository: repository(), verifySession: verifier({ a: dealerA }), dealerGroups, verifyOrderOtp });
+    await putValidDraft(app);
+
+    const response = await app.request("/api/orders/submit", {
+      method: "POST", headers: { ...headers("a"), "idempotency-key": "idem-outsider-otp" },
+      body: JSON.stringify({ otpChallengeId: "otp-order-a", otpCode: "482901", billToDealerId: "dealer-outsider" }),
+    });
+    expect(response.status).toBe(403);
+    expect(verifyOrderOtp).not.toHaveBeenCalled();
   });
 
   it("accepts a sibling in the same active group as Bill-To/Ship-To", async () => {

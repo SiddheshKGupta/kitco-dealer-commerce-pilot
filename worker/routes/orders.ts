@@ -75,15 +75,15 @@ export function registerOrderRoutes(
     if (existing) return context.json({ order: dealerOrder(existing) }, 200);
     // Before the OTP, so an incomplete profile never burns a verification code.
     await requireCompleteProfile(session, profiles);
-    if (verifyOrderOtp) {
-      if (!input.otpCode) throw new ApiError(400, "OTP_CODE_REQUIRED", "A six-digit order OTP is required");
-      await verifyOrderOtp(session, input.otpChallengeId, input.otpCode);
-    }
-    // The browser's billTo/shipTo/location ids are a proposal, never a fact: resolved
-    // and validated here against the ordering dealer's own group before anything is
-    // written (V5_DEALER_GROUP_MODEL.md §4). No store wired (e.g. a test harness that
-    // doesn't need group functionality) degrades to the same "no group" shape the
-    // resolver itself returns for a dealer with none -- self only, nothing selectable.
+    // Also before the OTP, for the same reason: the browser's billTo/shipTo/location ids
+    // are a proposal, never a fact, and resolveOrderPartners can refuse them (dealer no
+    // longer selectable, location deactivated, cross-group id) for reasons that have
+    // nothing to do with whether the dealer typed the right code. Checking this first
+    // means a rejected selection never spends a real OTP the dealer can't get back --
+    // they'd otherwise have to request an entirely new code just to see the real error.
+    // No store wired (e.g. a test harness that doesn't need group functionality) degrades
+    // to the same "no group" shape the resolver itself returns for a dealer with none --
+    // self only, nothing selectable (V5_DEALER_GROUP_MODEL.md §4).
     const partners = dealerGroups
       ? await dealerGroups.resolveOrderPartners(session, {
           billToDealerId: input.billToDealerId ?? null,
@@ -91,6 +91,10 @@ export function registerOrderRoutes(
           shipToLocationId: input.shipToLocationId ?? null,
         }, context.get("correlationId"))
       : { billToDealerId: session.dealerId!, shipToDealerId: session.dealerId!, shipToLocationId: input.shipToLocationId ?? null };
+    if (verifyOrderOtp) {
+      if (!input.otpCode) throw new ApiError(400, "OTP_CODE_REQUIRED", "A six-digit order OTP is required");
+      await verifyOrderOtp(session, input.otpChallengeId, input.otpCode);
+    }
     const submitInput: SubmitOrderInput = {
       idempotencyKey, otpChallengeId: input.otpChallengeId, otpDigest: input.otpDigest, now: new Date().toISOString(), correlationId: context.get("correlationId"),
       billToDealerId: partners.billToDealerId, shipToDealerId: partners.shipToDealerId, shipToLocationId: partners.shipToLocationId,
