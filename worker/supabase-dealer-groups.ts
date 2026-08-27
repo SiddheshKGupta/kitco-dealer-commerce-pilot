@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
+import { syncMainDealer } from "./sync-main-dealer";
 import type {
   AdminDealerGroupRow,
   AdminGstRegistrationRow,
@@ -302,15 +303,7 @@ export class SupabaseDealerGroups implements DealerGroupsStore {
       .update({ dealer_group_id: groupId, is_main_dealer: isMainDealer }).eq("id", dealerId).eq("organisation_id", org);
     if (error) throw new ApiError(502, "DEALER_GROUP_ASSIGN_FAILED", "Dealer could not be assigned to the group");
 
-    // dealers.is_main_dealer and dealer_groups.primary_dealer_id are the same fact
-    // stored twice and nothing in the schema keeps them agreeing, so do it here:
-    // exactly one main dealer per group, mirrored onto the group row.
-    if (isMainDealer) {
-      await this.client.from("dealers").update({ is_main_dealer: false })
-        .eq("organisation_id", org).eq("dealer_group_id", groupId).neq("id", dealerId);
-      await this.client.from("dealer_groups").update({ primary_dealer_id: dealerId })
-        .eq("id", groupId).eq("organisation_id", org);
-    }
+    if (isMainDealer) await syncMainDealer(this.client, org, groupId, dealerId);
 
     await this.audit(session, correlationId, "DEALER_GROUP_DEALER_ASSIGNED", "dealer_group", groupId, { dealerId, dealerCode, isMainDealer, groupCode: String(group.group_code) }, dealerId);
     return { dealerId };

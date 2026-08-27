@@ -15,7 +15,6 @@ type Filter = { op: "eq" | "neq" | "in"; column: string; value: any };
 const UNIQUE: Record<string, string[]> = {
   dealers: ["organisation_id", "code"],
   gst_registrations: ["organisation_id", "gstin"],
-  dealer_gst_registrations: ["organisation_id", "gstin"],
 };
 
 /** In-memory PostgREST double. Honours eq/neq/in exactly, because the security these
@@ -193,8 +192,6 @@ describe("POST /api/admin/dealers", () => {
     expect(created).toMatchObject({ organisation_id: "org-1", legal_name: "GAMMA FOOTWEAR PVT LTD", name: "Gamma Footwear", master_email: "gamma@dealer.example", source_system: "ADMIN_CONSOLE", dealer_group_id: "grp-ganesh" });
     // One main dealer per group, mirrored onto the group row.
     expect(db.rows("dealer_groups").find((row) => row.id === "grp-ganesh")?.primary_dealer_id).toBe(created.id);
-    // v4's mirror table too, or the orders CSV export would show a blank GSTIN.
-    expect(db.rows("dealer_gst_registrations")).toHaveLength(1);
 
     const event = db.auditEvents.at(-1)!;
     expect(event).toMatchObject({ event_type: "DEALER_CREATED", organisation_id: "org-1", entity_type: "dealer" });

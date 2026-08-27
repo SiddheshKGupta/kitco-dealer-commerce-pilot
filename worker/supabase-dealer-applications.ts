@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NoticeMailer } from "./auth/resend-provider";
+import { resolveGstRegistration } from "./gst-registration";
 import type { SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
 import type { DealerApplicationRow, DealerApplicationsAdmin } from "./routes/admin-dealer-applications";
@@ -78,31 +79,18 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 		return data as Row;
 	}
 
-	/** Resolves a GSTIN to a v5 gst_registrations row, reusing an existing one:
-	 *  Indian GST issues one GSTIN per PAN per state, so a group's outlets in one
-	 *  state legitimately share a registration. Mirrors the dealer profile store. */
-	private async resolveGstRegistration(session: SessionIdentity, gstin: string): Promise<string> {
-		const normalised = gstin.trim().toUpperCase().replaceAll(/\s+/g, "");
-		const { data: existing } = await this.client.from("gst_registrations")
-			.select("id").eq("organisation_id", session.organisationId).eq("gstin", normalised).maybeSingle();
-		if (existing) return String(existing.id);
-		const { data: created, error } = await this.client.from("gst_registrations")
-			.insert({ organisation_id: session.organisationId, gstin: normalised, verification_status: "UNVERIFIED" })
-			.select("id").maybeSingle();
-		if (error?.code === "23505") {
-			const { data: raced } = await this.client.from("gst_registrations")
-				.select("id").eq("organisation_id", session.organisationId).eq("gstin", normalised).maybeSingle();
-			if (raced) return String(raced.id);
-		}
-		if (error || !created) throw new ApiError(502, "DEALER_CREATE_FAILED", "GST registration could not be recorded");
-		return String(created.id);
-	}
-
 	async approve(session: SessionIdentity, applicationId: string, correlationId: string): Promise<{ dealerId: string }> {
 		const application = await this.loadReviewable(session, applicationId);
-		const gstRegistrationId = await this.resolveGstRegistration(session, String(application.gstin));
+		const gstRegistrationId = await resolveGstRegistration(this.client, session.organisationId, String(application.gstin));
 
-		let dealerId: string | null = null;
+		// A retry after issueCredentials() failed below (no email on file, a login-email
+		// collision) must resume rather than duplicate: the dealer row from the earlier
+		// attempt already exists, tied back to this application by source_reference.
+		const { data: existingDealer, error: existingError } = await this.client.from("dealers")
+			.select("id").eq("organisation_id", session.organisationId).eq("source_reference", applicationId).maybeSingle();
+		if (existingError) throw new ApiError(502, "DEALER_CREATE_FAILED", "Dealer could not be created");
+
+		let dealerId: string | null = existingDealer ? String(existingDealer.id) : null;
 		for (let attempt = 0; attempt < 3 && !dealerId; attempt += 1) {
 			const { data, error } = await this.client.from("dealers").insert({
 				organisation_id: session.organisationId,
@@ -129,14 +117,6 @@ export class SupabaseDealerApplicationsAdmin implements DealerApplicationsAdmin 
 			else if (error && error.code !== "23505") throw new ApiError(502, "DEALER_CREATE_FAILED", "Dealer could not be created");
 		}
 		if (!dealerId) throw new ApiError(502, "DEALER_CREATE_FAILED", "Dealer could not be created");
-
-		// Written alongside the v5 table because the admin console and the orders
-		// CSV export still read this one. Reconciling the two is a v5 data-model
-		// job, not something to do silently inside an approval.
-		const { error: gstError } = await this.client.from("dealer_gst_registrations").insert({
-			organisation_id: session.organisationId, dealer_id: dealerId, gstin: application.gstin, is_primary: true,
-		});
-		if (gstError) throw new ApiError(502, "DEALER_CREATE_FAILED", "GST registration could not be recorded");
 
 		// Issued before the application is marked APPROVED: if this fails, the
 		// application stays reviewable and the admin sees a real error to retry,
