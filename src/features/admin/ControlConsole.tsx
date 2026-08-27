@@ -10,7 +10,7 @@ import {
 } from "./ControlSections";
 import { DealerGroupsSection, GroupRequestsSection, GstRegistrationsSection } from "./DealerGroups";
 import { DealerImportSection, DealerOnboardingSection } from "./DealerOnboarding";
-import { useAdminSection } from "./useAdminSection";
+import { post, useAdminSection } from "./useAdminSection";
 import "./control.css";
 
 interface LiveOrder extends ControlOrder { version?: number; retailValueMinor?: number; dealerName?: string; submittedAt?: string }
@@ -20,7 +20,7 @@ const shortDate = (value: string) => new Date(value).toLocaleDateString("en-IN",
 /* --------------------------------------------------------------- Admin Users */
 interface AdminUserRow { id: string; email: string; status: string; createdAt: string }
 export function AdminUsersSection() {
-	const { data, status, reload } = useAdminSection<{ users: AdminUserRow[] }>("/api/admin/users");
+	const { data, status, error: loadError, reload } = useAdminSection<{ users: AdminUserRow[] }>("/api/admin/users");
 	const [email, setEmail] = useState("");
 	const [creating, setCreating] = useState(false);
 	const [created, setCreated] = useState<string | null>(null);
@@ -32,9 +32,7 @@ export function AdminUsersSection() {
 	async function addAdmin() {
 		setError(""); setCreating(true); setCreated(null);
 		try {
-			const response = await fetch("/api/admin/users", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
-			const body = await response.json() as { email?: string; error?: { message?: string } };
-			if (!response.ok) throw new Error(body.error?.message ?? "Admin account could not be created");
+			const body = await post<{ email?: string }>("/api/admin/users", { email }, "Admin account could not be created");
 			setCreated(body.email!);
 			setEmail("");
 			reload();
@@ -45,9 +43,7 @@ export function AdminUsersSection() {
 	async function setUserStatus(id: string, nextStatus: "ACTIVE" | "INACTIVE") {
 		setError(""); setBusyUserId(id);
 		try {
-			const response = await fetch(`/api/admin/users/${id}/status`, { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: nextStatus }) });
-			const body = await response.json() as { error?: { message?: string } };
-			if (!response.ok) throw new Error(body.error?.message ?? "Admin account could not be updated");
+			await post(`/api/admin/users/${id}/status`, { status: nextStatus }, "Admin account could not be updated");
 			reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Admin account could not be updated"); }
 		finally { setBusyUserId(null); }
@@ -66,7 +62,7 @@ export function AdminUsersSection() {
 				{error && <p className="form-error" role="alert">{error}</p>}
 			</div>
 		</section>
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : users.length === 0
+		{status !== "ready" ? <SectionState status={status} error={loadError} retry={reload} /> : users.length === 0
 			? <SectionState status="ready" retry={reload} empty="No admin accounts yet." />
 			: <section className="panel">
 				<div className="panel-head"><h3>{users.length} admin accounts</h3></div>
@@ -90,7 +86,7 @@ const number = (value: number) => value.toLocaleString("en-IN");
 /* ------------------------------------------------------------ Dealer Applications */
 interface DealerApplicationRow { id: string; businessName: string; gstin: string; city: string; state: string; contactPerson: string; primaryEmail: string; secondaryEmail: string | null; mobile: string; status: string; reviewNotes: string | null; createdAt: string }
 export function DealerApplicationsSection() {
-	const { data, status, reload } = useAdminSection<{ applications: DealerApplicationRow[] }>("/api/admin/dealer-applications");
+	const { data, status, error: loadError, reload } = useAdminSection<{ applications: DealerApplicationRow[] }>("/api/admin/dealer-applications");
 	const [openId, setOpenId] = useState<string | null>(null);
 	const [notes, setNotes] = useState("");
 	const [busy, setBusy] = useState<"approve" | "reject" | "request-more-info" | null>(null);
@@ -110,12 +106,7 @@ export function DealerApplicationsSection() {
 		if (!open) return;
 		setError(""); setBusy(action);
 		try {
-			const response = await fetch(`/api/admin/dealer-applications/${open.id}/${action}`, {
-				method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-				body: action === "approve" ? undefined : JSON.stringify({ notes }),
-			});
-			const body = await response.json() as { error?: string };
-			if (!response.ok) throw new Error(body.error ?? "Application could not be updated");
+			await post(`/api/admin/dealer-applications/${open.id}/${action}`, action === "approve" ? undefined : { notes }, "Application could not be updated");
 			setOpenId(null); setNotes(""); reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Application could not be updated"); }
 		finally { setBusy(null); }
@@ -149,7 +140,7 @@ export function DealerApplicationsSection() {
 
 	return <>
 		<PageHead eyebrow="New dealer registration" title="Dealer Applications" lead="New dealers who aren't in our system yet can sign up here during the pilot. This is the list of who's applied." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : allApplications.length === 0
+		{status !== "ready" ? <SectionState status={status} error={loadError} retry={reload} /> : allApplications.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer applications yet." />
 			: <section className="panel">
 				<div className="panel-head">
@@ -177,7 +168,7 @@ export function DealerApplicationsSection() {
 type QueueOrder = LiveOrder & { dealerId?: string; dealerCity?: string; dealerState?: string };
 
 export function OrdersSection() {
-	const { data, status, reload } = useAdminSection<{ orders: QueueOrder[] }>("/api/admin/orders");
+	const { data, status, error, reload } = useAdminSection<{ orders: QueueOrder[] }>("/api/admin/orders");
 	const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 	const [statusFilter, setStatusFilter] = useState("");
 	const [dealerFilter, setDealerFilter] = useState("");
@@ -219,7 +210,7 @@ export function OrdersSection() {
 
 	return <>
 		<PageHead eyebrow="Order governance" title="Orders" lead="Review dealer submissions, approve, revise and maintain the audit trail." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : orders.length === 0
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : orders.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer orders have been submitted yet." />
 			: <section className="panel">
 				<div className="panel-head">
@@ -273,7 +264,7 @@ export function OrdersSection() {
 type ReportOrder = LiveOrder & { dealerId?: string; dealerState?: string };
 
 export function ReportsSection() {
-	const { data, status, reload } = useAdminSection<{ orders: ReportOrder[] }>("/api/admin/orders");
+	const { data, status, error, reload } = useAdminSection<{ orders: ReportOrder[] }>("/api/admin/orders");
 	const [statusFilter, setStatusFilter] = useState("");
 	const [dealerFilter, setDealerFilter] = useState("");
 	const [brandFilter, setBrandFilter] = useState("");
@@ -318,7 +309,7 @@ export function ReportsSection() {
 
 	return <>
 		<PageHead eyebrow="Reports" title="Reports" lead="Filter your orders and export what you need. Retail value only — dealer pricing terms aren't tracked here." actions={<a className="ui-btn ui-btn-primary ui-btn-md" href={exportHref}>Export CSV</a>} />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : orders.length === 0
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : orders.length === 0
 			? <SectionState status="ready" retry={reload} empty="No orders to report on yet." />
 			: <>
 				<div className="stat-grid">

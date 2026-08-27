@@ -89,6 +89,26 @@ describe("KITCO Control v5 order review", () => {
 		expect(api).toHaveBeenCalledTimes(1);
 	});
 
+	it("re-seeds the per-size inputs after a bulk approve, so an untouched row can't save a stale 0 back", async () => {
+		stubLoad(reviewOrder());
+		const api = vi.fn(async () => ({
+			order: reviewOrder({
+				status: "APPROVED", totals: { ordered: 6, approved: 6, creditReview: 0, rejected: 0, pending: 0 },
+				articles: [{
+					orderLineId: "line-1", articleNo: "NK-101", brand: "Nike", familyName: "Air Max", colour: "Black",
+					sizes: [{ orderLineId: "line-1", size: "7", orderedQty: 6, approvedQty: 6, creditReviewQty: 0, rejectedQty: 0, pendingQty: 0, creditReviewReason: null, rejectionReason: null }],
+				}],
+			}),
+		}));
+		render(<AdminOrderPanel orderId="order-1" api={api} />);
+		await screen.findByText("Order review · KIT-2608-00001");
+		expect(screen.getByLabelText("Approve")).toHaveValue(0);
+
+		fireEvent.click(screen.getByRole("button", { name: "Approve entire order" }));
+		await screen.findByText("Approved");
+		expect(screen.getByLabelText("Approve")).toHaveValue(6);
+	});
+
 	it("requires a reason before rejecting the entire order, then calls the atomic reject-entire RPC", async () => {
 		stubLoad(reviewOrder());
 		const api = vi.fn(async () => ({ order: reviewOrder({ status: "REJECTED", totals: { ordered: 6, approved: 0, creditReview: 0, rejected: 6, pending: 0 } }) }));

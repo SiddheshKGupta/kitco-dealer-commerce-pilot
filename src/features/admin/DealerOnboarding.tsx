@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Button, Checkbox, FormField, Input, SearchField } from "../../components/ui";
 import { PageHead, SectionState, StatusPill } from "./ControlSections";
-import { useAdminSection } from "./useAdminSection";
+import { post, useAdminSection } from "./useAdminSection";
 
 export interface AdminDealerRow {
 	id: string;
@@ -35,16 +35,6 @@ interface ImportPlan { rows: ImportRowPlan[]; totals: { create: number; update: 
 
 const dash = "—";
 const shortDate = (value: string | null) => value ? new Date(value).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : dash;
-
-export async function post<T>(path: string, body?: unknown): Promise<T> {
-	const response = await fetch(path, {
-		method: "POST", credentials: "include", headers: { "content-type": "application/json" },
-		body: JSON.stringify(body ?? {}),
-	});
-	const payload = await response.json() as T & { error?: { message?: string } };
-	if (!response.ok) throw new Error(payload.error?.message ?? "That did not work. Try again.");
-	return payload;
-}
 
 /* ----------------------------------------------------------- Add dealer form */
 /** Driven off a list rather than fifteen near-identical JSX blocks. `required` matches
@@ -118,7 +108,7 @@ function AddDealerPanel({ onCreated }: { onCreated: () => void }) {
 
 /* --------------------------------------------------- Dealer onboarding section */
 export function DealerOnboardingSection() {
-	const { data, status, reload } = useAdminSection<{ dealers: AdminDealerRow[] }>("/api/admin/dealers");
+	const { data, status, error: loadError, reload } = useAdminSection<{ dealers: AdminDealerRow[] }>("/api/admin/dealers");
 	const [busyId, setBusyId] = useState<string | null>(null);
 	const [issued, setIssued] = useState<IssuedCredentials | null>(null);
 	const [error, setError] = useState("");
@@ -179,7 +169,7 @@ export function DealerOnboardingSection() {
 			<SearchField label="Search dealers" placeholder="Name, code, group, GSTIN or email" value={query} onChange={(event) => setQuery(event.target.value)} />
 		</div>}
 
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : allDealers.length === 0
+		{status !== "ready" ? <SectionState status={status} error={loadError} retry={reload} /> : allDealers.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealers yet." />
 			: dealers.length === 0
 			? <section className="panel" style={{ marginTop: 18 }}><div className="panel-body"><p className="tiny">No dealers match "{query.trim()}".</p></div></section>
