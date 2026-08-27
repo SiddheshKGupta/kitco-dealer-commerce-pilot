@@ -66,7 +66,12 @@ export function submitOrder(input: SubmitOrderInput) {
 export async function requestOrderOtp(purpose: "ORDER_SUBMISSION"): Promise<string> {
   const response = await fetch("/api/orders/otp", { method: "POST", credentials: "include", headers: { "content-type": "application/json" }, body: JSON.stringify({ purpose }) });
   if (response.status === 404) throw new Error("Order verification is not available yet. Try again shortly.");
-  if (!response.ok) throw new Error("The order code could not be sent. Try again.");
+  if (!response.ok) {
+    // Surface the real reason (e.g. "Wait before requesting another OTP", or a missing
+    // profile email) instead of one generic string that hides which of those it was.
+    const body = await response.json().catch(() => null) as { error?: { message?: string } } | null;
+    throw new Error(body?.error?.message ?? "The order code could not be sent. Try again.");
+  }
   const result = await response.json() as { challengeId: string };
   return result.challengeId;
 }

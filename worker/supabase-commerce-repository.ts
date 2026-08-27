@@ -146,11 +146,16 @@ function orderFromRow(row: Row): OrderRecord {
         .filter((hold: Row) => one(hold.holds)?.status === "ACTIVE");
       const heldPairs = activeHolds.reduce((sum: number, hold: Row) => sum + Number(hold.quantity_pairs ?? 0), 0);
       const holdReason = activeHolds.length > 0 ? String(one(activeHolds[0]!.holds)?.hold_type ?? "") || undefined : undefined;
+      // approved_quantity_pairs is pre-set equal to ordered at submission time (it records what
+      // the dealer asked for, not a decision anybody made -- see 20260824110000's own header).
+      // The real, mutable decision lives in order_line_decisions; no row yet means nothing has
+      // been decided, i.e. zero approved so far -- never the stale "fully approved" default.
+      const decision = one(size.order_line_decisions);
       return {
         orderLineId: String(line.id),
         size: String(one(size.size_values)?.label ?? ""),
         orderedPairs: Number(size.ordered_quantity_pairs),
-        approvedPairs: Number(size.approved_quantity_pairs),
+        approvedPairs: decision ? Number(decision.approved_qty) : 0,
         dispatchedPairs,
         heldPairs,
         holdReason,
@@ -274,6 +279,7 @@ const ORDER_SELECT = `
     order_lines(id,commercial_offering_id,mrp_minor,approved_quantity_pairs,
       product_colourways!inner(article_no,colour,product_families(name,brands(name))),
       order_line_sizes(ordered_quantity_pairs,approved_quantity_pairs,size_values(label),
+        order_line_decisions(approved_qty),
         dispatch_lines(quantity_pairs,dispatches(status)),hold_allocations(quantity_pairs,holds(status,hold_type)))))`;
 
 // v5 Phase 5 order review: entirely separate from ORDER_SELECT/orderFromRow above (which the

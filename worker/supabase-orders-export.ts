@@ -32,6 +32,7 @@ function buildExportSelect(filters: OrderExportFilters): string {
       commercial_offerings(offering_type),
       product_colourways!inner(article_no,colour,product_families!inner(name,category,gender,brands!inner(name))),
       order_line_sizes(ordered_quantity_pairs,approved_quantity_pairs,size_values(label),
+        order_line_decisions(approved_qty),
         dispatch_lines(quantity_pairs,dispatches(status,dispatched_at,dispatch_number)),
         ${holdJoin})))`;
 }
@@ -94,7 +95,11 @@ export class SupabaseOrdersExporter implements OrdersExporter {
 				const brand = family ? one(family.brands) : null;
 				const offering = one(line.commercial_offerings);
 				for (const size of (Array.isArray(line.order_line_sizes) ? line.order_line_sizes : []) as Row[]) {
-					const approvedPairs = Number(size.approved_quantity_pairs);
+					// approved_quantity_pairs is pre-set equal to ordered at submission (it records what
+					// the dealer asked for, not a decision anybody made); order_line_decisions is the real,
+					// mutable record. No row yet means nothing decided, i.e. zero approved.
+					const decision = one(size.order_line_decisions);
+					const approvedPairs = decision ? Number(decision.approved_qty) : 0;
 					const orderedPairs = Number(size.ordered_quantity_pairs ?? size.approved_quantity_pairs);
 					const finalisedDispatches = (Array.isArray(size.dispatch_lines) ? size.dispatch_lines : [])
 						.map((d: Row) => ({ pairs: Number(d.quantity_pairs), dispatch: one(d.dispatches) }))

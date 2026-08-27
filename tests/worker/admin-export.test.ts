@@ -117,6 +117,7 @@ describe("SupabaseOrdersExporter", () => {
 					product_colourways: { article_no: "NK-101", colour: "Black", product_families: { name: "Air Max", category: "Running", gender: "MEN", brands: { name: "Nike" } } },
 					order_line_sizes: [{
 						ordered_quantity_pairs: 12, approved_quantity_pairs: 12, size_values: { label: "8" },
+						order_line_decisions: { approved_qty: 12 },
 						dispatch_lines: [{ quantity_pairs: 6, dispatches: { status: "FINALISED", dispatched_at: "2026-08-05T09:00:00Z", dispatch_number: "DSP-1" } }],
 						hold_allocations: [{ quantity_pairs: 4, holds: { status: "ACTIVE", reason: "STOCK_REVIEW" } }],
 					}],
