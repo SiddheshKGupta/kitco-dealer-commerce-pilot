@@ -98,6 +98,7 @@ export function registerRegistrationRoutes(app: Hono<any>, dependencies: Registe
 				dealerId: null,
 				to: application.primaryEmail,
 				purpose: "REGISTRATION",
+				enforceCooldown: true,
 			});
 			const pending = await dependencies.sessions.sealPending({
 				kind: "registration",
@@ -108,7 +109,9 @@ export function registerRegistrationRoutes(app: Hono<any>, dependencies: Registe
 			});
 			context.header("Set-Cookie", dependencies.sessions.pendingCookie(pending));
 			return context.json({ otpRequired: true, challengeId: challenge.id }, 202);
-		} catch {
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "EMAIL_DELIVERY_FAILED";
+			if (message === "OTP_RESEND_COOLDOWN") return context.json({ error: message }, 429);
 			return context.json({ error: "EMAIL_DELIVERY_FAILED" }, 502);
 		}
 	});
