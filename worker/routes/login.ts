@@ -155,6 +155,7 @@ export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependenc
           authUserId: identity.authUserId,
           to: identity.email,
           purpose: "PASSWORD_RESET",
+          enforceCooldown: true,
         });
         challengeId = challenge.id;
       } catch (reason) {

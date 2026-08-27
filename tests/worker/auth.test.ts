@@ -249,6 +249,22 @@ describe("v5 password recovery", () => {
     expect(response.status).toBe(401);
     expect(identity.accounts.kt002!.password).toBe(ISSUED_PASSWORD);
   });
+
+  it("enforces the resend cooldown -- looping this unauthenticated endpoint cannot spam a real inbox", async () => {
+    const { app, provider } = buildHarness();
+    const first = await post(app, "/api/login/reset", { identifier: "KT002" });
+    expect(first.status).toBe(202);
+    expect(provider.deliveries).toHaveLength(1);
+
+    // A second immediate request still answers with the same 202 shape -- this endpoint's
+    // whole point is that a real account and a fake one are indistinguishable (see the
+    // "answers identically" test above), so the cooldown must not become a new oracle that
+    // tells an attacker the identifier they just tried is a real, reset-eligible account.
+    // What matters is that no second email was sent.
+    const second = await post(app, "/api/login/reset", { identifier: "KT002" });
+    expect(second.status).toBe(202);
+    expect(provider.deliveries).toHaveLength(1);
+  });
 });
 
 describe("OTP service pilot bypass", () => {

@@ -141,6 +141,25 @@ describe("new dealer registration", () => {
     const again = await app.request(`/api/register/${applicationId}/otp`, { method: "POST", body: "{}" });
     expect(again.status).toBe(409);
   });
+
+  it("enforces the resend cooldown -- a second immediate code request is rejected before another email goes out", async () => {
+    // This endpoint needs no anon-vs-real masking (unlike /api/login/reset): the
+    // application already exists, named by applicationId in the URL, so a 429 here
+    // reveals nothing an attacker didn't already know.
+    const { app, provider } = buildHarness();
+    const created = await app.request("/api/register", {
+      method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(APPLICATION),
+    });
+    const { applicationId } = await created.json() as { applicationId: string };
+
+    const first = await app.request(`/api/register/${applicationId}/otp`, { method: "POST", body: "{}" });
+    expect(first.status).toBe(202);
+    expect(provider.deliveries).toHaveLength(1);
+
+    const second = await app.request(`/api/register/${applicationId}/otp`, { method: "POST", body: "{}" });
+    expect(second.status).toBe(429);
+    expect(provider.deliveries).toHaveLength(1);
+  });
 });
 
 describe("POST /api/register validation", () => {
