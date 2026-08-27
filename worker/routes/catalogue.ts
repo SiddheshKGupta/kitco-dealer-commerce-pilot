@@ -11,7 +11,11 @@ export function registerCatalogueRoutes(app: Hono<{ Variables: AuthVariables }>,
       mrpMinor: item.mrpMinor, currencyCode: item.currencyCode,
       mediaUrl: item.mediaKey ? `/api/media/${encodeURIComponent(item.mediaKey)}` : null,
       availability: item.stockPairs > 0 ? "AVAILABLE_TO_ORDER" : "UNAVAILABLE",
-      offering: { id: item.offering.id, enabledSizes: item.offering.enabledSizes, moqPairs: item.offering.moqPairs, orderMultiplePairs: item.offering.orderMultiplePairs, type: item.offering.type },
+      offering: {
+        id: item.offering.id, enabledSizes: item.offering.enabledSizes, moqPairs: item.offering.moqPairs,
+        orderMultiplePairs: item.offering.orderMultiplePairs, type: item.offering.type,
+        sizeSystemLabel: item.offering.sizeSystemLabel ?? null,
+      },
     })) });
   });
 }

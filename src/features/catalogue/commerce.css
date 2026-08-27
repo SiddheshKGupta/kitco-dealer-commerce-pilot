@@ -61,6 +61,7 @@
    and a stacked list reads easier at a glance regardless of screen width. */
 .commerce-size-grid { display: grid; gap: 8px; border: 0; padding: 0; }
 .commerce-size-grid legend { margin-bottom: 10px; font-size: 14px; font-weight: 800; }
+.commerce-size-system { margin: -4px 0 4px; color: var(--commerce-mid); font-size: 13px; }
 .commerce-size-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; border: 1px solid var(--hairline); padding: 8px 14px; }
 .commerce-size-row:focus-within { border-color: var(--commerce-ink); }
 .commerce-size-row span { font-size: 16px; font-weight: 700; color: var(--commerce-ink); }

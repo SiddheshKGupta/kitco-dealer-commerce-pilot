@@ -80,12 +80,17 @@ function catalogueRow(row: Row): CatalogueRecord | null {
   const family = one(colourway?.product_families);
   const brand = one(family?.brands);
   if (!colourway || !brand) return null;
-  const sizes = (Array.isArray(colourway.product_size_values) ? colourway.product_size_values : [])
+  const sizeValues = (Array.isArray(colourway.product_size_values) ? colourway.product_size_values : [])
     .filter((item: Row) => item.enabled)
     .map((item: Row) => one(item.size_values))
     .filter((item): item is Row => item !== null)
-    .sort((left: Row, right: Row) => Number(left.sort_order) - Number(right.sort_order))
-    .map((item: Row) => String(item.label));
+    .sort((left: Row, right: Row) => Number(left.sort_order) - Number(right.sort_order));
+  const sizes = sizeValues.map((item: Row) => String(item.label));
+  // Every size in a colourway comes from the same size_set (same convention as
+  // loadDraft's identical derivation below), so the first one speaks for all of them.
+  // No size_set yet mapped to a system degrades to "not confirmed" rather than blocking.
+  const sizeSet = sizeValues.length > 0 ? one(sizeValues[0]!.size_sets) : null;
+  const sizeSystemLabel = sizeSet ? one(sizeSet.size_systems)?.label ?? null : null;
   const media = (Array.isArray(colourway.product_media) ? colourway.product_media : [])
     .filter((item: Row) => item.published_at && item.media_kind === "WEBP_600")[0] as Row | undefined;
   const stockPairs = (Array.isArray(colourway.stock_snapshot_lines) ? colourway.stock_snapshot_lines : [])
@@ -113,6 +118,7 @@ function catalogueRow(row: Row): CatalogueRecord | null {
       bookingOpensOn: dateOnly(row.opens_at, "0001-01-01"),
       bookingClosesOn: dateOnly(row.closes_at, "9999-12-31"),
       type: row.offering_type,
+      sizeSystemLabel: sizeSystemLabel ? String(sizeSystemLabel) : null,
     },
   };
 }
@@ -267,7 +273,7 @@ const CATALOGUE_SELECT = `
   product_colourways!inner(
     id,article_no,colour,published_at,
     product_families!inner(id,name,category,gender,brands!inner(name)),
-    product_size_values(enabled,size_values(label,sort_order)),
+    product_size_values(enabled,size_values(label,sort_order,size_sets(size_systems(label)))),
     product_media(object_key,media_kind,published_at),
     stock_snapshot_lines(quantity_pairs)
   )`;

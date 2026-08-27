@@ -85,6 +85,31 @@ describe("production commerce composition", () => {
     })]);
   });
 
+  it("derives the size system from the first enabled size's size_set, and degrades to null when unmapped", async () => {
+    const rowWith = (id: string, sizeValues: unknown[]) => ({
+      id, organisation_id: "org-1", offering_type: "STOCK_IN_HAND", mrp_minor: 10000, currency_code: "INR", moq_pairs: 4,
+      order_multiple: 2, opens_at: "2026-01-01T00:00:00Z", closes_at: "2026-12-31T23:59:59Z", published_at: "2026-08-13T00:00:00Z",
+      product_colourways: {
+        id: `cw-${id}`, article_no: id, colour: "Black", published_at: "2026-08-13T00:00:00Z",
+        product_families: { brands: { name: "Nike" } },
+        product_size_values: sizeValues, product_media: [], stock_snapshot_lines: [],
+      },
+    });
+    const rows = [
+      rowWith("mapped", [
+        { enabled: true, size_values: { label: "9", sort_order: 1, size_sets: { size_systems: { label: "US" } } } },
+        { enabled: true, size_values: { label: "10", sort_order: 2, size_sets: { size_systems: { label: "US" } } } },
+      ]),
+      rowWith("unmapped", [{ enabled: true, size_values: { label: "9", sort_order: 1, size_sets: { size_systems: null } } }]),
+      rowWith("none", []),
+    ];
+    const client = { from: vi.fn(() => chain({ data: rows, error: null })) } as unknown as SupabaseClient;
+    const repo = new SupabaseCommerceRepository(client);
+
+    const catalogue = await repo.listCatalogue(dealerA);
+    expect(catalogue.map((item) => item.offering.sizeSystemLabel)).toEqual(["US", null, null]);
+  });
+
   it("normalises the full gender vocabulary and falls back to UNKNOWN instead of null", async () => {
     const familyFor = (gender: unknown) => ({ brands: { name: "Nike" }, category: "Running", gender });
     const rowFor = (id: string, gender: unknown) => ({

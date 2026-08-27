@@ -31,6 +31,7 @@ describe("catalogue and draft routes", () => {
           enabledSizes: ["7", "8"],
           moqPairs: 4,
           orderMultiplePairs: 2,
+          sizeSystemLabel: null,
         },
       },
     ]);

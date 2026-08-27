@@ -19,6 +19,7 @@ export interface CatalogueProduct {
     moqPairs: number;
     orderMultiplePairs: number;
     type?: OfferingType;
+    sizeSystemLabel?: string | null;
   };
 }
 

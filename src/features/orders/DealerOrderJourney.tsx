@@ -44,7 +44,7 @@ export function DealerOrderJourney({ product, colourways = [], onSelectColourway
 				</button>)}</div>}
 				<p className="commerce-mrp">MRP {formatRetailValue(product.mrpMinor, product.currencyCode)}</p><div className="commerce-policy"><span>Minimum {product.offering.moqPairs} pairs</span><span>Multiple of {product.offering.orderMultiplePairs}</span></div>
 				<Button variant="ghost" size="md" onClick={() => setShowSizeChart(true)}>Not sure of your size? See the size chart</Button>
-				<SizeGrid sizes={product.offering.enabledSizes} quantities={quantities} onChange={(size, pairs) => { setQuantities((current) => ({ ...current, [size]: pairs })); setSaved(false); }} />
+				<SizeGrid sizes={product.offering.enabledSizes} quantities={quantities} sizeSystemLabel={product.offering.sizeSystemLabel} onChange={(size, pairs) => { setQuantities((current) => ({ ...current, [size]: pairs })); setSaved(false); }} />
 				{validation && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{validation}</span></p>}
 				<SizeChartSheet open={showSizeChart} onClose={() => setShowSizeChart(false)} />
 				<section className="commerce-order-tray" aria-label="Current Order action">

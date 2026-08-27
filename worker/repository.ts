@@ -29,6 +29,7 @@ export interface CatalogueRecord {
     bookingOpensOn: string;
     bookingClosesOn: string;
     type?: "STOCK_IN_HAND" | "UPCOMING" | "PREBOOK";
+    sizeSystemLabel?: string | null;
   };
 }
 
