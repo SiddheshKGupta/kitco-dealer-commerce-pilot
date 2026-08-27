@@ -239,7 +239,7 @@ export function ProfilePage() {
             className="sr-only"
             onChange={(event) => { const file = event.target.files?.[0]; if (file) void upload(file); }}
           />
-          <Button variant="secondary" size="md" disabled={uploading} onClick={() => fileInput.current?.click()}>
+          <Button variant="secondary" size="md" loading={uploading} onClick={() => fileInput.current?.click()}>
             {uploading ? "Uploading…" : photo ? "Change photo" : "Add photo"}
           </Button>
           <p className="profile-hint">JPG, PNG or WEBP, up to 5 MB.</p>
@@ -259,7 +259,7 @@ export function ProfilePage() {
             key={field.key}
             label={field.label}
             htmlFor={`profile-${field.key}`}
-            hint={locked ? "Locked -- contact KITCO to change this" : field.hint}
+            hint={locked ? "Locked — contact KITCO to change this" : field.hint}
             error={showFieldError(field.key, field.required)}
           >
             <Input
@@ -296,7 +296,7 @@ export function ProfilePage() {
         already-saved profile predates this validation must still see why Save did
         nothing, rather than find a dead button with no visible error (save() below
         surfaces the same checks as inline errors on click). */}
-    <Button full size="md" disabled={saving} onClick={() => void save()}>
+    <Button full size="md" loading={saving} onClick={() => void save()}>
       {saving ? "Saving…" : "Save my details"}
     </Button>
   </main>;
