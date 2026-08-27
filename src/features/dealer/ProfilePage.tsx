@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, Checkbox, FormField, Input } from "../../components/ui";
+import { SUPPORT_EMAIL } from "../../config/support";
 import {
   PROFILE_FIELD_LABELS,
   type DealerProfile,
@@ -116,7 +117,17 @@ export function ProfilePage() {
     return () => setTouched((current) => ({ ...current, [key]: true }));
   }
 
+  // Once KITCO has a value on file for a field, changing it needs KITCO -- this only
+  // ever locks a field that already has an answer, so a dealer mid-onboarding can still
+  // fill in whatever is still blank themselves. Mirrors the server-side check in
+  // worker/routes/dealer-profile.ts's assertOnlyFillingBlanks exactly, so a field
+  // that would be rejected there is never offered as editable here.
+  function isLocked(key: keyof DealerProfile): boolean {
+    return Boolean((state?.profile[key] as string | null)?.trim());
+  }
+
   function showFieldError(key: keyof DealerProfile, required: boolean): string | undefined {
+    if (isLocked(key)) return undefined;
     if (!touched[key] && !saveAttempted) return undefined;
     const value = draft[key] ?? "";
     if (!value.trim()) return required ? "This is required." : undefined;
@@ -131,6 +142,10 @@ export function ProfilePage() {
   const draftGstin = draft.gstin ?? "";
   const draftState = draft.state ?? "";
   const mismatches: string[] = [];
+  // Still worth flagging even once a field is locked: the dealer cannot fix it by
+  // editing, but the checkbox below doesn't require that -- it just makes sure a real
+  // discrepancy in already-saved data isn't saved over silently while filling in
+  // whatever else is still blank. They contact KITCO separately to correct it.
   if (pinState && !sameStateName(pinState, draftState)) {
     mismatches.push(`the State field says "${draftState}", but PIN ${pinCode} is in ${pinState}`);
   }
@@ -140,7 +155,9 @@ export function ProfilePage() {
   const mismatchWarning = mismatches.length > 0 ? `Double check this before saving: ${mismatches.join("; ")}.` : null;
   const mismatchAcknowledged = mismatchWarning !== null && mismatchAcknowledgedFor === mismatchWarning;
   const needsAcknowledgement = mismatchWarning !== null && !mismatchAcknowledged;
-  const hasFormatError = FIELDS.some(({ key }) => formatError(key, draft[key] ?? ""));
+  // A locked field can't be fixed here even if legacy data would fail this check --
+  // excluding it stops one untouchable field from silently blocking Save forever.
+  const hasFormatError = FIELDS.some(({ key }) => !isLocked(key) && formatError(key, draft[key] ?? ""));
 
   async function save() {
     setSaveAttempted(true);
@@ -189,6 +206,7 @@ export function ProfilePage() {
 
   const missing = new Set<RequiredProfileField>(state.missingFields);
   const photo = photoUrl(state.profile.storefrontPhotoKey);
+  const anyLocked = FIELDS.some((field) => isLocked(field.key));
 
   return <main className="shell-content profile-page">
     <p className="eyebrow">Your account</p>
@@ -231,13 +249,17 @@ export function ProfilePage() {
 
     <section aria-label="Business details">
       <h2>Business details</h2>
+      {anyLocked && <p className="profile-hint">
+        Details you've already given us are locked. To change one, contact KITCO at {SUPPORT_EMAIL}.
+      </p>}
       <div className="profile-grid">
-        {FIELDS.map((field) => (
-          <FormField
+        {FIELDS.map((field) => {
+          const locked = isLocked(field.key);
+          return <FormField
             key={field.key}
             label={field.label}
             htmlFor={`profile-${field.key}`}
-            hint={field.hint}
+            hint={locked ? "Locked -- contact KITCO to change this" : field.hint}
             error={showFieldError(field.key, field.required)}
           >
             <Input
@@ -248,12 +270,13 @@ export function ProfilePage() {
               maxLength={field.maxLength}
               autoComplete={field.autoComplete}
               spellCheck={false}
+              readOnly={locked}
               aria-invalid={missing.has(field.key as RequiredProfileField) || undefined}
-              onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
-              onBlur={blur(field.key)}
+              onChange={locked ? undefined : (event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+              onBlur={locked ? undefined : blur(field.key)}
             />
-          </FormField>
-        ))}
+          </FormField>;
+        })}
       </div>
     </section>
 

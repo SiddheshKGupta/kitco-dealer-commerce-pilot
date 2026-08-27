@@ -179,6 +179,37 @@ describe("PUT /api/dealer/profile", () => {
   });
 });
 
+describe("PUT /api/dealer/profile -- a field already on file is locked", () => {
+  it("refuses to change a field that already has a value", async () => {
+    const store = new FakeProfileStore(COMPLETE);
+    const response = await appWith(store).request("/api/dealer/profile", {
+      method: "PUT", headers: headers("a"), body: JSON.stringify({ mobile: "9999999999" }),
+    });
+
+    expect(response.status).toBe(403);
+    expect((await response.json() as { error: { code: string } }).error.code).toBe("PROFILE_FIELD_LOCKED");
+    expect(store.audit).toEqual([]);
+  });
+
+  it("still lets a dealer fill in a field that is still blank, even once others are set", async () => {
+    const store = new FakeProfileStore({ ...COMPLETE, secondaryEmail: null });
+    const response = await appWith(store).request("/api/dealer/profile", {
+      method: "PUT", headers: headers("a"), body: JSON.stringify({ secondaryEmail: "second@dealer.test" }),
+    });
+
+    expect(response.status).toBe(200);
+    expect((await response.json() as { profile: { secondaryEmail: string } }).profile.secondaryEmail).toBe("second@dealer.test");
+  });
+
+  it("does not treat resubmitting the same value as a change", async () => {
+    const store = new FakeProfileStore(COMPLETE);
+    const response = await appWith(store).request("/api/dealer/profile", {
+      method: "PUT", headers: headers("a"), body: JSON.stringify({ mobile: COMPLETE.mobile }),
+    });
+    expect(response.status).toBe(200);
+  });
+});
+
 describe("the order gate", () => {
   async function submit(app: ReturnType<typeof appWith>, idempotencyKey: string) {
     await app.request("/api/drafts/current", {

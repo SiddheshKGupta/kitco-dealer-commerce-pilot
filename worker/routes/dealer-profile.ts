@@ -51,6 +51,30 @@ function withCompleteness(profile: DealerProfileRecord) {
   };
 }
 
+function blank(value: string | null | undefined): boolean {
+  return value === null || value === undefined || value.trim() === "";
+}
+
+/** A dealer may only ever fill in a field that is still blank -- once a value is on
+ *  file, changing it requires KITCO (client decision: unreviewed self-edits to GST/
+ *  address details were the actual problem, not editing per se). Applies uniformly to
+ *  every field this form accepts. Onboarding is unaffected: every required field
+ *  starts blank, so a dealer can still complete their profile themselves the first
+ *  time -- this only locks a field once it already has an answer.
+ *
+ *  This is the real boundary; the profile screen just hides the input for a field
+ *  that would be rejected here so a dealer never fills one in only to have it bounce. */
+function assertOnlyFillingBlanks(current: DealerProfileRecord, input: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined) continue;
+    const existing = (current as unknown as Record<string, unknown>)[key];
+    if (typeof existing !== "string" && existing !== null) continue;
+    if (!blank(existing) && String(value ?? "").trim() !== String(existing ?? "").trim()) {
+      throw new ApiError(403, "PROFILE_FIELD_LOCKED", "This detail is already on file. Contact KITCO to change it.");
+    }
+  }
+}
+
 export function registerDealerProfileRoutes(
   app: Hono<{ Variables: AuthVariables }>,
   store?: DealerProfileStore,
@@ -63,8 +87,10 @@ export function registerDealerProfileRoutes(
 
   app.put("/api/dealer/profile", async (context) => {
     const input = await parseBody(context, updateSchema);
+    const session = context.get("session");
+    assertOnlyFillingBlanks(await store.get(session), input);
     const updated = await store.update(
-      context.get("session"),
+      session,
       { ...input, secondaryEmail: input.secondaryEmail === "" ? null : input.secondaryEmail },
       context.get("correlationId"),
     );
