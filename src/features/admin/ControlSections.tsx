@@ -592,8 +592,8 @@ export function SettingsSection() {
 			</Panel>
 			<Panel title="Authentication">
 				<div className="panel-body">
-					<div className="kpi-mini"><span>Dealer sign-in</span><span className="status green"><StatusIcon tone="green" />Email + password</span></div>
-					<div className="kpi-mini"><span>Extra check</span><span className="status green"><StatusIcon tone="green" />Email code</span></div>
+					<div className="kpi-mini"><span>Dealer sign-in</span><span className="status green"><StatusIcon tone="green" />Dealer Code/email + password</span></div>
+					<div className="kpi-mini"><span>Extra check at sign-in</span><span className="status blue"><StatusIcon tone="blue" />Not required</span></div>
 					<div className="kpi-mini"><span>Order submission</span><span className="status green"><StatusIcon tone="green" />Extra code required</span></div>
 					<p style={{ marginTop: 12 }}>This pilot only sends codes by email — no SMS or WhatsApp yet.</p>
 				</div>

@@ -18,8 +18,10 @@ export function LoginPage() {
 	const [newPassword, setNewPassword] = useState("");
 	const [code, setCode] = useState("");
 	const [challengeId, setChallengeId] = useState("");
-	const [purpose, setPurpose] = useState<"LOGIN" | "PASSWORD_RESET">("LOGIN");
 	const [role, setRole] = useState("DEALER");
+	// Only distinguishes copy on the password stage: "pick your own now" (first login,
+	// reached straight from signIn) vs. "reset" (reached via the forgotten-password code).
+	const [isReset, setIsReset] = useState(false);
 	const [busy, setBusy] = useState("");
 	const [error, setError] = useState("");
 	const [resendIn, setResendIn] = useState(60);
@@ -39,22 +41,24 @@ export function LoginPage() {
 	}
 
 	const signIn = () => run("Signing in…", async () => {
-		const response = await postJson<{ challengeId: string }>("/api/login", { identifier: identifier.trim(), password });
-		setChallengeId(response.challengeId); setPurpose("LOGIN"); setCode(""); setResendIn(60); setStage("code");
+		const response = await postJson<{ role?: string; mustChangePassword?: boolean }>("/api/login", { identifier: identifier.trim(), password });
+		if (response.mustChangePassword) {
+			setRole(response.role ?? "DEALER"); setNewPassword(""); setIsReset(false); setStage("password");
+			return;
+		}
+		go(response.role === "DEALER" ? "/products" : "/control");
 	});
 
 	const requestReset = () => run("Sending…", async () => {
 		const response = await postJson<{ challengeId: string }>("/api/login/reset", { identifier: identifier.trim() });
-		setChallengeId(response.challengeId); setPurpose("PASSWORD_RESET"); setCode(""); setResendIn(60); setStage("code");
+		setChallengeId(response.challengeId); setCode(""); setResendIn(60); setStage("code");
 	});
 
+	// The code screen only ever verifies a password reset now -- sign-in itself no
+	// longer has an OTP step, so this never runs on that path.
 	const verify = () => run("Checking…", async () => {
-		const response = await postJson<{ role?: string; mustChangePassword?: boolean }>("/api/otp/verify", { challengeId, code, purpose });
-		if (purpose === "PASSWORD_RESET" || response.mustChangePassword) {
-			setRole(response.role ?? "DEALER"); setNewPassword(""); setStage("password");
-			return;
-		}
-		go(response.role === "DEALER" ? "/products" : "/control");
+		const response = await postJson<{ role?: string }>("/api/otp/verify", { challengeId, code, purpose: "PASSWORD_RESET" });
+		setRole(response.role ?? "DEALER"); setNewPassword(""); setIsReset(true); setStage("password");
 	});
 
 	const setNew = () => run("Saving…", async () => {
@@ -81,10 +85,10 @@ export function LoginPage() {
 	const alert = error ? <p className="form-error" role="alert"><span aria-hidden="true">✕</span> Problem: {error}</p> : null;
 
 	if (stage === "password") return <section className="auth-page">
-		<div className="auth-kicker">{purpose === "PASSWORD_RESET" ? "Reset your password" : "One last step"} <span>03 / 03</span></div>
+		<div className="auth-kicker">{isReset ? "Reset your password" : "One last step"} <span>03 / 03</span></div>
 		<h1>Choose your password.</h1>
 		<p className="auth-intro">
-			{purpose === "PASSWORD_RESET"
+			{isReset
 				? "Pick a new password. You'll use it every time you sign in."
 				: "The password KITCO gave you was for this first sign-in only. Pick your own now — you cannot skip this step."}
 		</p>
@@ -129,7 +133,7 @@ export function LoginPage() {
 	return <section className="auth-page">
 		<div className="auth-kicker">Dealer sign in <span>01 / 03</span></div>
 		<h1>Welcome back.</h1>
-		<p className="auth-intro">Sign in with the password KITCO gave you. We'll email you a code to confirm it's you.</p>
+		<p className="auth-intro">Sign in with the password KITCO gave you.</p>
 		<FormField label="Email or Dealer Code" htmlFor="login-identifier" hint="Your primary email, secondary email, or Dealer Code -- whichever you have">
 			<Input id="login-identifier" value={identifier} autoComplete="username"
 				onChange={(event) => setIdentifier(event.target.value)} />

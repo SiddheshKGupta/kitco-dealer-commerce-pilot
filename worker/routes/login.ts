@@ -83,7 +83,14 @@ function readBody(value: unknown, key: string): string | null {
 }
 
 export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependencies): void {
-  /** Factor one. A pass here only earns the right to be sent a code. */
+  /** Password only -- no second factor on sign-in (client decision: the OTP step some
+   *  dealers hit on every login was the friction, not the value; the one-time code is
+   *  kept where it actually matters, at order confirmation). The state machine itself is
+   *  unchanged: a first-time login still walks CREDENTIALS_ISSUED -> FIRST_LOGIN_PENDING
+   *  -> OTP_PENDING -> PASSWORD_CHANGE_REQUIRED, it just no longer pauses mid-walk waiting
+   *  on an emailed code -- the whole walk happens in this one request now. Session
+   *  issuance and the mustChangePassword wall below mirror exactly what /api/otp/verify's
+   *  login branch used to do after a code was confirmed. */
   app.post("/api/login", async (context) => {
     const body = await context.req.json().catch(() => null);
     const identifier = readBody(body, "identifier");
@@ -95,41 +102,36 @@ export function registerLoginRoutes(app: Hono<any>, dependencies: LoginDependenc
     if (identity.dealerId && !SIGN_IN_STATES.includes(identity.accountState)) return context.json(INVALID_CREDENTIALS, 401);
     if (!(await dependencies.identity.verifyPassword(identity, password))) return context.json(INVALID_CREDENTIALS, 401);
 
-    try {
-      // CREDENTIALS_ISSUED -> FIRST_LOGIN_PENDING -> OTP_PENDING is the first login;
-      // re-entering the password from OTP_PENDING walks the same two steps, which is
-      // what stops an abandoned challenge parking a dealer there (§5). An already
-      // ACTIVE dealer's state does not move at all -- repeat sign-in is not a
-      // provisioning event, it only stamps last_login_at once the code is verified.
-      if (identity.accountState === "CREDENTIALS_ISSUED" || identity.accountState === "OTP_PENDING") {
-        await dependencies.identity.moveAccountState(identity, "FIRST_LOGIN_PENDING");
-        identity.accountState = "FIRST_LOGIN_PENDING";
-      }
-      if (identity.accountState === "FIRST_LOGIN_PENDING") {
-        await dependencies.identity.moveAccountState(identity, "OTP_PENDING");
-        identity.accountState = "OTP_PENDING";
-      }
-      const challenge = await dependencies.otp.issue({
-        organisationId: identity.organisationId,
-        dealerId: identity.dealerId,
-        authUserId: identity.authUserId,
-        to: identity.email,
-        purpose: "LOGIN",
-      });
-      context.header("Set-Cookie", dependencies.sessions.pendingCookie(await dependencies.sessions.sealPending({
-        kind: "login",
-        challengeId: challenge.id,
-        authUserId: identity.authUserId,
-        dealerId: identity.dealerId,
-        organisationId: identity.organisationId,
-        email: identity.email,
-        role: identity.role,
-      })));
-      return context.json({ otpRequired: true, challengeId: challenge.id }, 202);
-    } catch (reason) {
-      console.error("login.otp.issue_failed", { reason: reason instanceof Error ? reason.message : String(reason) });
-      return context.json({ error: "EMAIL_DELIVERY_FAILED" }, 502);
+    // CREDENTIALS_ISSUED -> FIRST_LOGIN_PENDING -> OTP_PENDING -> PASSWORD_CHANGE_REQUIRED
+    // is the first login; re-entering the password from OTP_PENDING walks the same steps,
+    // which is what stops an abandoned first login parking a dealer there (§5). An already
+    // ACTIVE dealer's state does not move at all -- repeat sign-in is not a provisioning
+    // event.
+    if (identity.accountState === "CREDENTIALS_ISSUED" || identity.accountState === "OTP_PENDING") {
+      await dependencies.identity.moveAccountState(identity, "FIRST_LOGIN_PENDING");
+      identity.accountState = "FIRST_LOGIN_PENDING";
     }
+    if (identity.accountState === "FIRST_LOGIN_PENDING") {
+      await dependencies.identity.moveAccountState(identity, "OTP_PENDING");
+      identity.accountState = "OTP_PENDING";
+    }
+    const mustChangePassword = identity.mustChangePassword || identity.accountState === "OTP_PENDING";
+    if (identity.accountState === "OTP_PENDING") {
+      await dependencies.identity.moveAccountState(identity, "PASSWORD_CHANGE_REQUIRED");
+    }
+    // Only a login that is already finished stamps last_login_at. A first login is not
+    // finished until the issued password has been replaced.
+    if (!mustChangePassword) await dependencies.identity.stampLogin(identity, false);
+
+    context.header("Set-Cookie", dependencies.sessions.applicationCookie(await dependencies.sessions.sealApplication({
+      authUserId: identity.authUserId,
+      dealerId: identity.dealerId,
+      organisationId: identity.organisationId,
+      email: identity.email,
+    })));
+    // This cookie reaches exactly one route while mustChangePassword holds: the session
+    // verifier refuses it everywhere else (V5_AUTH_FLOW.md §2 step 4).
+    return context.json({ authenticated: true, role: identity.role, mustChangePassword });
   });
 
   /** Recovery. The status, the body and the cookie are identical whether or not the

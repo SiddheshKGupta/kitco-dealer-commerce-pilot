@@ -11,16 +11,12 @@ afterEach(() => {
 	window.history.replaceState({}, "", "/");
 });
 
-describe("dealer login (Dealer Code + password, then OTP)", () => {
-	it("signs in an already-active dealer straight through, with no forced password step", async () => {
+describe("dealer login (Dealer Code + password, no OTP)", () => {
+	it("signs in an already-active dealer straight through, with no OTP step", async () => {
 		window.history.replaceState({}, "", "/login");
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
 			if (input === "/api/login") {
 				expect(init).toMatchObject({ method: "POST", credentials: "include", body: JSON.stringify({ identifier: "BIHAR-0001", password: "correct horse battery" }) });
-				return response({ challengeId: "login-1" }, 202);
-			}
-			if (input === "/api/otp/verify") {
-				expect(init).toMatchObject({ body: JSON.stringify({ challengeId: "login-1", code: "123456", purpose: "LOGIN" }) });
 				return response({ authenticated: true, role: "DEALER", mustChangePassword: false });
 			}
 			return response({ lines: [] });
@@ -31,11 +27,6 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "BIHAR-0001" } });
 		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "correct horse battery" } });
 		fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-		await screen.findByText("Enter your code.");
-		expect(screen.getByText(/You can ask for a new code in/)).toBeInTheDocument();
-
-		fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
-		fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 		await screen.findByRole("tablist", { name: "Catalogue sections" });
 	});
 
@@ -44,8 +35,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		// otherwise it sits in whatever channel it was handed over on indefinitely.
 		window.history.replaceState({}, "", "/login");
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
-			if (input === "/api/login") return response({ challengeId: "login-1" }, 202);
-			if (input === "/api/otp/verify") return response({ authenticated: true, role: "DEALER", mustChangePassword: true });
+			if (input === "/api/login") return response({ authenticated: true, role: "DEALER", mustChangePassword: true });
 			if (input === "/api/login/password") {
 				expect(init).toMatchObject({ method: "POST", credentials: "include", body: JSON.stringify({ password: "a-brand-new-password" }) });
 				return response({ authenticated: true, role: "DEALER" });
@@ -58,9 +48,6 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		fireEvent.change(screen.getByLabelText("Email or Dealer Code"), { target: { value: "BIHAR-0001" } });
 		fireEvent.change(screen.getByLabelText("Password"), { target: { value: "kitco-issued-temp" } });
 		fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
-		await screen.findByText("Enter your code.");
-		fireEvent.change(screen.getByLabelText("Verification code"), { target: { value: "123456" } });
-		fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
 
 		await screen.findByText("Choose your password.");
 		const newPassword = screen.getByLabelText("New password");
@@ -84,7 +71,7 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		await screen.findByText(/Those sign-in details are incorrect/);
 	});
 
-	it("disables Sign in the instant it is pressed, so a double-tap cannot fire two codes", async () => {
+	it("disables Sign in the instant it is pressed, so a double-tap cannot fire two requests", async () => {
 		window.history.replaceState({}, "", "/login");
 		let resolveLogin: (value: Response) => void = () => undefined;
 		vi.stubGlobal("fetch", vi.fn(() => new Promise<Response>((resolve) => { resolveLogin = resolve; })));
@@ -94,18 +81,21 @@ describe("dealer login (Dealer Code + password, then OTP)", () => {
 		const signIn = screen.getByRole("button", { name: "Sign in" });
 		fireEvent.click(signIn);
 		expect(screen.getByRole("button", { name: "Signing in…" })).toBeDisabled();
-		resolveLogin(response({ challengeId: "login-1" }, 202));
-		await screen.findByText("Enter your code.");
+		resolveLogin(response({ authenticated: true, role: "DEALER", mustChangePassword: false }));
+		await screen.findByRole("tablist", { name: "Catalogue sections" });
 	});
 
-	it("routes a forgotten-password request through the same OTP screen, revealing nothing about whether the account exists", async () => {
+	it("routes a forgotten-password request through the OTP screen, revealing nothing about whether the account exists", async () => {
 		window.history.replaceState({}, "", "/login");
 		const fetchMock = vi.fn(async (input: string, init?: RequestInit) => {
 			if (input === "/api/login/reset") {
 				expect(init).toMatchObject({ body: JSON.stringify({ identifier: "nobody@example.test" }) });
 				return response({ challengeId: "reset-1" }, 202);
 			}
-			if (input === "/api/otp/verify") return response({ authenticated: false, passwordResetAuthorised: true });
+			if (input === "/api/otp/verify") {
+				expect(init).toMatchObject({ body: JSON.stringify({ challengeId: "reset-1", code: "123456", purpose: "PASSWORD_RESET" }) });
+				return response({ authenticated: false, passwordResetAuthorised: true });
+			}
 			return response({});
 		});
 		vi.stubGlobal("fetch", fetchMock);

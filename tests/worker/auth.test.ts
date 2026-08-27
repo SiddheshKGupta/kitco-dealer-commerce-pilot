@@ -114,28 +114,22 @@ function cookieOf(response: Response, name: string): string {
   return match ? match.split(";")[0]! : "";
 }
 
-describe("v5 sign-in: Dealer Code + password + OTP", () => {
-  it("walks a first login through OTP to a forced password change and only then to ACTIVE", async () => {
+describe("v5 sign-in: Dealer Code + password, no OTP", () => {
+  it("walks a first login straight to a forced password change and only then to ACTIVE -- no code involved", async () => {
     const { app, identity, provider } = buildHarness();
     const account = identity.accounts.kt001!;
 
     const started = await post(app, "/api/login", { identifier: "KT001", password: ISSUED_PASSWORD });
-    expect(started.status).toBe(202);
-    // The password alone earns a code, never a session.
-    expect(cookieOf(started, "kitco_session")).toBe("");
-    expect(account.identity.accountState).toBe("OTP_PENDING");
-    expect(provider.deliveries[0]).toMatchObject({ to: "kt001@dealer.test", purpose: "LOGIN" });
-
-    const pending = cookieOf(started, "kitco_pending");
-    const verified = await post(app, "/api/otp/verify", { challengeId: provider.deliveries[0]!.challengeId, code: CODE, purpose: "LOGIN" }, pending);
-    expect(verified.status).toBe(200);
-    expect(await verified.json()).toMatchObject({ authenticated: true, role: "DEALER", mustChangePassword: true });
+    expect(started.status).toBe(200);
+    expect(await started.json()).toMatchObject({ authenticated: true, role: "DEALER", mustChangePassword: true });
     expect(account.identity.accountState).toBe("PASSWORD_CHANGE_REQUIRED");
+    // Sign-in never sends a code -- only order confirmation and password reset do.
+    expect(provider.deliveries).toHaveLength(0);
     // A first login is not a completed login: nothing is stamped until the issued
     // password has actually been replaced.
     expect(identity.stamps).toEqual([]);
 
-    const session = cookieOf(verified, "kitco_session");
+    const session = cookieOf(started, "kitco_session");
     const changed = await post(app, "/api/login/password", { password: NEW_PASSWORD }, session);
     expect(changed.status).toBe(200);
     expect(account.identity.accountState).toBe("ACTIVE");
@@ -145,36 +139,32 @@ describe("v5 sign-in: Dealer Code + password + OTP", () => {
   });
 
   it("refuses to let the issued password be kept as the new one", async () => {
-    const { app, identity, provider } = buildHarness();
+    const { app, identity } = buildHarness();
     const started = await post(app, "/api/login", { identifier: "KT001", password: ISSUED_PASSWORD });
-    const verified = await post(app, "/api/otp/verify",
-      { challengeId: provider.deliveries[0]!.challengeId, code: CODE, purpose: "LOGIN" }, cookieOf(started, "kitco_pending"));
 
-    const kept = await post(app, "/api/login/password", { password: ISSUED_PASSWORD }, cookieOf(verified, "kitco_session"));
+    const kept = await post(app, "/api/login/password", { password: ISSUED_PASSWORD }, cookieOf(started, "kitco_session"));
     expect(kept.status).toBe(400);
     expect(await kept.json()).toEqual({ error: "PASSWORD_UNCHANGED" });
     expect(identity.accounts.kt001!.identity.accountState).toBe("PASSWORD_CHANGE_REQUIRED");
 
-    const short = await post(app, "/api/login/password", { password: "short" }, cookieOf(verified, "kitco_session"));
+    const short = await post(app, "/api/login/password", { password: "short" }, cookieOf(started, "kitco_session"));
     expect(short.status).toBe(400);
     expect(await short.json()).toEqual({ error: "PASSWORD_TOO_SHORT" });
   });
 
-  it("does not move a returning dealer's state, and stamps the login once the code is verified", async () => {
+  it("does not move a returning dealer's state, and stamps the login immediately", async () => {
     const { app, identity, provider } = buildHarness();
     const started = await post(app, "/api/login", { identifier: "kt002@dealer.test", password: ISSUED_PASSWORD });
-    expect(started.status).toBe(202);
+    expect(started.status).toBe(200);
+    expect(await started.json()).toMatchObject({ authenticated: true, mustChangePassword: false });
     // ACTIVE has no legal move to OTP_PENDING: repeat sign-in is not a provisioning
     // event, and treating it as one would throw on every login after the first.
     expect(identity.accounts.kt002!.identity.accountState).toBe("ACTIVE");
-
-    const verified = await post(app, "/api/otp/verify",
-      { challengeId: provider.deliveries[0]!.challengeId, code: CODE, purpose: "LOGIN" }, cookieOf(started, "kitco_pending"));
-    expect(await verified.json()).toMatchObject({ authenticated: true, mustChangePassword: false });
     expect(identity.stamps).toEqual([{ first: false }]);
+    expect(provider.deliveries).toHaveLength(0);
   });
 
-  it("returns one indistinguishable answer for an unknown code, a wrong password, a suspended account and a dealer with no email", async () => {
+  it("returns one indistinguishable answer for an unknown Dealer Code, a wrong password, a suspended account and a dealer with no email", async () => {
     const { app, provider } = buildHarness();
     const attempts = await Promise.all([
       post(app, "/api/login", { identifier: "NOSUCH", password: ISSUED_PASSWORD }),
@@ -194,8 +184,9 @@ describe("v5 sign-in: Dealer Code + password + OTP", () => {
   it("frees a dealer stuck at OTP_PENDING by re-walking the first-login steps", async () => {
     const { app, identity } = buildHarness({ kt001: dealer("KT001", "OTP_PENDING") });
     const retried = await post(app, "/api/login", { identifier: "KT001", password: ISSUED_PASSWORD });
-    expect(retried.status).toBe(202);
-    expect(identity.accounts.kt001!.identity.accountState).toBe("OTP_PENDING");
+    expect(retried.status).toBe(200);
+    expect(await retried.json()).toMatchObject({ authenticated: true, mustChangePassword: true });
+    expect(identity.accounts.kt001!.identity.accountState).toBe("PASSWORD_CHANGE_REQUIRED");
   });
 });
 
@@ -344,7 +335,9 @@ describe("OTP service pilot bypass", () => {
 
   it("exposes resend only through the pending session", async () => {
     const { app, provider } = buildHarness();
-    const started = await post(app, "/api/login", { identifier: "KT002", password: ISSUED_PASSWORD });
+    // Sign-in no longer mints a pending OTP session -- password reset still does, and
+    // /api/otp/resend's session gating isn't specific to either flow.
+    const started = await post(app, "/api/login/reset", { identifier: "KT002" });
     const challengeId = provider.deliveries[0]!.challengeId;
 
     const unauthenticated = await post(app, "/api/otp/resend", { challengeId });
