@@ -32,11 +32,19 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 
 .dealer-nav { display: flex; justify-content: center; gap: clamp(var(--space-5), 6vw, var(--space-8)); border-bottom: 1px solid var(--border); padding: 0 clamp(var(--space-4), 4vw, var(--space-7)); }
 
-.dealer-nav a { position: relative; display: inline-flex; align-items: center; min-height: 48px; padding: var(--space-4) 0; font-size: 16px; font-weight: 700; transition: color var(--motion-standard) var(--ease-standard); }
+/* "You are here" is ink text plus the rule; hover is the rule alone. Same two-step
+   the mobile bottom nav and .ui-tab already use, so all three navs read identically. */
+.dealer-nav a { position: relative; display: inline-flex; align-items: center; min-height: 48px; padding: var(--space-4) 0; color: var(--text-muted); font-size: 16px; font-weight: 700; transition: color var(--motion-standard) var(--ease-standard); }
+
+.dealer-nav a:hover, .dealer-nav a.is-current { color: var(--text); }
 
 .dealer-nav a::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: 2px; background: var(--text); transform: scaleX(0); transform-origin: left; transition: transform var(--motion-standard) var(--ease-standard); }
 
 .dealer-nav a:hover::after, .dealer-nav a.is-current::after { transform: scaleX(1); }
+
+/* The count badge is positioned against the link in both navs; the desktop nav link
+   is taller, so it rides the top-right of the label rather than the bottom nav's icon. */
+.dealer-nav .ui-bottom-nav-badge { position: static; margin-left: var(--space-2); }
 
 .shell-content { width: min(100% - 32px, 1460px); margin: 0 auto; padding: 34px 0 80px; }
 
@@ -77,7 +85,10 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
    min-height keeps its actual tap target at the same floor as every other control here,
    even though it still reads visually as understated underlined text, not a button. */
 .text-action { display: flex; align-items: center; width: 100%; min-height: 48px; margin-top: var(--space-3); border: 0; background: transparent; color: var(--text); font: inherit; font-size: 16px; font-weight: 700; text-decoration: underline; cursor: pointer; }
-.form-error { margin: var(--space-4) 0 0; border-left: 3px solid var(--text); background: var(--surface-subtle); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
+.text-action:focus-visible, .dealer-result:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* Danger rule, matching .profile-error: this only ever carries a failed request, so
+   it should not look the same as the neutral advisory notices next to it. */
+.form-error { margin: var(--space-4) 0 0; border-left: 3px solid var(--danger); background: var(--surface-subtle); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
 /* The sign-in audience is 40-50, on a phone, in a shop: this is the one message that
    tells them why they are not getting in, so it reads at body size like everything
    else on these screens. Scoped to .auth-page so the desktop console keeps its own. */
