@@ -14,8 +14,11 @@ interface OtpDependencies {
 const PURPOSES = new Set<OtpPurpose>(["LOGIN", "PASSWORD_RESET", "ORDER_SUBMISSION", "REVISION_ACCEPTANCE", "REGISTRATION"]);
 
 /** The pending cookie's kind and the purpose in the body must name the same flow, so a
- *  code minted for one cannot be spent on another. */
-const KIND_FOR_PURPOSE: Record<string, string> = { LOGIN: "login", PASSWORD_RESET: "reset", REGISTRATION: "registration" };
+ *  code minted for one cannot be spent on another. LOGIN has no entry: sign-in is
+ *  password-only now (52df413), so no pending cookie is ever sealed with that kind --
+ *  same as ORDER_SUBMISSION/REVISION_ACCEPTANCE, which are verified through their own
+ *  dedicated routes rather than this pending-cookie flow. */
+const KIND_FOR_PURPOSE: Record<string, string> = { PASSWORD_RESET: "reset", REGISTRATION: "registration" };
 
 export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies): void {
   app.post("/api/otp/resend", async (context) => {
@@ -99,30 +102,7 @@ export function registerOtpRoutes(app: Hono<any>, dependencies: OtpDependencies)
         return context.json({ authenticated: false, submitted: true });
       }
 
-      // Factor two passed. The state is re-read rather than trusted from the cookie,
-      // so an admin who suspended this dealer between the two screens still wins.
-      const identity = await dependencies.identity.byAuthUserId(pending.authUserId);
-      if (!identity) return context.json({ error: "INVALID_CREDENTIALS" }, 401);
-
-      const mustChangePassword = identity.mustChangePassword || identity.accountState === "OTP_PENDING";
-      if (identity.accountState === "OTP_PENDING") {
-        await dependencies.identity.moveAccountState(identity, "PASSWORD_CHANGE_REQUIRED");
-      }
-      // Only a login that is already finished stamps last_login_at. A first login is
-      // not finished until the issued password has been replaced.
-      if (!mustChangePassword) await dependencies.identity.stampLogin(identity, false);
-
-      const token = await dependencies.sessions.sealApplication({
-        authUserId: identity.authUserId,
-        dealerId: identity.dealerId,
-        organisationId: identity.organisationId,
-        email: identity.email,
-      });
-      context.header("Set-Cookie", dependencies.sessions.applicationCookie(token));
-      context.header("Set-Cookie", dependencies.sessions.clearPendingCookie(), { append: true });
-      // This cookie reaches exactly one route while mustChangePassword holds: the
-      // session verifier refuses it everywhere else (V5_AUTH_FLOW.md §2 step 4).
-      return context.json({ authenticated: true, role: identity.role, mustChangePassword });
+      return context.json({ error: "PENDING_SESSION_REQUIRED" }, 401);
     } catch (error) {
       const message = error instanceof Error ? error.message : "OTP_INVALID";
       const status = message === "OTP_NOT_FOUND" ? 404 : 400;

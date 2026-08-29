@@ -1,6 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { canOrderOffering } from "../src/domain/catalogue";
-import type { HoldReason } from "../src/domain/holds";
 import { retailValueMinor, validatePurchaseQuantities, type SizeQuantities } from "../src/domain/orders";
 import { isAdminRole, type SessionIdentity } from "./middleware/auth";
 import { ApiError } from "./middleware/errors";
@@ -529,25 +528,6 @@ export class SupabaseCommerceRepository implements CommerceRepository {
       p_correlation_id: correlationId,
     });
     if (error || !data) fail(error, "HOLD_FAILED");
-  }
-  async decideOrderLine(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; approvedPairs: number; heldPairs: number; holdReason: HoldReason | null }, correlationId: string): Promise<OrderRecord> {
-    if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
-    const { data, error } = await this.client.rpc("decide_kitco_order_line", {
-      p_organisation_id: session.organisationId,
-      p_actor_auth_user_id: session.userId,
-      p_order_id: input.orderId,
-      p_order_line_id: input.orderLineId,
-      p_size_label: input.size,
-      p_approved_pairs: input.approvedPairs,
-      p_held_pairs: input.heldPairs,
-      p_hold_reason: input.holdReason,
-      p_now: new Date().toISOString(),
-      p_correlation_id: correlationId,
-    });
-    if (error || !data) fail(error, "ORDER_LINE_DECISION_FAILED");
-    const order = await this.findOrder(session, input.orderId);
-    if (!order) throw new ApiError(409, "ORDER_LINE_DECISION_FAILED", "The decided order could not be loaded");
-    return order;
   }
   async createDispatch(session: SessionIdentity, input: { orderId: string; orderLineId: string; size: string; pairs: number; dealerLocationId?: string }, correlationId: string): Promise<OrderRecord> {
     if (!isAdminRole(session.role)) throw new ApiError(403, "ADMIN_REQUIRED", "Administrator access is required");
