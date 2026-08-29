@@ -2,31 +2,48 @@
    or above 16px, every control clears 48px, and nothing load-bearing is carried
    by colour alone -- the blocked banner pairs its tint with a heading and a list. */
 
-.profile-page h1 { margin: 0 0 8px; }
+.profile-page h1 { margin: 0 0 var(--space-2); }
 .profile-page h2 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
-.profile-page section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--hairline); }
-.profile-page > .ui-btn { margin-top: 28px; }
+.profile-page section { margin-top: var(--space-6); padding-top: var(--space-5); border-top: 1px solid var(--hairline); }
+.profile-page > .ui-btn { margin-top: var(--space-6); }
 
-.profile-hint { margin: 0 0 12px; font-size: 16px; color: var(--mute); line-height: 1.5; }
+.profile-hint { margin: 0 0 var(--space-3); font-size: 16px; color: var(--mute); line-height: 1.5; }
 
-.profile-banner { margin: 20px 0 0; padding: 16px 18px; border-left: 3px solid var(--ink); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
+/* Each banner is a different state, so each carries its own icon, its own word and its
+   own tint -- never the tint alone, and never the same neutral box for "all done" and
+   "you cannot order yet". Blocked stays calm and neutral on purpose: for a dealer part
+   way through onboarding it is the expected state, not a failure. */
+.profile-banner { margin: var(--space-5) 0 0; padding: var(--space-4) 18px; border-left: 3px solid var(--ink); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
 .profile-banner strong { display: block; font-size: 17px; }
-.profile-banner.is-blocked ul { margin: 10px 0 0; padding-left: 20px; }
-.profile-banner.is-blocked li { margin-bottom: 4px; }
+.profile-banner strong::before { margin-right: var(--space-2); }
+.profile-banner.is-complete { border-left-color: var(--success); background: var(--success-soft); }
+.profile-banner.is-complete strong::before { content: "✓"; color: var(--success); }
+.profile-banner.is-blocked strong::before { content: "!"; }
+.profile-banner.is-blocked ul { margin: 10px 0 0; padding-left: var(--space-5); }
+.profile-banner.is-blocked li { margin-bottom: var(--space-1); }
 .profile-banner.is-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.profile-banner.is-warning strong::before { content: "!"; color: var(--warning); }
 .profile-banner.is-warning .ui-checkbox { margin-top: 10px; }
 
-.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 20px; margin-top: 16px; }
+.profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px var(--space-5); margin-top: var(--space-4); }
 @media (max-width: 640px) { .profile-grid { grid-template-columns: 1fr; } }
 
-.profile-photo-row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
-.profile-photo-row img { width: 160px; height: 160px; object-fit: cover; border: 1px solid var(--hairline); }
+/* Solid hairline and the input radius, not a dashed outline: the empty slot is the only
+   dashed edge in the app, and it made the upload block read as a different product. */
+.profile-photo-row { display: flex; gap: var(--space-5); align-items: flex-start; flex-wrap: wrap; }
+.profile-photo-row img, .profile-photo-empty { width: 160px; height: 160px; border: 1px solid var(--hairline); border-radius: var(--radius-sm); }
+.profile-photo-row img { object-fit: cover; }
 .profile-photo-empty {
-  display: grid; place-items: center; width: 160px; height: 160px;
-  border: 1px dashed var(--hairline); background: var(--soft-cloud);
+  display: grid; place-items: center; background: var(--soft-cloud);
   color: var(--mute); font-size: 16px; text-align: center;
 }
+.profile-photo-row .profile-hint { margin: var(--space-2) 0 0; font-size: 13px; }
 
-.profile-message, .profile-error { margin: 20px 0 0; padding: 12px 14px; font-size: 16px; line-height: 1.5; }
+.profile-message, .profile-error { margin: var(--space-5) 0 0; padding: var(--space-3) 14px; font-size: 16px; line-height: 1.5; }
 .profile-message { border-left: 3px solid var(--ink); background: var(--soft-cloud); }
 .profile-error { border-left: 3px solid var(--danger); background: var(--soft-cloud); color: var(--ink); }
+.profile-error::before { content: "✕"; margin-right: var(--space-2); color: var(--danger); font-weight: 700; }
+
+/* Locked is the normal state for most fields most of the time. The distinction it needs
+   is the shared :read-only fill plus the word "Locked" in the hint -- no alarm colour,
+   no extra border treatment, nothing for a dealer to react to. */

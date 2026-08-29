@@ -65,7 +65,7 @@ export function CartPage() {
 					<strong>{formatRetailValue(line.retailValueMinor, line.currencyCode)}</strong>
 					<div className="cart-line-actions">
 						<button type="button" className="text-action" onClick={() => navigate(`/products?open=${encodeURIComponent(line.offeringId)}`)}>Edit</button>
-						<button type="button" className="text-action" disabled={removingId === line.offeringId} onClick={() => void remove(line.offeringId)}>{removingId === line.offeringId ? "Removing…" : "Remove"}</button>
+						<button type="button" className="text-action" disabled={removingId === line.offeringId} aria-busy={removingId === line.offeringId || undefined} onClick={() => void remove(line.offeringId)}>{removingId === line.offeringId ? "Removing…" : "Remove"}</button>
 					</div>
 				</div>
 			</article>;

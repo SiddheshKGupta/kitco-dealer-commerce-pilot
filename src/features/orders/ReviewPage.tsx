@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Checkbox, EmptyState, OTPInput } from "../../components/ui";
+import { Button, Checkbox, EmptyState, Input, OTPInput, Select } from "../../components/ui";
 import { formatSizeQuantities, sizeSystemDisplayLabel } from "../../domain/order-sizes";
 import { formatRetailValue } from "../catalogue/types";
 import { fetchDealerGroup, fetchDraft, mediaUrl, submitOrder, type DealerGroupPayload, type DraftLine } from "./api";
@@ -52,7 +52,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 	const [challengeId, setChallengeId] = useState("");
 	const [otp, setOtp] = useState("");
 	const [error, setError] = useState("");
-	const [pending, setPending] = useState<"otp" | "submit" | null>(null);
+	const [pending, setPending] = useState<"otp" | "resend" | "submit" | null>(null);
 	const [resendIn, setResendIn] = useState(60);
 	const idempotencyKey = useRef<string | null>(null);
 
@@ -89,10 +89,13 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 		catch (caught) { setError(caught instanceof Error ? caught.message : "The order code could not be sent. Try again."); }
 		finally { setPending(null); }
 	}
+	// Same pending handling as issueOtp/submit: a resend that gives no sign it is working
+	// invites a second tap, and the second code invalidates the one already in the inbox.
 	async function resendOtp() {
-		setError("");
+		setError(""); setPending("resend");
 		try { setChallengeId(await requestOrderOtp("ORDER_SUBMISSION")); setResendIn(60); }
 		catch (caught) { setError(caught instanceof Error ? caught.message : "The order code could not be sent. Try again."); }
+		finally { setPending(null); }
 	}
 	async function submit() {
 		if (otp.length !== 6 || !challengeId) return;
@@ -149,21 +152,21 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 			<h2>Bill-to / Ship-to</h2>
 			{group && group.dealers.length > 1 && <>
 				<label>Bill-to dealer
-					<select aria-label="Bill-to dealer" value={billTo} onChange={(event) => setBillTo(event.target.value)}>
+					<Select aria-label="Bill-to dealer" value={billTo} onChange={(event) => setBillTo(event.target.value)}>
 						{group.dealers.map((dealer) => <option key={dealer.dealerId} value={dealer.dealerId}>{dealer.displayName} ({dealer.dealerCode})</option>)}
-					</select>
+					</Select>
 				</label>
 				<label>Ship-to dealer
-					<select aria-label="Ship-to dealer" value={shipTo} onChange={(event) => setShipTo(event.target.value)}>
+					<Select aria-label="Ship-to dealer" value={shipTo} onChange={(event) => setShipTo(event.target.value)}>
 						{group.dealers.map((dealer) => <option key={dealer.dealerId} value={dealer.dealerId}>{dealer.displayName} ({dealer.dealerCode})</option>)}
-					</select>
+					</Select>
 				</label>
 			</>}
 			<label>Ship-to location
-				<select aria-label="Ship-to location" value={location} disabled={groupStatus !== "ready" || locationOptions.length === 0} onChange={(event) => setLocation(event.target.value)}>
+				<Select aria-label="Ship-to location" value={location} disabled={groupStatus !== "ready" || locationOptions.length === 0} onChange={(event) => setLocation(event.target.value)}>
 					<option value="">{groupStatus === "loading" ? "Loading locations…" : locationOptions.length === 0 ? "Ships to the registered address (no locations on file)" : "Choose location"}</option>
 					{locationOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-				</select>
+				</Select>
 			</label>
 			{groupStatus === "error" && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> Delivery details could not be loaded. Try again shortly.</p>}
 		</section>
@@ -171,7 +174,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 		<section className="commerce-review-section">
 			<h2>Order details</h2>
 			<label>PO number (optional)
-				<input type="text" aria-label="Dealer PO number" value={poNumber} maxLength={64} onChange={(event) => setPoNumber(event.target.value)} />
+				<Input type="text" aria-label="Dealer PO number" value={poNumber} maxLength={64} onChange={(event) => setPoNumber(event.target.value)} />
 			</label>
 			<fieldset className="commerce-delivery-preference">
 				<legend>Delivery</legend>
@@ -185,7 +188,7 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 				</label>
 				{deliveryPreference === "REQUESTED_DATE" && <div className="commerce-delivery-date">
 					<label htmlFor="requested-delivery-date">Requested delivery date</label>
-					<input id="requested-delivery-date" type="date" value={requestedDate} min={todayIso()} onChange={(event) => setRequestedDate(event.target.value)} />
+					<Input id="requested-delivery-date" type="date" value={requestedDate} min={todayIso()} onChange={(event) => setRequestedDate(event.target.value)} />
 				</div>}
 			</fieldset>
 		</section>
@@ -222,14 +225,16 @@ export function ReviewPage({ requestOrderOtp, profileBlock = null }: {
 			{profileBlock && <p className="commerce-validation" role="alert">
 				<span aria-hidden="true">!</span> Add {profileBlock} to your profile before placing an order. <a href="/profile">Complete your profile</a>
 			</p>}
-			<Button full disabled={placeOrderDisabled} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
+			<Button full disabled={placeOrderDisabled} loading={pending === "otp"} onClick={() => void issueOtp()}>{pending === "otp" ? "Sending…" : "Place Final Order"}</Button>
 		</>}
 		{stage === "otp" && <div className="commerce-review">
 			<h2>Confirm your order</h2>
 			<p className="field-note">We sent a 6-digit code to your registered email.</p>
 			<OTPInput value={otp} onChange={setOtp} />
-			<Button full disabled={otp.length !== 6 || pending !== null} onClick={() => void submit()}>{pending === "submit" ? "Submitting…" : "Confirm Order"}</Button>
-			<Button variant="ghost" size="md" disabled={resendIn > 0} onClick={() => void resendOtp()}>{resendIn > 0 ? `Send me a new code in ${resendIn}s` : "Send me a new code"}</Button>
+			<Button full disabled={otp.length !== 6 || pending !== null} loading={pending === "submit"} onClick={() => void submit()}>{pending === "submit" ? "Submitting…" : "Confirm Order"}</Button>
+			<Button full variant="ghost" size="md" disabled={resendIn > 0 || pending !== null} loading={pending === "resend"} onClick={() => void resendOtp()}>
+				{pending === "resend" ? "Sending…" : resendIn > 0 ? `Send me a new code in ${resendIn}s` : "Send me a new code"}
+			</Button>
 		</div>}
 		{error && <p className="commerce-validation" role="alert"><span aria-hidden="true">✕</span> <span>{error}</span></p>}
 	</main>;

@@ -35,9 +35,10 @@
 .ui-icon-btn {
   display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--line);
   border-radius: var(--radius-pill); background: var(--canvas); color: var(--ink); cursor: pointer;
-  transition: background var(--motion-standard) var(--ease-standard);
+  transition: background var(--motion-standard) var(--ease-standard), transform var(--motion-standard) var(--ease-standard);
 }
 .ui-icon-btn:hover:not(:disabled) { background: var(--soft); }
+.ui-icon-btn:active:not(:disabled) { transform: scale(0.94); }
 .ui-icon-btn:disabled { cursor: not-allowed; opacity: .45; }
 .ui-icon-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .ui-icon-btn-md { width: 48px; height: 48px; font-size: 18px; }
@@ -50,7 +51,10 @@
   transition: border-color var(--motion-standard) var(--ease-standard), box-shadow var(--motion-standard) var(--ease-standard);
 }
 .ui-input:focus, .ui-select:focus { outline: none; border-color: var(--ink); box-shadow: 0 0 0 3px rgba(0, 0, 0, .06); }
-.ui-input:focus-visible, .ui-select:focus-visible { outline: none; }
+/* Keyboard focus gets the same 3px --focus ring as every other control in this file.
+   The soft shadow above is a pointer nicety at 6% black -- it never clears contrast
+   on its own, so it must never be the only focus signal a keyboard user gets. */
+.ui-input:focus-visible, .ui-select:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; box-shadow: none; }
 .ui-input:read-only { background: var(--soft); color: var(--muted); cursor: default; }
 .ui-input:read-only:focus { box-shadow: none; border-color: var(--line); }
 .ui-select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) center, calc(100% - 15px) center; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: var(--space-7); }
@@ -123,8 +127,10 @@
 /* ---------------------------------------------------------- FormField */
 .ui-field { display: grid; gap: var(--space-2); }
 .ui-field label { font-size: 13px; font-weight: 700; color: var(--ink); }
-.ui-field-hint { margin: 0; font-size: 12px; color: var(--muted); }
-.ui-field-error { margin: 0; font-size: 12px; color: var(--danger); font-weight: 600; }
+/* 13px, not 12: the dealer audience reads these on a phone in a shop, and the hint
+   under a field is often the only place a format ("15 letters and numbers") is stated. */
+.ui-field-hint { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.ui-field-error { margin: 0; font-size: 13px; color: var(--danger); font-weight: 600; line-height: 1.45; }
 
 /* ---------------------------------------------------------- SearchField */
 .ui-search { position: relative; display: block; }
@@ -150,12 +156,16 @@
 .ui-bottom-nav-link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 56px; padding: 8px 4px; color: var(--muted); font-size: 13px; font-weight: 700; }
 .ui-bottom-nav-link.is-current { color: var(--ink); }
 .ui-bottom-nav-icon { display: block; width: 22px; height: 22px; }
-.ui-bottom-nav-badge { position: absolute; top: 4px; left: calc(50% + 8px); display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: var(--radius-pill); background: var(--danger); color: var(--canvas); font-size: 10px; font-weight: 800; }
+/* --ink, not --danger: a count of what you put in your own cart is not a warning,
+   and a reader who learns red means "problem" here loses that signal elsewhere. */
+.ui-bottom-nav-badge { position: absolute; top: 4px; left: calc(50% + 8px); display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--ink); color: var(--canvas); font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 850px) {
   .ui-bottom-nav { display: block; }
   .app-shell .dealer-nav { display: none; }
-  .app-shell .shell-content, .app-shell .commerce-page { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0)); }
+  /* Clears the 57px nav plus real breathing room -- 72px left the last row of a page
+     sitting almost against the nav's top hairline. */
+  .app-shell .shell-content, .app-shell .commerce-page { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

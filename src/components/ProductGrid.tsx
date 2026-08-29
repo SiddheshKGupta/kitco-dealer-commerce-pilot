@@ -1,10 +1,11 @@
+import { Button } from "./ui";
 import type { CatalogueProduct } from "../features/catalogue/types";
 import { formatRetailValue, genderCategoryLabel } from "../features/catalogue/types";
 
 interface Props { products: CatalogueProduct[]; onOpenProduct: (product: CatalogueProduct) => void; onClearFilters?: () => void }
 
 export function ProductGrid({ products, onOpenProduct, onClearFilters }: Props) {
-  if (products.length === 0) return <div className="commerce-empty"><strong>No products match.</strong><span>{onClearFilters ? "Try another search or clear your filters." : "No products are available in this section yet."}</span>{onClearFilters && <button type="button" className="ui-btn ui-btn-primary ui-btn-md" onClick={onClearFilters}>Clear search and filters</button>}</div>;
+  if (products.length === 0) return <div className="commerce-empty"><strong>No products match.</strong><span>{onClearFilters ? "Try another search or clear your filters." : "No products are available in this section yet."}</span>{onClearFilters && <Button onClick={onClearFilters}>Clear search and filters</Button>}</div>;
   return <div className="commerce-product-grid">{products.map((product) => <article className="commerce-product-card" key={product.colourwayId}>
     <button type="button" className="commerce-product-open" aria-label={`View ${product.articleNo}`} onClick={() => onOpenProduct(product)}>
       <span className="commerce-media-stage">{product.mediaUrl

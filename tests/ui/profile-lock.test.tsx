@@ -29,7 +29,7 @@ describe("ProfilePage -- fields already on file are locked", () => {
 
     const mobile = await screen.findByLabelText("Mobile number") as HTMLInputElement;
     expect(mobile.readOnly).toBe(true);
-    expect(screen.getAllByText("Locked -- contact KITCO to change this").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Locked — contact KITCO to change this").length).toBeGreaterThan(0);
 
     // A locked field cannot be changed through the UI: no onChange is wired, so the
     // controlled value holds even if something dispatches a native change event.

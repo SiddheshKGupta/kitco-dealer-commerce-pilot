@@ -84,8 +84,11 @@ export function LoginPage() {
 	// tell the border colour apart from the surrounding text.
 	const alert = error ? <p className="form-error" role="alert"><span aria-hidden="true">✕</span> Problem: {error}</p> : null;
 
+	// Only the forgotten-password journey is stepped (identify -> code -> new password);
+	// signing in is a single screen, and the first-login password change is a two-screen
+	// detour off it. Numbering either of those "01 / 03" promises steps that never come.
 	if (stage === "password") return <section className="auth-page">
-		<div className="auth-kicker">{isReset ? "Reset your password" : "One last step"} <span>03 / 03</span></div>
+		<div className="auth-kicker">{isReset ? "Reset your password" : "One last step"} {isReset && <span>03 / 03</span>}</div>
 		<h1>Choose your password.</h1>
 		<p className="auth-intro">
 			{isReset
@@ -96,7 +99,7 @@ export function LoginPage() {
 			<Input id="login-new-password" type="password" value={newPassword} autoComplete="new-password"
 				onChange={(event) => setNewPassword(event.target.value)} />
 		</FormField>
-		<Button full disabled={newPassword.length < MINIMUM_PASSWORD_LENGTH || Boolean(busy)} onClick={setNew}>
+		<Button full disabled={newPassword.length < MINIMUM_PASSWORD_LENGTH} loading={Boolean(busy)} onClick={setNew}>
 			{busy || "Save and continue"}
 		</Button>
 		{alert}
@@ -109,12 +112,12 @@ export function LoginPage() {
 			If that account exists, we've sent a 6-digit code to the email KITCO has on file for it. Type it in below.
 		</p>
 		<OTPInput value={code} onChange={setCode} />
-		<Button full disabled={code.length !== 6 || Boolean(busy)} onClick={verify}>{busy || "Confirm"}</Button>
+		<Button full disabled={code.length !== 6} loading={Boolean(busy)} onClick={verify}>{busy || "Confirm"}</Button>
+		{alert}
 		<button className="text-action" type="button" disabled={resendIn > 0 || Boolean(busy)} onClick={resend}>
 			{resendIn > 0 ? `You can ask for a new code in ${resendIn}s` : "Send me a new code"}
 		</button>
 		<button className="text-action" type="button" disabled={Boolean(busy)} onClick={() => back("identify")}>Start again</button>
-		{alert}
 	</section>;
 
 	if (stage === "recover") return <section className="auth-page">
@@ -125,16 +128,16 @@ export function LoginPage() {
 			<Input id="recover-identifier" value={identifier} autoComplete="username"
 				onChange={(event) => setIdentifier(event.target.value)} />
 		</FormField>
-		<Button full disabled={!identifier.trim() || Boolean(busy)} onClick={requestReset}>{busy || "Send me a code"}</Button>
-		<button className="text-action" type="button" disabled={Boolean(busy)} onClick={() => back("identify")}>Back to sign in</button>
+		<Button full disabled={!identifier.trim()} loading={Boolean(busy)} onClick={requestReset}>{busy || "Send me a code"}</Button>
 		{alert}
+		<button className="text-action" type="button" disabled={Boolean(busy)} onClick={() => back("identify")}>Back to sign in</button>
 	</section>;
 
 	return <section className="auth-page">
-		<div className="auth-kicker">Dealer sign in <span>01 / 03</span></div>
+		<div className="auth-kicker">Dealer sign in</div>
 		<h1>Welcome back.</h1>
 		<p className="auth-intro">Sign in with the password KITCO gave you.</p>
-		<FormField label="Email or Dealer Code" htmlFor="login-identifier" hint="Your primary email, secondary email, or Dealer Code -- whichever you have">
+		<FormField label="Email or Dealer Code" htmlFor="login-identifier" hint="Your primary email, secondary email, or Dealer Code — whichever you have">
 			<Input id="login-identifier" value={identifier} autoComplete="username"
 				onChange={(event) => setIdentifier(event.target.value)} />
 		</FormField>
@@ -142,8 +145,8 @@ export function LoginPage() {
 			<Input id="login-password" type="password" value={password} autoComplete="current-password"
 				onChange={(event) => setPassword(event.target.value)} />
 		</FormField>
-		<Button full disabled={!identifier.trim() || !password || Boolean(busy)} onClick={signIn}>{busy || "Sign in"}</Button>
-		<button className="text-action" type="button" disabled={Boolean(busy)} onClick={() => back("recover")}>I've forgotten my password</button>
+		<Button full disabled={!identifier.trim() || !password} loading={Boolean(busy)} onClick={signIn}>{busy || "Sign in"}</Button>
 		{alert}
+		<button className="text-action" type="button" disabled={Boolean(busy)} onClick={() => back("recover")}>I've forgotten my password</button>
 	</section>;
 }
