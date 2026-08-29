@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Button, FormField, Input, SearchField, Select } from "../../components/ui";
 import { SizeChartSheet } from "../../components/SizeChartSheet";
 import { formatRetailValue } from "../catalogue/types";
-import { useAdminSection, type SectionStatus } from "./useAdminSection";
+import { adminFetch, useAdminSection, type SectionStatus } from "./useAdminSection";
 
 const dash = "—";
 /** Tolerates a missing field rather than taking the whole console down with it. */
@@ -19,11 +19,13 @@ export function PageHead({ eyebrow, title, lead, actions }: { eyebrow: string; t
 	</header>;
 }
 
-/** One honest state machine for every section: loading, denied, failed, or empty. */
-export function SectionState({ status, retry, empty }: { status: SectionStatus; retry: () => void; empty?: string }) {
+/** One honest state machine for every section: loading, denied, failed, or empty.
+ *  `error` is the server's own message when it sent one -- the generic line is the
+ *  fallback for when there genuinely isn't one, not the only thing anyone ever sees. */
+export function SectionState({ status, retry, empty, error }: { status: SectionStatus; retry: () => void; empty?: string; error?: string | null }) {
 	if (status === "loading") return <div className="empty" role="status">Loading…</div>;
 	if (status === "forbidden") return <div className="empty" role="alert"><h3>Sign in required</h3><p>Sign in with your KITCO Control account to see this.</p><a className="ui-btn ui-btn-primary ui-btn-md" href="/login">Sign in</a></div>;
-	if (status === "error") return <div className="empty" role="alert"><h3>Couldn't load this page</h3><p>Something went wrong. Try again.</p><Button onClick={retry}>Try again</Button></div>;
+	if (status === "error") return <div className="empty" role="alert"><h3>Couldn't load this page</h3><p>{error || "Something went wrong. Try again."}</p><Button onClick={retry}>Try again</Button></div>;
 	return <div className="empty"><h3>Nothing here yet</h3><p>{empty ?? "Nothing to show here yet."}</p></div>;
 }
 
@@ -71,11 +73,11 @@ interface DashboardPayload {
 	catalogue: { colourways: number; published: number; withMedia: number };
 }
 export function DashboardSection() {
-	const { data, status, reload } = useAdminSection<DashboardPayload>("/api/admin/console/dashboard");
+	const { data, status, error, reload } = useAdminSection<DashboardPayload>("/api/admin/console/dashboard");
 	const complete = Boolean(data?.orders && data?.dealers && data?.catalogue);
 	return <>
 		<PageHead eyebrow="Business overview" title="Dashboard" lead="A live look at your dealers, catalogue and orders." />
-		{status !== "ready" || !data || !complete ? <SectionState status={status === "ready" ? "error" : status} retry={reload} /> : <>
+		{status !== "ready" || !data || !complete ? <SectionState status={status === "ready" ? "error" : status} error={error} retry={reload} /> : <>
 			<div className="stat-grid">
 				<div className="stat"><div className="k">Retail Value</div><div className="v">{formatRetailValue(data.retailValueMinor ?? 0)}</div><div className="d">From submitted orders</div></div>
 				<div className="stat"><div className="k">Pairs Ordered</div><div className="v">{number(data.pairsOrdered)}</div><div className="d">Across all sizes</div></div>
@@ -107,12 +109,12 @@ export function DashboardSection() {
 /* ------------------------------------------------------------------ Dealers */
 interface DealerRow { id: string; code: string | null; name: string; state: string | null; city: string | null; activationStatus: string; locations: number; gstRegistrations: number; orders: number }
 export function DealersSection() {
-	const { data, status, reload } = useAdminSection<{ dealers: DealerRow[] }>("/api/admin/console/dealers");
+	const { data, status, error, reload } = useAdminSection<{ dealers: DealerRow[] }>("/api/admin/console/dealers");
 	const [query, setQuery] = useState("");
 	const rows = (data?.dealers ?? []).filter((row) => !query || `${row.name} ${row.code ?? ""} ${row.city ?? ""} ${row.state ?? ""}`.toLowerCase().includes(query.toLowerCase()));
 	return <>
 		<PageHead eyebrow="Dealer directory" title="Dealers" lead="Every dealer, whether they're active, their GST numbers, and where they ship to." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : <Panel
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : <Panel
 			title={`${number(data?.dealers.length ?? 0)} dealers`}
 			meta={<SearchField label="Search dealers" style={{ minWidth: 220 }} placeholder="Search dealer, city or state" value={query} onChange={(event) => setQuery(event.target.value)} />}
 		>
@@ -133,13 +135,13 @@ export function DealersSection() {
 /* ---------------------------------------------------------------- Catalogue */
 interface ProductRow { id: string; articleNo: string; colour: string | null; brand: string | null; family: string | null; category: string | null; mrpMinor: number | null; published: boolean; hasMedia: boolean; offeringTypes: string[] }
 export function CatalogueSection() {
-	const { data, status, reload } = useAdminSection<{ products: ProductRow[] }>("/api/admin/console/products");
+	const { data, status, error, reload } = useAdminSection<{ products: ProductRow[] }>("/api/admin/console/products");
 	const [query, setQuery] = useState("");
 	const all = data?.products ?? [];
 	const rows = all.filter((row) => !query || `${row.articleNo} ${row.brand ?? ""} ${row.family ?? ""} ${row.colour ?? ""}`.toLowerCase().includes(query.toLowerCase())).slice(0, 250);
 	return <>
 		<PageHead eyebrow="Catalogue" title="Catalogue" lead="Every colourway across every brand — what's published and what has photos." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : <Panel
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : <Panel
 			title={`${number(all.length)} colourways`}
 			meta={<SearchField label="Search catalogue" style={{ minWidth: 220 }} placeholder="Search article, brand or colour" value={query} onChange={(event) => setQuery(event.target.value)} />}
 		>
@@ -163,12 +165,12 @@ export function CatalogueSection() {
 /* ------------------------------------------------------- Commercial offerings */
 interface OfferingRow { id: string; articleNo: string; offeringType: string; mrpMinor: number | null; moqPairs: number | null; orderMultiple: number | null; published: boolean }
 export function OfferingsSection() {
-	const { data, status, reload } = useAdminSection<{ offerings: OfferingRow[] }>("/api/admin/console/offerings");
+	const { data, status, error, reload } = useAdminSection<{ offerings: OfferingRow[] }>("/api/admin/console/offerings");
 	const all = data?.offerings ?? [];
 	const byType = all.reduce<Record<string, number>>((acc, row) => { acc[row.offeringType] = (acc[row.offeringType] ?? 0) + 1; return acc; }, {});
 	return <>
 		<PageHead eyebrow="Offerings" title="Offerings" lead="How each colourway is presented to dealers: stock in hand, upcoming or prebook." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="Nothing published yet." /> : <>
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="Nothing published yet." /> : <>
 			<div className="stat-grid">
 				{Object.entries(byType).map(([type, count]) => <div className="stat" key={type}>
 					<div className="k">{type.replaceAll("_", " ")}</div><div className="v">{number(count)}</div><div className="d">offerings</div>
@@ -193,10 +195,10 @@ export function OfferingsSection() {
 /* ------------------------------------------------------------ Media library */
 interface MediaPayload { totals: { colourways: number; withDisplayMedia: number; missing: number }; byKind: Array<{ kind: string; count: number }> }
 export function MediaSection() {
-	const { data, status, reload } = useAdminSection<MediaPayload>("/api/admin/console/media");
+	const { data, status, error, reload } = useAdminSection<MediaPayload>("/api/admin/console/media");
 	return <>
 		<PageHead eyebrow="Product photos" title="Media Library" lead="How many colourways have photos. Missing photos never stop an order." />
-		{status !== "ready" || !data ? <SectionState status={status} retry={reload} /> : <>
+		{status !== "ready" || !data ? <SectionState status={status} error={error} retry={reload} /> : <>
 			<div className="stat-grid">
 				<div className="stat"><div className="k">Colourways</div><div className="v">{number(data.totals.colourways)}</div></div>
 				<div className="stat"><div className="k">With photos</div><div className="v">{number(data.totals.withDisplayMedia)}</div></div>
@@ -219,15 +221,8 @@ interface SizeSetAssignmentRow { brandName: string; gender: string; sizeSetCode:
 interface SizeSystemRow { id: string; code: string; label: string }
 interface SizeSetsPayload { sizeSets: SizeSetRow[]; families: FamilyOptionRow[]; assignments: SizeSetAssignmentRow[]; sizeSystems: SizeSystemRow[] }
 
-async function sizeSetsApi<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-	const response = await fetch(path, { credentials: "include", headers: { "content-type": "application/json" }, ...init });
-	const body = await response.json().catch(() => ({}));
-	if (!response.ok) throw new Error((body as { error?: { message?: string } }).error?.message ?? "That didn't work. Try again.");
-	return body as T;
-}
-
 export function SizeSetsSection() {
-	const { data, status, reload } = useAdminSection<SizeSetsPayload>("/api/admin/size-sets");
+	const { data, status, error: loadError, reload } = useAdminSection<SizeSetsPayload>("/api/admin/size-sets");
 	const sizeSets = data?.sizeSets ?? [];
 	const families = data?.families ?? [];
 	const assignments = data?.assignments ?? [];
@@ -270,7 +265,7 @@ export function SizeSetsSection() {
 	async function createSet() {
 		setError(""); setCreatingSet(true);
 		try {
-			await sizeSetsApi("/api/admin/size-sets", { method: "POST", body: JSON.stringify({ code: newSetCode.trim(), name: newSetName.trim() }) });
+			await adminFetch("/api/admin/size-sets", { method: "POST", body: JSON.stringify({ code: newSetCode.trim(), name: newSetName.trim() }) });
 			setNewSetCode(""); setNewSetName(""); reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size set could not be created"); }
 		finally { setCreatingSet(false); }
@@ -279,7 +274,7 @@ export function SizeSetsSection() {
 	async function setSizeSystem(setId: string, sizeSystemId: string) {
 		setError(""); setSavingSystemSetId(setId);
 		try {
-			await sizeSetsApi(`/api/admin/size-sets/${setId}/size-system`, { method: "PATCH", body: JSON.stringify({ sizeSystemId: sizeSystemId || null }) });
+			await adminFetch(`/api/admin/size-sets/${setId}/size-system`, { method: "PATCH", body: JSON.stringify({ sizeSystemId: sizeSystemId || null }) });
 			reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size system could not be saved"); }
 		finally { setSavingSystemSetId(null); }
@@ -288,7 +283,7 @@ export function SizeSetsSection() {
 	async function createSystem() {
 		setError(""); setCreatingSystem(true);
 		try {
-			await sizeSetsApi("/api/admin/size-systems", { method: "POST", body: JSON.stringify({ code: newSystemCode.trim(), label: newSystemLabel.trim() }) });
+			await adminFetch("/api/admin/size-systems", { method: "POST", body: JSON.stringify({ code: newSystemCode.trim(), label: newSystemLabel.trim() }) });
 			setNewSystemCode(""); setNewSystemLabel(""); reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size system could not be created"); }
 		finally { setCreatingSystem(false); }
@@ -301,7 +296,7 @@ export function SizeSetsSection() {
 		try {
 			const parsedOrder = draft.sortOrder.trim() ? Number(draft.sortOrder) : NaN;
 			const sortOrder = Number.isFinite(parsedOrder) ? parsedOrder : Math.max(-1, ...set.values.map((value) => value.sortOrder)) + 1;
-			await sizeSetsApi(`/api/admin/size-sets/${set.id}/values`, { method: "POST", body: JSON.stringify({ label: draft.label.trim(), sortOrder }) });
+			await adminFetch(`/api/admin/size-sets/${set.id}/values`, { method: "POST", body: JSON.stringify({ label: draft.label.trim(), sortOrder }) });
 			setValueDrafts((current) => ({ ...current, [set.id]: { label: "", sortOrder: "" } }));
 			reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size could not be added"); }
@@ -311,7 +306,7 @@ export function SizeSetsSection() {
 	async function removeValue(valueId: string) {
 		setError(""); setRemovingValueId(valueId);
 		try {
-			await sizeSetsApi(`/api/admin/size-sets/values/${valueId}`, { method: "DELETE" });
+			await adminFetch(`/api/admin/size-sets/values/${valueId}`, { method: "DELETE" });
 			setConfirmingValueId(null); setConfirmText(""); reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size could not be removed"); }
 		finally { setRemovingValueId(null); }
@@ -324,7 +319,7 @@ export function SizeSetsSection() {
 			const body = assignScope === "family"
 				? { sizeSetId: assignSetId, familyId: assignFamilyId }
 				: { sizeSetId: assignSetId, brandId: assignBrandId, gender: assignGender };
-			const result = await sizeSetsApi<{ colourwaysAffected: number }>("/api/admin/size-sets/assign", { method: "POST", body: JSON.stringify(body) });
+			const result = await adminFetch<{ colourwaysAffected: number }>("/api/admin/size-sets/assign", { method: "POST", body: JSON.stringify(body) });
 			setAssignResult(`Done. Turned this size set on for ${result.colourwaysAffected} product${result.colourwaysAffected === 1 ? "" : "s"}.`);
 			reload();
 		} catch (caught) { setError(caught instanceof Error ? caught.message : "Size set could not be assigned"); }
@@ -368,7 +363,7 @@ export function SizeSetsSection() {
 			</div>
 		</section>
 
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : sizeSets.length === 0 ? <SectionState status="ready" retry={reload} empty="No size sets configured yet." /> :
+		{status !== "ready" ? <SectionState status={status} error={loadError} retry={reload} /> : sizeSets.length === 0 ? <SectionState status="ready" retry={reload} empty="No size sets configured yet." /> :
 			<div className="grid-2">{sizeSets.map((set) => {
 				const draft = valueDrafts[set.id] ?? { label: "", sortOrder: "" };
 				return <section className="panel" key={set.id}>
@@ -471,7 +466,7 @@ export function SizeSetsSection() {
 /* ---------------------------------------------------------- Catalogue imports */
 interface ImportJobRow { id: string; status: string; sourceName: string | null; profileCode: string | null; createdAt: string; committedAt: string | null; rows: number }
 export function ImportsSection() {
-	const { data, status, reload } = useAdminSection<{ imports: ImportJobRow[] }>("/api/admin/console/imports");
+	const { data, status, error, reload } = useAdminSection<{ imports: ImportJobRow[] }>("/api/admin/console/imports");
 	const [query, setQuery] = useState("");
 	const all = data?.imports ?? [];
 	const needle = query.trim().toLowerCase();
@@ -481,7 +476,7 @@ export function ImportsSection() {
 		: all;
 	return <>
 		<PageHead eyebrow="Catalogue imports" title="Catalogue Imports" lead="Every file you've uploaded, which template read it, and how many rows came in." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No files uploaded yet." /> :
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No files uploaded yet." /> :
 			<Panel
 				title={`${number(rows.length)}${rows.length !== all.length ? ` of ${number(all.length)}` : ""} import jobs`}
 				meta={<SearchField label="Search catalogue imports" style={{ minWidth: 220 }} placeholder="Search file name, profile or status" value={query} onChange={(event) => setQuery(event.target.value)} />}
@@ -502,11 +497,11 @@ export function ImportsSection() {
 
 /* --------------------------------------------------------- Seasons & schemes */
 export function SeasonsSection() {
-	const { data, status, reload } = useAdminSection<{ seasons: Array<Record<string, string>> }>("/api/admin/console/seasons");
+	const { data, status, error, reload } = useAdminSection<{ seasons: Array<Record<string, string>> }>("/api/admin/console/seasons");
 	const rows = data?.seasons ?? [];
 	return <>
 		<PageHead eyebrow="Booking calendar" title="Seasons" lead="The booking and delivery windows that set when dealers can prebook." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No seasons set up yet. Prebook items need a season before dealers can order them." /> :
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No seasons set up yet. Prebook items need a season before dealers can order them." /> :
 			<Panel title={`${number(rows.length)} seasons`}>
 				<Table head={["Code", "Name", "Starts", "Ends"]}>
 					{rows.map((row) => <tr key={row.id}><td><b>{row.code}</b></td><td>{row.name}</td><td>{date(row.starts_at)}</td><td>{date(row.ends_at)}</td></tr>)}
@@ -516,11 +511,11 @@ export function SeasonsSection() {
 }
 
 export function SchemesSection() {
-	const { data, status, reload } = useAdminSection<{ schemes: Array<Record<string, string>> }>("/api/admin/console/schemes");
+	const { data, status, error, reload } = useAdminSection<{ schemes: Array<Record<string, string>> }>("/api/admin/console/schemes");
 	const rows = data?.schemes ?? [];
 	return <>
 		<PageHead eyebrow="Dealer incentives" title="Schemes" lead="Time-limited offers on products you already have. A scheme never creates a new catalogue entry." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No schemes have been created yet." /> :
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No schemes have been created yet." /> :
 			<Panel title={`${number(rows.length)} schemes`}>
 				<Table head={["Code", "Name", "Starts", "Ends", "Published"]}>
 					{rows.map((row) => <tr key={row.id}><td><b>{row.code}</b></td><td>{row.name}</td><td>{date(row.starts_at)}</td><td>{date(row.ends_at)}</td><td>{row.published_at ? <span className="status green"><StatusIcon tone="green" />Live</span> : <span className="status blue"><StatusIcon tone="blue" />Draft</span>}</td></tr>)}
@@ -531,7 +526,7 @@ export function SchemesSection() {
 
 /* ------------------------------------------------------- Dispatch & holds */
 export function DispatchSection() {
-	const { data, status, reload } = useAdminSection<{ dispatches: Array<Record<string, string>> }>("/api/admin/console/dispatches");
+	const { data, status, error, reload } = useAdminSection<{ dispatches: Array<Record<string, string>> }>("/api/admin/console/dispatches");
 	const [query, setQuery] = useState("");
 	const all = data?.dispatches ?? [];
 	const needle = query.trim().toLowerCase();
@@ -541,7 +536,7 @@ export function DispatchSection() {
 		: all;
 	return <>
 		<PageHead eyebrow="Fulfilment" title="Dispatch" lead="Dispatches recorded against approved orders. One order may dispatch many times." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No dispatches recorded yet. Approve an order, then record dispatch against it." /> :
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No dispatches recorded yet. Approve an order, then record dispatch against it." /> :
 			<Panel
 				title={`${number(rows.length)}${rows.length !== all.length ? ` of ${number(all.length)}` : ""} dispatches`}
 				meta={<SearchField label="Search dispatches" style={{ minWidth: 220 }} placeholder="Search dispatch or order number" value={query} onChange={(event) => setQuery(event.target.value)} />}
@@ -554,7 +549,7 @@ export function DispatchSection() {
 }
 
 export function HoldsSection() {
-	const { data, status, reload } = useAdminSection<{ holds: Array<Record<string, string>> }>("/api/admin/console/holds");
+	const { data, status, error, reload } = useAdminSection<{ holds: Array<Record<string, string>> }>("/api/admin/console/holds");
 	const [query, setQuery] = useState("");
 	const all = data?.holds ?? [];
 	const needle = query.trim().toLowerCase();
@@ -564,7 +559,7 @@ export function HoldsSection() {
 		: all;
 	return <>
 		<PageHead eyebrow="Commercial control" title="Credit Holds" lead="Holds are a separate dimension from order status and can be partial." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No credit holds are active." /> :
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : all.length === 0 ? <SectionState status="ready" retry={reload} empty="No credit holds are active." /> :
 			<Panel
 				title={`${number(rows.length)}${rows.length !== all.length ? ` of ${number(all.length)}` : ""} holds`}
 				meta={<SearchField label="Search credit holds" style={{ minWidth: 220 }} placeholder="Search order, type or reason" value={query} onChange={(event) => setQuery(event.target.value)} />}
@@ -579,11 +574,11 @@ export function HoldsSection() {
 /* -------------------------------------------------------------- Audit trail */
 interface AuditRow { id: string; eventType: string; entityType: string | null; entityId: string | null; correlationId: string | null; occurredAt: string; actorEmail: string | null }
 export function AuditSection() {
-	const { data, status, reload } = useAdminSection<{ audit: AuditRow[] }>("/api/admin/console/audit");
+	const { data, status, error, reload } = useAdminSection<{ audit: AuditRow[] }>("/api/admin/console/audit");
 	const rows = data?.audit ?? [];
 	return <>
 		<PageHead eyebrow="Change history" title="Audit Trail" lead="Who did what, and when, across dealers, orders and the catalogue." />
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No activity recorded yet." /> :
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : rows.length === 0 ? <SectionState status="ready" retry={reload} empty="No activity recorded yet." /> :
 			<Panel title={`${number(rows.length)} most recent events`}>
 				<Table head={["When", "Who", "Event", "Record", "Reference"]}>
 					{rows.map((row) => <tr key={row.id}>
@@ -606,10 +601,10 @@ interface SettingsPayload {
 	importProfiles: Array<{ id: string; code: string; sourceKind: string | null; active: boolean }>;
 }
 export function SettingsSection() {
-	const { data, status, reload } = useAdminSection<SettingsPayload>("/api/admin/console/settings");
+	const { data, status, error, reload } = useAdminSection<SettingsPayload>("/api/admin/console/settings");
 	return <>
 		<PageHead eyebrow="Setup" title="Settings" lead="Your organisation, the brands you carry, and the templates that read supplier files." />
-		{status !== "ready" || !data ? <SectionState status={status} retry={reload} /> : <div className="grid-2">
+		{status !== "ready" || !data ? <SectionState status={status} error={error} retry={reload} /> : <div className="grid-2">
 			<Panel title="Organisation">
 				<div className="panel-body">
 					<div className="kpi-mini"><span>Name</span><b>{data.organisation?.name ?? dash}</b></div>

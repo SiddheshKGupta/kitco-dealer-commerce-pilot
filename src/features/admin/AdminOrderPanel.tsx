@@ -2,7 +2,7 @@ import { useId, useState } from "react";
 import { Button, FormField, Input } from "../../components/ui";
 import type { FulfilmentAllocation } from "../dispatch/fulfilment";
 import { SectionState } from "./ControlSections";
-import { useAdminSection } from "./useAdminSection";
+import { post, useAdminSection } from "./useAdminSection";
 import "./control.css";
 
 /** Shape the admin order list/table (ControlConsole.tsx OrdersSection/ReportsSection) and the
@@ -30,14 +30,7 @@ interface OrderReviewDetail {
 }
 
 type AdminApi = (path: string, body: object) => Promise<unknown>;
-const defaultApi: AdminApi = async (path, body) => {
-	const response = await fetch(path, { method: "POST", credentials: "include", headers: { "content-type": "application/json", "x-correlation-id": crypto.randomUUID() }, body: JSON.stringify(body) });
-	// The API's error shape is { error: { code, message, ... } } (see worker/middleware/errors.ts)
-	// -- grabbing the whole error object here instead of .message would stringify to
-	// "[object Object]", silently defeating every specific-error-message check downstream.
-	if (!response.ok) throw new Error((await response.json().catch(() => ({})) as { error?: { message?: string } }).error?.message ?? "That action could not be completed.");
-	return response.json().catch(() => ({}));
-};
+const defaultApi: AdminApi = (path, body) => post(path, body, "That action could not be completed.");
 
 /** v5 §4: `(8 x 10)` -- the one size x quantity format, everywhere sizes render to a human.
  *  No src/domain formatter existed from the Phase 4 checkout work at the time this was built;
@@ -83,6 +76,10 @@ function partnerLine(partner: OrderPartnerSnapshot | null): string {
 	return [partner.name, partner.gstin, [partner.city, partner.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || dash;
 }
 
+/** Identifies one size's decision row across a re-render, for the "Decision saved" note the
+ *  parent holds on its behalf. */
+const decisionKey = (orderLineId: string, size: string) => `${orderLineId}:${size}`;
+
 function articleLabel(article: OrderReviewArticle): string {
 	if (!article.articleNo) return "Article";
 	const name = article.familyName ?? article.articleNo;
@@ -92,9 +89,9 @@ function articleLabel(article: OrderReviewArticle): string {
 /** One article/size row's approve / credit review / reject decision -- replaces the whole
  *  bucket set atomically in one save (decide_kitco_order_line_v5 is a full replace, not an
  *  increment), so inputs are pre-filled from the current decision. */
-function SizeDecisionRow({ orderId, orderLineId, size, api, onDecided }: {
+function SizeDecisionRow({ orderId, orderLineId, size, api, saved, onDecided }: {
 	orderId: string; orderLineId: string; size: OrderLineSizeDecision;
-	api: AdminApi; onDecided: (order: OrderReviewDetail) => void;
+	api: AdminApi; saved: boolean; onDecided: (order: OrderReviewDetail, decisionKey: string) => void;
 }) {
 	const [approved, setApproved] = useState(String(size.approvedQty));
 	const [creditReview, setCreditReview] = useState(String(size.creditReviewQty));
@@ -102,7 +99,7 @@ function SizeDecisionRow({ orderId, orderLineId, size, api, onDecided }: {
 	const [creditReviewReason, setCreditReviewReason] = useState(size.creditReviewReason ?? "");
 	const [rejectionReason, setRejectionReason] = useState(size.rejectionReason ?? "");
 	const [saving, setSaving] = useState(false);
-	const [message, setMessage] = useState("");
+	const [error, setError] = useState("");
 	const approveId = useId(); const creditId = useId(); const rejectId = useId(); const creditReasonId = useId(); const rejectReasonId = useId();
 
 	const approvedQty = Number(approved); const creditReviewQty = Number(creditReview); const rejectedQty = Number(rejected);
@@ -114,17 +111,18 @@ function SizeDecisionRow({ orderId, orderLineId, size, api, onDecided }: {
 
 	async function save() {
 		if (!canSave) return;
-		setSaving(true); setMessage("");
+		setSaving(true); setError("");
 		try {
 			const result = await api(`/api/admin/orders/${orderId}/decide-v5`, {
 				orderLineId, size: size.size, approvedQty, creditReviewQty, rejectedQty,
 				creditReviewReason: creditReviewQty > 0 ? creditReviewReason : null,
 				rejectionReason: rejectedQty > 0 ? rejectionReason : null,
 			}) as { order: OrderReviewDetail };
-			setMessage("Decision saved");
-			onDecided(result.order);
+			// The confirmation lives on the parent, not here: a saved decision changes this
+			// row's key and remounts it, which would wipe any success message held locally.
+			onDecided(result.order, decisionKey(orderLineId, size.size));
 		} catch (caught) {
-			setMessage(caught instanceof Error ? caught.message : "Decision could not be saved.");
+			setError(caught instanceof Error ? caught.message : "Decision could not be saved.");
 		} finally {
 			setSaving(false);
 		}
@@ -148,15 +146,16 @@ function SizeDecisionRow({ orderId, orderLineId, size, api, onDecided }: {
 		{creditReviewQty > 0 && <FormField label="Credit review reason" htmlFor={creditReasonId}><Input id={creditReasonId} value={creditReviewReason} onChange={(event) => setCreditReviewReason(event.target.value)} placeholder="e.g. Exposure limit reached" /></FormField>}
 		{rejectedQty > 0 && <FormField label="Rejection reason" htmlFor={rejectReasonId}><Input id={rejectReasonId} value={rejectionReason} onChange={(event) => setRejectionReason(event.target.value)} placeholder="e.g. Out of stock" /></FormField>}
 		{overOrdered && <p className="decision-card-error" role="alert">Approve, credit review and reject can&apos;t add up to more than the {size.orderedQty} pairs ordered.</p>}
-		<Button onClick={save} loading={saving} disabled={!canSave} full>Save decision</Button>
-		{message && <p className="decision-card-message" role="status">{message}</p>}
+		<Button onClick={save} loading={saving} disabled={!canSave} full>{saving ? "Saving…" : "Save decision"}</Button>
+		{saved && <p className="decision-card-message" role="status">Decision saved</p>}
+		{error && <p className="decision-card-error" role="alert">{error}</p>}
 	</div>;
 }
 
 /** One collapsed-by-default tile per article -- most articles are approved as ordered via the
  *  whole-order action below and never need opening (that's the explicit brief this screen came
  *  from). Expanding reveals the size matrix with per-size approve/credit-review/reject. */
-function ArticleTile({ orderId, article, api, onDecided }: { orderId: string; article: OrderReviewArticle; api: AdminApi; onDecided: (order: OrderReviewDetail) => void }) {
+function ArticleTile({ orderId, article, api, savedKey, onDecided }: { orderId: string; article: OrderReviewArticle; api: AdminApi; savedKey: string | null; onDecided: (order: OrderReviewDetail, decisionKey: string) => void }) {
 	const totals = article.sizes.reduce((sum, size) => ({
 		ordered: sum.ordered + size.orderedQty, approved: sum.approved + size.approvedQty,
 		creditReview: sum.creditReview + size.creditReviewQty, rejected: sum.rejected + size.rejectedQty, pending: sum.pending + size.pendingQty,
@@ -167,26 +166,36 @@ function ArticleTile({ orderId, article, api, onDecided }: { orderId: string; ar
 			<span>{article.sizes.map((size) => formatSizeQty(size.size, size.orderedQty)).join(", ")} · {totals.approved}/{totals.ordered} approved{totals.pending > 0 ? `, ${totals.pending} pending` : ""}</span>
 		</summary>
 		<div className="control-size-card-body">
-			{article.sizes.map((size) => <SizeDecisionRow key={`${article.orderLineId}:${size.size}`} orderId={orderId} orderLineId={article.orderLineId} size={size} api={api} onDecided={onDecided} />)}
+			{/* The decision quantities are part of the key on purpose: decide-v5 and
+			    approve-entire both replace them outright, so the row has to remount and
+			    re-seed its inputs -- a stale 0 saved back over an approved size would
+			    silently un-approve it. */}
+			{article.sizes.map((size) => <SizeDecisionRow
+				key={`${decisionKey(article.orderLineId, size.size)}:${size.approvedQty}:${size.creditReviewQty}:${size.rejectedQty}`}
+				orderId={orderId} orderLineId={article.orderLineId} size={size} api={api}
+				saved={savedKey === decisionKey(article.orderLineId, size.size)} onDecided={onDecided}
+			/>)}
 		</div>
 	</details>;
 }
 
 export function AdminOrderPanel({ orderId, api = defaultApi }: { orderId: string; api?: AdminApi }) {
-	const { data, status, reload } = useAdminSection<{ order: OrderReviewDetail }>(`/api/admin/orders/${orderId}/review`);
+	const { data, status, error, reload } = useAdminSection<{ order: OrderReviewDetail }>(`/api/admin/orders/${orderId}/review`);
 	const [override, setOverride] = useState<OrderReviewDetail | null>(null);
+	const [savedKey, setSavedKey] = useState<string | null>(null);
 	const [approving, setApproving] = useState(false);
 	const [rejecting, setRejecting] = useState(false);
 	const [rejectReason, setRejectReason] = useState("");
 	const [showRejectReason, setShowRejectReason] = useState(false);
 	const [actionError, setActionError] = useState("");
 
-	if (status !== "ready" || !data) return <SectionState status={status} retry={reload} />;
+	if (status !== "ready" || !data) return <SectionState status={status} error={error} retry={reload} />;
 	const order = override ?? data.order;
 	const closed = order.status === "REJECTED" || order.status === "CANCELLED";
 	const hasPending = order.totals.pending > 0;
 
-	function applyDecided(updated: OrderReviewDetail) { setOverride(updated); }
+	// A whole-order action supersedes any one row's "Decision saved" note, so it clears it.
+	function applyDecided(updated: OrderReviewDetail, decided: string | null = null) { setOverride(updated); setSavedKey(decided); }
 
 	async function approveAll() {
 		setActionError(""); setApproving(true);
@@ -234,7 +243,7 @@ export function AdminOrderPanel({ orderId, api = defaultApi }: { orderId: string
 		{actionError && <p className="decision-card-error" role="alert">{actionError}</p>}
 
 		<div className="control-order-articles">
-			{order.articles.map((article) => <ArticleTile key={article.orderLineId} orderId={orderId} article={article} api={api} onDecided={applyDecided} />)}
+			{order.articles.map((article) => <ArticleTile key={article.orderLineId} orderId={orderId} article={article} api={api} savedKey={savedKey} onDecided={applyDecided} />)}
 		</div>
 
 		<div className="control-actions"><section style={{ gridColumn: "1 / -1" }}><h2>Audit trail</h2><ul className="audit-list">{order.audit.map((event) => <li key={`${event.correlationId}:${event.action}`}><div><strong>{event.action}</strong><span>{new Date(event.occurredAt).toLocaleString()}</span></div>{event.detail && <p>{event.detail}</p>}<span>{event.actorEmail}</span></li>)}</ul></section></div>

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Button, Checkbox, FormField, Input, SearchField } from "../../components/ui";
 import { PageHead, SectionState, StatusPill } from "./ControlSections";
-import { post, type AdminDealerRow } from "./DealerOnboarding";
-import { useAdminSection } from "./useAdminSection";
+import { type AdminDealerRow } from "./DealerOnboarding";
+import { post, useAdminSection } from "./useAdminSection";
 
 interface AdminDealerGroupRow {
 	id: string;
@@ -230,7 +230,7 @@ export function DealerGroupsSection() {
 			</div>
 		</section>
 
-		{groupsSection.status !== "ready" ? <SectionState status={groupsSection.status} retry={reload} /> : groups.length === 0
+		{groupsSection.status !== "ready" ? <SectionState status={groupsSection.status} error={groupsSection.error} retry={reload} /> : groups.length === 0
 			? <div className="empty"><h3>No dealer groups yet</h3><p>Until a group exists, a group code in Add Dealer or a CSV import has nothing to point at and the row will be refused.</p></div>
 			: <section className="panel" style={{ marginTop: 18 }}>
 				<div className="panel-head">
@@ -259,7 +259,7 @@ export function DealerGroupsSection() {
 
 /* --------------------------------------------------------------- Group requests */
 export function GroupRequestsSection() {
-	const { data, status, reload } = useAdminSection<{ requests: MembershipRequestRow[] }>("/api/admin/dealer-groups/requests");
+	const { data, status, error: loadError, reload } = useAdminSection<{ requests: MembershipRequestRow[] }>("/api/admin/dealer-groups/requests");
 	const [openId, setOpenId] = useState<string | null>(null);
 	const [notes, setNotes] = useState("");
 	const [busy, setBusy] = useState<"approve" | "reject" | null>(null);
@@ -321,7 +321,7 @@ export function GroupRequestsSection() {
 			title="Group Requests"
 			lead="Dealers ask to join a group by quoting its code. Nobody joins automatically — a KITCO admin decides every one."
 		/>
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : allRequests.length === 0
+		{status !== "ready" ? <SectionState status={status} error={loadError} retry={reload} /> : allRequests.length === 0
 			? <SectionState status="ready" retry={reload} empty="No dealer is waiting to join a group." />
 			: <section className="panel">
 				<div className="panel-head">
@@ -344,7 +344,7 @@ export function GroupRequestsSection() {
 
 /* ------------------------------------------------------------ GST registrations */
 export function GstRegistrationsSection() {
-	const { data, status, reload } = useAdminSection<{ registrations: GstRegistrationRow[] }>("/api/admin/gst-registrations");
+	const { data, status, error, reload } = useAdminSection<{ registrations: GstRegistrationRow[] }>("/api/admin/gst-registrations");
 	const [query, setQuery] = useState("");
 	const registrations = data?.registrations ?? [];
 	const rows = registrations.filter((registration) => !query || [
@@ -361,7 +361,7 @@ export function GstRegistrationsSection() {
 			title="GST Registrations"
 			lead="One row per real registration. Several dealers sharing a GSTIN is normal — GST issues one GSTIN per PAN per state, covering every additional place of business under it."
 		/>
-		{status !== "ready" ? <SectionState status={status} retry={reload} /> : registrations.length === 0
+		{status !== "ready" ? <SectionState status={status} error={error} retry={reload} /> : registrations.length === 0
 			? <SectionState status="ready" retry={reload} empty="No GSTIN has been recorded against a dealer yet." />
 			: <>
 				<div className="stat-grid">
