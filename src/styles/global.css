@@ -56,7 +56,7 @@ a:focus-visible { outline: 2px solid var(--focus); outline-offset: 4px; }
 
 /* Shown on every dealer page except the profile itself, which states the same
    thing in more detail. Aligned to the content column, not full bleed. */
-.shell-profile-notice { width: min(100% - 32px, 1460px); margin: var(--space-5) auto 0; padding: 14px 16px; border-left: 3px solid var(--ink); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
+.shell-profile-notice { width: min(100% - 32px, 1460px); margin: var(--space-5) auto 0; padding: 14px 16px; border: 1px solid var(--line); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
 .shell-profile-notice strong { display: block; }
 .shell-profile-notice a { text-decoration: underline; }
 
@@ -93,8 +93,10 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .text-action { display: flex; align-items: center; width: 100%; min-height: 48px; margin-top: var(--space-3); border: 0; background: transparent; color: var(--text); font: inherit; font-size: 16px; font-weight: 700; text-decoration: underline; cursor: pointer; }
 .text-action:focus-visible, .dealer-result:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 /* Danger rule, matching .profile-error: this only ever carries a failed request, so
-   it should not look the same as the neutral advisory notices next to it. */
-.form-error { margin: var(--space-4) 0 0; border-left: 3px solid var(--danger); background: var(--surface-subtle); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
+   it should not look the same as the neutral advisory notices next to it -- a tinted
+   background plus its own icon carries that now, not a coloured side border. */
+.form-error { margin: var(--space-4) 0 0; border: 1px solid var(--danger); background: var(--danger-soft); padding: var(--space-3); font-size: 13px; line-height: 1.4; }
+.form-error::before { content: "✕"; margin-right: var(--space-2); color: var(--danger); font-weight: 700; }
 /* The sign-in audience is 40-50, on a phone, in a shop: this is the one message that
    tells them why they are not getting in, so it reads at body size like everything
    else on these screens. Scoped to .auth-page so the desktop console keeps its own. */

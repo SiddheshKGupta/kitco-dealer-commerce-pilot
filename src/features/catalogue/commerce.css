@@ -78,8 +78,11 @@
 .commerce-size-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 64px; border-top: 1px solid var(--hairline); padding: var(--space-2) 0; }
 .commerce-size-row:last-child { border-bottom: 1px solid var(--hairline); }
 .commerce-size-row span { font-size: 16px; font-weight: 700; color: var(--commerce-ink); }
-.commerce-validation { border-left: 3px solid var(--commerce-ink); background: var(--commerce-soft); padding: var(--space-3) 14px; font-size: 16px; line-height: 1.5; }
-.commerce-order-tray { display: flex; flex-direction: column; gap: 14px; margin-top: var(--space-5); border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--commerce-soft); padding: 18px; }
+/* Icon + word already carries the alert (every caller renders a ✕ ahead of the text) --
+   a full hairline border reads as "this is a distinct notice" without the coloured
+   side-tab look, and white keeps it visible now that the page itself is the grey. */
+.commerce-validation { border: 1px solid var(--hairline); background: var(--canvas); padding: var(--space-3) 14px; font-size: 16px; line-height: 1.5; }
+.commerce-order-tray { display: flex; flex-direction: column; gap: 14px; margin-top: var(--space-5); border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--canvas); box-shadow: var(--shadow-resting); padding: 18px; }
 .commerce-order-tray > div { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-3); }
 .commerce-order-tray span { color: var(--commerce-mid); font-size: 13px; }
 .commerce-order-tray .ui-btn { width: 100%; }

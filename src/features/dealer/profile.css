@@ -13,15 +13,17 @@
    own tint -- never the tint alone, and never the same neutral box for "all done" and
    "you cannot order yet". Blocked stays calm and neutral on purpose: for a dealer part
    way through onboarding it is the expected state, not a failure. */
-.profile-banner { margin: var(--space-5) 0 0; padding: var(--space-4) 18px; border-left: 3px solid var(--ink); background: var(--soft-cloud); font-size: 16px; line-height: 1.5; }
+/* Every state already pairs an icon and its own tint -- a full border in that same
+   colour keeps the distinction without a coloured accent on just one edge. */
+.profile-banner { margin: var(--space-5) 0 0; padding: var(--space-4) 18px; border: 1px solid var(--line); background: var(--canvas); font-size: 16px; line-height: 1.5; }
 .profile-banner strong { display: block; font-size: 17px; }
 .profile-banner strong::before { margin-right: var(--space-2); }
-.profile-banner.is-complete { border-left-color: var(--success); background: var(--success-soft); }
+.profile-banner.is-complete { border-color: var(--success); background: var(--success-soft); }
 .profile-banner.is-complete strong::before { content: "✓"; color: var(--success); }
 .profile-banner.is-blocked strong::before { content: "!"; }
 .profile-banner.is-blocked ul { margin: 10px 0 0; padding-left: var(--space-5); }
 .profile-banner.is-blocked li { margin-bottom: var(--space-1); }
-.profile-banner.is-warning { border-left-color: var(--warning); background: var(--warning-soft); }
+.profile-banner.is-warning { border-color: var(--warning); background: var(--warning-soft); }
 .profile-banner.is-warning strong::before { content: "!"; color: var(--warning); }
 .profile-banner.is-warning .ui-checkbox { margin-top: 10px; }
 
@@ -40,8 +42,9 @@
 .profile-photo-row .profile-hint { margin: var(--space-2) 0 0; font-size: 13px; }
 
 .profile-message, .profile-error { margin: var(--space-5) 0 0; padding: var(--space-3) 14px; font-size: 16px; line-height: 1.5; }
-.profile-message { border-left: 3px solid var(--ink); background: var(--soft-cloud); }
-.profile-error { border-left: 3px solid var(--danger); background: var(--soft-cloud); color: var(--ink); }
+.profile-message { border: 1px solid var(--line); background: var(--canvas); }
+.profile-message::before { content: "✓"; margin-right: var(--space-2); font-weight: 700; }
+.profile-error { border: 1px solid var(--danger); background: var(--danger-soft); color: var(--ink); }
 .profile-error::before { content: "✕"; margin-right: var(--space-2); color: var(--danger); font-weight: 700; }
 
 /* Locked is the normal state for most fields most of the time. The distinction it needs
