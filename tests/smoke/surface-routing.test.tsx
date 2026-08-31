@@ -52,10 +52,19 @@ describe("pilot surface routing", () => {
 
   it("mounts fulfilment reports from the dealer's live order ledger", async () => {
     window.history.replaceState({}, "", "/reports");
-    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ orders: [{ id: "order-1", status: "APPROVED", version: 1, retailValueMinor: 40000, allocations: [{ orderLineId: "line-1", size: "7", approvedPairs: 4, dispatchedPairs: 2, heldPairs: 0 }] }] }), { status: 200 })));
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({
+      orders: [{ id: "order-1", status: "APPROVED", version: 1, retailValueMinor: 40000, allocations: [{ orderLineId: "line-1", size: "7", orderedPairs: 6, approvedPairs: 4, dispatchedPairs: 2, heldPairs: 1 }] }],
+    }), { status: 200 })));
     render(<App />);
     expect(await screen.findByRole("heading", { name: "Where's my order?" })).toBeInTheDocument();
-    expect(within(screen.getByLabelText("Order fulfilment")).getByText("Dispatched 2 pairs")).toBeInTheDocument();
+    const row = screen.getByText("order-1").closest("tr")!;
+    const cells = within(row).getAllByRole("cell");
+    // Requested, Confirmed, Shipped, Remaining, in that column order (see OrdersTable).
+    expect(cells[2]).toHaveTextContent("6");
+    expect(cells[3]).toHaveTextContent("4");
+    expect(cells[4]).toHaveTextContent("2");
+    expect(cells[5]).toHaveTextContent("1");
+    expect(within(row).getByText("⚑ 1 on hold")).toBeInTheDocument();
   });
 
   it("keeps activation and login routes outside dealer and control workspaces", () => {

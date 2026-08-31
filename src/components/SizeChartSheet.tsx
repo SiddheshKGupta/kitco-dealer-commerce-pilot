@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useIsNarrowViewport } from "../hooks/useIsNarrowViewport";
 import { BottomSheet, Modal, Tabs } from "./ui";
 
 /** Standard US/UK/EU/CM shoe-size conversion. Fixed reference data, not tied to any
@@ -36,26 +37,11 @@ const WOMEN_SIZES = [
 	{ us: "11.5", uk: "9", eu: "42", cm: "27.5" },
 ];
 
-/** Mobile gets the bottom sheet, desktop the centred modal -- same content, matching
- *  how Modal/BottomSheet are meant to pair (see their doc comments). */
-function useIsNarrowViewport(breakpointPx = 850): boolean {
-	const supported = typeof window !== "undefined" && typeof window.matchMedia === "function";
-	const query = () => window.matchMedia(`(max-width: ${breakpointPx}px)`);
-	const [narrow, setNarrow] = useState(() => (supported ? query().matches : false));
-	useEffect(() => {
-		if (!supported) return;
-		const media = query();
-		const onChange = () => setNarrow(media.matches);
-		media.addEventListener("change", onChange);
-		return () => media.removeEventListener("change", onChange);
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [breakpointPx, supported]);
-	return narrow;
-}
-
 export function SizeChartSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
 	const [tab, setTab] = useState<"men" | "women">("men");
-	const narrow = useIsNarrowViewport();
+	// Mobile gets the bottom sheet, desktop the centred modal -- same content, matching
+	// how Modal/BottomSheet are meant to pair (see their doc comments).
+	const narrow = useIsNarrowViewport(850);
 	const rows = tab === "men" ? MEN_SIZES : WOMEN_SIZES;
 	const body = <>
 		<p className="tiny" style={{ marginBottom: 12 }}>A general guide for converting shoe sizes. Fit can still vary a little by brand and style.</p>

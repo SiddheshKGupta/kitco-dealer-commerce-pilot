@@ -4,9 +4,13 @@
 .commerce-pdp-copy h1 { margin: 0; max-width: none; font-family: var(--font-ui); font-size: 32px; font-weight: 500; line-height: 1.2; letter-spacing: 0; text-transform: none; }
 .commerce-eyebrow { margin: 0 0 12px; color: var(--commerce-mid); font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
 .commerce-toolbar { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; gap: 18px; align-items: end; padding: 24px 0 36px; }
+/* Filters opens the full drawer and is the control worth noticing first; Sort is a minor
+   refinement someone reaches for after they've already filtered. Filters gets the solid
+   primary fill and a taller target; Sort keeps its quiet bordered look at a smaller height
+   -- the size and weight difference is the hierarchy signal, not colour alone. */
 .commerce-sort { display: grid; gap: 7px; color: var(--commerce-mid); font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.commerce-sort .ui-select { min-width: 170px; }
-.commerce-filter-trigger { align-self: stretch; }
+.commerce-sort .ui-select { min-width: 150px; min-height: 42px; font-size: 14px; }
+.commerce-filter-trigger { align-self: stretch; min-height: 52px; padding: 0 30px; font-size: 16px; font-weight: 700; }
 .commerce-result-count { margin-bottom: 14px; color: var(--commerce-mid); font-size: 12px; }
 /* One filter UI, not two kept in sync: the same group/checkbox markup renders inside
    the bottom sheet at every viewport width, rather than a separate sticky sidebar

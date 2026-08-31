@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, FormField, Input, SearchField, Select } from "../../components/ui";
 import { formatRetailValue } from "../catalogue/types";
-import { groupByArticle, summarizeFulfilment } from "../dispatch/fulfilment";
 import { AdminOrderPanel, type ControlOrder } from "./AdminOrderPanel";
 import {
 	AuditSection, CatalogueSection, DashboardSection, DealersSection, DispatchSection,
@@ -10,6 +9,7 @@ import {
 } from "./ControlSections";
 import { DealerGroupsSection, GroupRequestsSection, GstRegistrationsSection } from "./DealerGroups";
 import { DealerImportSection, DealerOnboardingSection } from "./DealerOnboarding";
+import { OrdersTable } from "../reports/OrdersTable";
 import { post, useAdminSection } from "./useAdminSection";
 import "./control.css";
 
@@ -234,26 +234,7 @@ export function OrdersSection() {
 						<a className="ui-btn ui-btn-secondary ui-btn-md" href={exportHref}>Download order summary</a>
 					</div>
 				</div>
-				<div className="table-wrap"><table className="data-table">
-					<thead><tr><th>Order No</th><th>Dealer</th><th>City</th><th>State</th><th>Submitted</th><th>Articles</th><th>Pairs</th><th>Retail Value</th><th>Status</th><th>Approved</th><th>Pending</th><th /></tr></thead>
-					<tbody>{rows.map((order) => {
-						const summary = summarizeFulfilment(order.allocations);
-						return <tr key={order.id}>
-							<td>{order.orderNumber ?? order.id.slice(0, 8)}</td>
-							<td><b>{order.dealerName ?? "—"}</b></td>
-							<td>{order.dealerCity ?? "—"}</td>
-							<td>{order.dealerState ?? "—"}</td>
-							<td>{order.submittedAt ? shortDate(order.submittedAt) : "—"}</td>
-							<td>{number(groupByArticle(order.allocations).length)}</td>
-							<td>{number(summary.orderedPairs)}</td>
-							<td>{typeof order.retailValueMinor === "number" ? formatRetailValue(order.retailValueMinor) : "—"}</td>
-							<td><StatusPill value={order.status} /></td>
-							<td>{number(summary.approvedPairs)}</td>
-							<td>{number(summary.pendingPairs)}</td>
-							<td className="right"><Button variant="secondary" size="sm" onClick={() => setOpenOrderId(order.id)}>Review</Button></td>
-						</tr>;
-					})}</tbody>
-				</table></div>
+				<OrdersTable orders={rows} variant="admin" onReview={setOpenOrderId} />
 			</section>}
 	</>;
 }

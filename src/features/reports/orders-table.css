@@ -1,0 +1,23 @@
+/* Dense desktop table for scanning many orders at once, styled after a wholesale order-status
+   screen: a dark header carries the grouped "Pairs" band, numbers are right-aligned, and a
+   held order gets a flag -- never colour alone. Below 900px this whole thing gives way to
+   OrdersTable's card list (see src/app/surfaces.css for .pilot-order-card itself). */
+.orders-table-wrap { overflow-x: auto; border: 1px solid var(--hairline); }
+.orders-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.orders-table thead tr { background: var(--ink); color: var(--canvas); }
+.orders-table th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+.orders-table th.right, .orders-table td.right { text-align: right; }
+.orders-table-group-row th { padding-top: 8px; padding-bottom: 0; font-weight: 500; color: rgba(255, 255, 255, .65); }
+.orders-table-group { text-align: center; border-bottom: 1px solid rgba(255, 255, 255, .18); }
+.orders-table thead tr + tr th { padding-top: 6px; }
+.orders-table tbody tr:not(.orders-table-detail-row) { border-bottom: 1px solid var(--hairline-soft); }
+.orders-table td { padding: 12px 14px; vertical-align: top; }
+.orders-table-sub { display: block; margin-top: 2px; color: var(--mute); font-size: 12px; font-weight: 500; }
+.orders-table-status-cell { display: grid; gap: 6px; justify-items: start; }
+.orders-table-hold { display: inline-flex; align-items: center; gap: 4px; color: var(--warning); font-size: 12px; font-weight: 700; }
+.orders-table-detail-row td { padding: 0 14px 14px; border-bottom: 1px solid var(--hairline-soft); }
+.orders-table-detail-row .pilot-order-details { border-top: none; padding-top: 0; }
+
+.orders-table-card-dealer { margin: -6px 0 0; color: var(--mute); font-size: 14px; }
+.orders-table-card-dealer strong { color: var(--ink); }
+.orders-table-card-date { color: var(--mute); font-size: 13px; font-weight: 600; }
