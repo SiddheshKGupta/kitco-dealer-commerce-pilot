@@ -6,6 +6,22 @@
 .control-nav a.is-active, .control-nav a:hover { background: var(--ink); color: var(--canvas); }
 .control-nav span { margin: 18px 10px 5px; color: var(--mute); font-size: 10px; font-weight: 500; letter-spacing: .11em; text-transform: uppercase; }
 .control-main { min-width: 0; padding: clamp(24px, 4vw, 56px); }
+/* Below tablet width, a fixed 212px sidebar plus content leaves too little room to be
+   usable at all -- this shell had no mobile behaviour whatsoever. The nav becomes one
+   horizontally-scrolling strip above the content instead of a column beside it; every
+   section is still one tap away, just reached by a swipe instead of a sidebar click. */
+@media (max-width: 780px) {
+  .control-layout { grid-template-columns: 1fr; min-height: 0; }
+  .control-nav { display: flex; align-items: center; gap: var(--space-2); overflow-x: auto; border-right: 0; border-bottom: 1px solid var(--hairline); padding: var(--space-3) var(--space-4); -webkit-overflow-scrolling: touch; }
+  .control-nav > p { display: none; }
+  .control-nav nav { display: flex; flex-wrap: nowrap; gap: 4px; }
+  .control-nav a { flex: none; white-space: nowrap; }
+  .control-nav span { flex: none; margin: 0 var(--space-2); white-space: nowrap; }
+  .control-main { padding: var(--space-4); }
+  .control-heading { flex-direction: column; align-items: stretch; }
+  .control-heading h1 { font-size: 26px; }
+  .control-actions { grid-template-columns: 1fr; }
+}
 /* Vertical rhythm between stacked panels/grids that render with no gap of their own --
    several sections (Admin Users, Size Sets) place consecutive <section class="panel">
    blocks straight after one another; give every admin section this for free instead of

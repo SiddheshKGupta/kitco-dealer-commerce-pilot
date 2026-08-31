@@ -46,7 +46,7 @@
 
 /* ---------------------------------------------------------- Input / Select */
 .ui-input, .ui-select {
-  width: 100%; min-height: 48px; border: 1px solid var(--line); border-radius: var(--radius-sm);
+  width: 100%; min-height: 48px; border: 1px solid var(--ink); border-radius: var(--radius-sm);
   padding: 0 var(--space-4); background: var(--canvas); color: var(--ink); font: inherit;
   transition: border-color var(--motion-standard) var(--ease-standard), box-shadow var(--motion-standard) var(--ease-standard);
 }
@@ -135,7 +135,7 @@
 /* ---------------------------------------------------------- SearchField */
 .ui-search { position: relative; display: block; }
 .ui-search-icon { position: absolute; top: 50%; left: 16px; width: 16px; height: 16px; color: var(--muted); transform: translateY(-50%); pointer-events: none; }
-.ui-search-input { width: 100%; min-height: 44px; border: 1px solid var(--line); border-radius: var(--radius-pill); background: var(--soft); padding: 0 var(--space-4) 0 44px; font: inherit; color: var(--ink); transition: background var(--motion-standard) var(--ease-standard), border-color var(--motion-standard) var(--ease-standard); }
+.ui-search-input { width: 100%; min-height: 44px; border: 1px solid var(--ink); border-radius: var(--radius-pill); background: var(--soft); padding: 0 var(--space-4) 0 44px; font: inherit; color: var(--ink); transition: background var(--motion-standard) var(--ease-standard), border-color var(--motion-standard) var(--ease-standard); }
 .ui-search-input:focus { outline: none; background: var(--canvas); border-color: var(--ink); }
 .ui-search-input::-webkit-search-cancel-button { appearance: none; }
 
