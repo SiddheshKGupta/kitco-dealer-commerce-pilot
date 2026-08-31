@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, SearchField, Select, Tabs } from "../../components/ui";
-import { FilterRail, type MrpRange, type MrpSelection } from "../../components/FilterRail";
+import type { MrpRange, MrpSelection } from "../../components/FilterRail";
 import { MobileFilterDrawer } from "../../components/MobileFilterDrawer";
 import { ProductGrid } from "../../components/ProductGrid";
 import { CatalogueRequestError, fetchCatalogue } from "./api";
@@ -96,9 +96,9 @@ export function CataloguePage({ onOpenProduct }: { onOpenProduct: (product: Cata
     <div className="commerce-toolbar">
       <SearchField label="Search products" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Product, article, brand or colour" />
       <label className="commerce-sort"><span>Sort</span><Select value={sort} onChange={(event) => setSort(event.target.value)}><option value="featured">Featured</option><option value="price-low">MRP: Low to high</option><option value="price-high">MRP: High to low</option></Select></label>
-      <Button variant="primary" full className="commerce-filter-trigger" onClick={() => setDrawer(true)}>Filters{totalSelected > 0 ? ` (${totalSelected})` : ""}</Button>
+      <Button variant="secondary" className="commerce-filter-trigger" onClick={() => setDrawer(true)}>Filters{totalSelected > 0 ? ` (${totalSelected})` : ""}</Button>
     </div>
-    {status === "loading" ? <p className="commerce-status" role="status">Loading products…</p> : status === "unauthenticated" ? <div className="commerce-status" role="alert"><strong>Your session has ended.</strong><a className="ui-btn ui-btn-primary ui-btn-md" href="/login?returnTo=/products">Sign in again</a></div> : status === "error" ? <div className="commerce-status" role="alert"><strong>Products could not be loaded.</strong><Button onClick={load}>Try again</Button></div> : <div className="commerce-results"><FilterRail groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} /><section aria-label="Products"><div className="commerce-result-count">{visible.length} colourways</div><ProductGrid products={visible} onOpenProduct={onOpenProduct} onClearFilters={hasActiveQuery ? clearAll : undefined} /></section></div>}
+    {status === "loading" ? <p className="commerce-status" role="status">Loading products…</p> : status === "unauthenticated" ? <div className="commerce-status" role="alert"><strong>Your session has ended.</strong><a className="ui-btn ui-btn-primary ui-btn-md" href="/login?returnTo=/products">Sign in again</a></div> : status === "error" ? <div className="commerce-status" role="alert"><strong>Products could not be loaded.</strong><Button onClick={load}>Try again</Button></div> : <section aria-label="Products"><div className="commerce-result-count">{visible.length} colourways</div><ProductGrid products={visible} onOpenProduct={onOpenProduct} onClearFilters={hasActiveQuery ? clearAll : undefined} /></section>}
     <MobileFilterDrawer open={drawer} groups={groups} selected={selected} onToggle={toggleFilter} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={setMrpSelected} onClearAll={clearFilters} totalSelected={totalSelected} onClose={() => setDrawer(false)} />
   </main>;
 }

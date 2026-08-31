@@ -16,6 +16,6 @@ interface Props {
 
 export function MobileFilterDrawer({ open, groups, selected, onToggle, mrpBounds, mrpSelected, onMrpChange, onClearAll, totalSelected, onClose }: Props) {
   return <BottomSheet open={open} onClose={onClose} title="Refine products" footer={<Button full onClick={onClose}>Show products</Button>}>
-    <FilterRail groups={groups} selected={selected} onToggle={onToggle} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={onMrpChange} onClearAll={onClearAll} totalSelected={totalSelected} className="is-mobile" />
+    <FilterRail groups={groups} selected={selected} onToggle={onToggle} mrpBounds={mrpBounds} mrpSelected={mrpSelected} onMrpChange={onMrpChange} onClearAll={onClearAll} totalSelected={totalSelected} />
   </BottomSheet>;
 }

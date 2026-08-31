@@ -11,11 +11,10 @@ interface FilterRailProps {
   onMrpChange: (selection: MrpSelection) => void;
   onClearAll: () => void;
   totalSelected: number;
-  className?: string;
 }
 
-export function FilterRail({ groups, selected, onToggle, mrpBounds, mrpSelected, onMrpChange, onClearAll, totalSelected, className = "" }: FilterRailProps) {
-  return <aside className={`commerce-filter-rail ${className}`} aria-label="Product filters">
+export function FilterRail({ groups, selected, onToggle, mrpBounds, mrpSelected, onMrpChange, onClearAll, totalSelected }: FilterRailProps) {
+  return <aside className="commerce-filter-rail" aria-label="Product filters">
     <div className="commerce-filter-heading">
       <strong>Filter</strong>
       {totalSelected > 0 ? <button type="button" className="commerce-filter-clear" onClick={onClearAll}>Clear all ({totalSelected})</button> : <span>All</span>}

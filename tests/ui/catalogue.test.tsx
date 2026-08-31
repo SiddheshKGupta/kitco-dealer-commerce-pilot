@@ -28,6 +28,7 @@ describe("dealer catalogue", () => {
     fireEvent.change(screen.getByRole("searchbox", { name: "Search products" }), { target: { value: "" } });
     fireEvent.change(screen.getByLabelText("Sort"), { target: { value: "price-high" } });
     expect(screen.getAllByRole("button", { name: /^View / }).map((button) => button.getAttribute("aria-label"))).toEqual(["View DW-303", "View NK-101", "View RB-202"]);
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const rail = screen.getByRole("complementary", { name: "Product filters" });
     fireEvent.click(within(rail).getByRole("checkbox", { name: "Reebok" }));
     expect(screen.getByRole("button", { name: "View RB-202" })).toBeInTheDocument();
@@ -43,7 +44,7 @@ describe("dealer catalogue", () => {
     expect(screen.getByLabelText("Image unavailable for RB-202")).toHaveTextContent("RB-202");
   });
 
-  it("opens a mobile filter drawer without removing the desktop filter semantics", async () => {
+  it("opens the filter drawer from the Filters button and returns focus to it on close", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(catalogue), { status: 200 })));
     render(<CataloguePage onOpenProduct={() => undefined} />);
     await screen.findByText("NK-101");
@@ -90,6 +91,7 @@ describe("dealer catalogue — product identity search and filters", () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(richCatalogue), { status: 200 })));
     render(<CataloguePage onOpenProduct={() => undefined} />);
     await screen.findByText("Air Zoom Pulse");
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const rail = screen.getByRole("complementary", { name: "Product filters" });
 
     fireEvent.click(within(rail).getByRole("checkbox", { name: "RUNNING" }));
