@@ -2,12 +2,12 @@
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-/* One page canvas everywhere -- admin (.control-layout) and auth (.auth-shell) already
-   declare this same grey explicitly; the dealer-facing commerce pages had no background
-   of their own and were silently inheriting plain white here instead, which is the root
-   reason the two sides of one product read as two different ones. Every surface that
-   should look like a card (panel, auth-page, cart-line, product tiles) already declares
-   its own white background on top of this. */
+/* One page canvas everywhere -- admin (.control-layout) already declares this same grey
+   explicitly; the dealer-facing commerce pages had no background of their own and were
+   silently inheriting plain white here instead, which is the root reason the two sides of
+   one product read as two different ones. Every surface that should look like a card
+   (panel, auth-page, cart-line, product tiles) already declares its own white background
+   on top of this. Auth (.auth-shell) is the one deliberate exception -- see its own rule. */
 html { background: var(--soft-cloud); color: var(--text); font-family: var(--font-ui); }
 
 body { margin: 0; min-width: 320px; }
@@ -66,7 +66,31 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 
 .intro { max-width: 530px; margin: var(--space-5) 0 0; color: var(--text-muted); font-size: 17px; line-height: 1.5; }
 
-.auth-shell { display: grid; flex: 1; place-items: center; padding: clamp(40px, 8vw, 112px) var(--space-4); background: var(--soft-cloud); }
+/* Black, on the client's own request -- the login/register/reset flow is the one screen
+   that stays deliberately distinct from the shared light canvas everywhere else. Flat black
+   read as dead on screen, so two very low-alpha radial highlights give it a glossy, lit-
+   from-above feel, and a faint noise layer (an inline SVG filter, not an image asset) keeps
+   it from banding and gives it some texture instead of a flat digital fill. The white
+   auth-page/auth-landing-promo cards need no extra treatment: they already declare their
+   own white background, and that contrast against black is the depth cue here, not the
+   resting-card shadow (which reads as intended everywhere else, just not against black). */
+.auth-shell {
+  display: grid; flex: 1; place-items: center; padding: clamp(40px, 8vw, 112px) var(--space-4);
+  background-color: var(--ink);
+  background-image:
+    radial-gradient(1200px 640px at 50% -12%, rgba(255, 255, 255, .1), transparent 55%),
+    radial-gradient(760px 420px at 90% 105%, rgba(255, 255, 255, .05), transparent 60%),
+    url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnPjxmaWx0ZXIgaWQ9J24nPjxmZVR1cmJ1bGVuY2UgdHlwZT0nZnJhY3RhbE5vaXNlJyBiYXNlRnJlcXVlbmN5PScwLjg1JyBudW1PY3RhdmVzPSczJyBzdGl0Y2hUaWxlcz0nc3RpdGNoJy8+PGZlQ29sb3JNYXRyaXggdHlwZT0nbWF0cml4JyB2YWx1ZXM9JzAgMCAwIDAgMSAgMCAwIDAgMCAxICAwIDAgMCAwIDEgIDAuMDUgMC4wNSAwLjA1IDAgMCcvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPScxMDAlJyBoZWlnaHQ9JzEwMCUnIGZpbHRlcj0ndXJsKCNuKScvPjwvc3ZnPg==");
+  background-repeat: no-repeat, no-repeat, repeat;
+  background-size: auto, auto, 180px 180px;
+}
+/* The Sign In / Register tab strip sits directly on this black canvas, not inside a white
+   card -- the shared Tabs component's dark selected-text, dark underline, and light
+   hairline (right everywhere else) would be invisible here, so they flip to light. */
+.auth-shell .ui-tabs { border-bottom-color: rgba(255, 255, 255, .2); }
+.auth-shell .ui-tab { color: rgba(255, 255, 255, .6); }
+.auth-shell .ui-tab[aria-selected="true"] { color: var(--canvas); }
+.auth-shell .ui-tab::after { background: var(--canvas); }
 .auth-shell .route-transition { display: flex; justify-content: center; }
 .route-transition { width: 100%; animation: route-enter var(--motion-standard) var(--ease-standard) both; }
 .auth-page { width: min(100%, 520px); padding: clamp(28px, 5vw, 48px); border: 1px solid var(--border); border-radius: var(--radius); background: var(--canvas); box-shadow: var(--shadow-resting); }
