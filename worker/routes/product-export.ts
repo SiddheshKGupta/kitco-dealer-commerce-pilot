@@ -22,16 +22,19 @@ function sizeSortKey(label: string): number {
  *  single-dealer export (it's a no-op there) and is essential for a multi-dealer
  *  consolidated export: without it, two different dealers' orders of the same article
  *  would silently merge into one blended quantity with no way to tell them apart.
- *  Quantities use approvedQty, matching the "Retail Value" already shown to dealers
- *  elsewhere in the app; a line held/rejected down to zero drops out entirely rather
- *  than showing an empty, zero-value row. */
-export function groupProductRows(rows: OrderExportRow[]): ProductExportRow[] {
+ *  Quantities default to approvedQty, matching the "Retail Value" already shown on the
+ *  admin side; a line held/rejected down to zero drops out entirely rather than showing
+ *  an empty, zero-value row. The dealer's own download passes "orderedQty" instead --
+ *  otherwise every order still awaiting a decision (approvedQty still 0) would produce a
+ *  completely empty file for the dealer who just placed it. */
+export function groupProductRows(rows: OrderExportRow[], qtyField: "approvedQty" | "orderedQty" = "approvedQty"): ProductExportRow[] {
 	const groups = new Map<string, { dealerCode: string; dealerName: string; articleNo: string; articleName: string; mrpMinor: number; gender: string; sizes: Map<string, number> }>();
 	for (const row of rows) {
 		const key = `${row.dealerCode}||${row.articleNo}||${row.colour}`;
 		let group = groups.get(key);
 		if (!group) { group = { dealerCode: row.dealerCode, dealerName: row.dealerName, articleNo: row.articleNo, articleName: row.productFamily, mrpMinor: row.mrpMinor, gender: titleCase(row.gender || "Unknown"), sizes: new Map() }; groups.set(key, group); }
-		if (row.approvedQty > 0) group.sizes.set(row.size, (group.sizes.get(row.size) ?? 0) + row.approvedQty);
+		const qty = row[qtyField];
+		if (qty > 0) group.sizes.set(row.size, (group.sizes.get(row.size) ?? 0) + qty);
 	}
 	return [...groups.values()]
 		.filter((group) => group.sizes.size > 0)
@@ -100,11 +103,11 @@ export function registerDealerProductExportRoutes(app: Hono<{ Variables: AuthVar
 	app.get("/api/orders/:orderId/export-products.csv", async (context) => {
 		const session = context.get("session");
 		const rows = await exporter.exportRows(session, { orderId: context.req.param("orderId"), dealerId: session.dealerId ?? undefined });
-		return sendCsv(context, groupProductRows(rows), `kitco-order-${context.req.param("orderId")}`);
+		return sendCsv(context, groupProductRows(rows, "orderedQty"), `kitco-order-${context.req.param("orderId")}`);
 	});
 	app.get("/api/orders/export-products.csv", async (context) => {
 		const session = context.get("session");
 		const rows = await exporter.exportRows(session, { dealerId: session.dealerId ?? undefined });
-		return sendCsv(context, groupProductRows(rows), "kitco-my-orders");
+		return sendCsv(context, groupProductRows(rows, "orderedQty"), "kitco-my-orders");
 	});
 }

@@ -52,6 +52,12 @@ describe("groupProductRows", () => {
 		const result = groupProductRows([baseRow({ approvedQty: 0 })]);
 		expect(result).toEqual([]);
 	});
+
+	it("uses orderedQty instead of approvedQty when asked to, so a still-pending order isn't dropped", () => {
+		const result = groupProductRows([baseRow({ orderedQty: 12, approvedQty: 0 })], "orderedQty");
+		expect(result).toHaveLength(1);
+		expect(result[0]!.grandTotalPairs).toBe(12);
+	});
 });
 
 describe("toProductCsv", () => {
@@ -137,5 +143,16 @@ describe("registerDealerProductExportRoutes", () => {
 			{ orderId: "order-7", dealerId: "dealer-1" },
 			{ dealerId: "dealer-1" },
 		]);
+	});
+
+	// A dealer downloading their own order should see what they ordered even before KITCO
+	// has decided anything -- approvedQty is 0 at that point, so grouping by approvedQty
+	// (the admin default) would silently hand back an empty file for every fresh order.
+	it("reports what the dealer ordered, not what's been approved yet, for a still-pending order", async () => {
+		const { app, exporter } = appWithExporter(async () => [baseRow({ orderedQty: 5, approvedQty: 0 })], dealerSession);
+		registerDealerProductExportRoutes(app, exporter);
+		const body = await (await app.request("/api/orders/order-7/export-products.csv")).text();
+		expect(body).not.toBe("");
+		expect(body).toContain("44995.00");
 	});
 });
