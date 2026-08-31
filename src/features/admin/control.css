@@ -47,6 +47,11 @@
 .control-actions .ui-btn { width: 100%; margin-top: 8px; }
 .control-nav a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 .control-action { display: grid; gap: 8px; margin-top: 12px; }
+/* A submit button sitting directly below a panel's fields (never one nested inside its
+   own inline flex/grid row alongside inputs, which needs no extra gap of its own) gets
+   the same breathing room everywhere -- some of these had no gap at all, others an
+   inline marginTop, none of it consistent from one "add a thing" form to the next. */
+.panel-body > .ui-btn { margin-top: var(--space-3); }
 .control-article { border: 1px solid var(--hairline); background: var(--canvas); padding: 16px; }
 .control-article-title { margin: 0 0 12px; font-size: 15px; font-weight: 500; }
 .control-size-cards { display: grid; gap: 12px; }

@@ -343,7 +343,7 @@ export function SizeSetsSection() {
 						<Input id="new-set-name" value={newSetName} onChange={(event) => setNewSetName(event.target.value)} placeholder="Reebok 7 to 13" />
 					</FormField>
 				</div>
-				<Button style={{ marginTop: 12 }} disabled={!newSetCode.trim() || !newSetName.trim() || creatingSet} onClick={() => void createSet()}>{creatingSet ? "Creating…" : "Create size set"}</Button>
+				<Button disabled={!newSetCode.trim() || !newSetName.trim() || creatingSet} onClick={() => void createSet()}>{creatingSet ? "Creating…" : "Create size set"}</Button>
 			</div>
 		</section>
 
@@ -358,7 +358,7 @@ export function SizeSetsSection() {
 					<FormField label="System label" htmlFor="new-system-label" hint="e.g. Alpha (S/M/L)">
 						<Input id="new-system-label" value={newSystemLabel} onChange={(event) => setNewSystemLabel(event.target.value)} style={{ width: 160 }} />
 					</FormField>
-					<Button size="sm" disabled={!newSystemCode.trim() || !newSystemLabel.trim() || creatingSystem} onClick={() => void createSystem()}>{creatingSystem ? "Adding…" : "Add size system"}</Button>
+					<Button disabled={!newSystemCode.trim() || !newSystemLabel.trim() || creatingSystem} onClick={() => void createSystem()}>{creatingSystem ? "Adding…" : "Add size system"}</Button>
 				</div>
 			</div>
 		</section>
@@ -398,7 +398,7 @@ export function SizeSetsSection() {
 							<FormField label="Order" htmlFor={`new-value-order-${set.id}`} hint="Optional, leave blank to add at the end">
 								<Input id={`new-value-order-${set.id}`} inputMode="numeric" value={draft.sortOrder} onChange={(event) => setValueDrafts((current) => ({ ...current, [set.id]: { ...draft, sortOrder: event.target.value } }))} style={{ width: 80 }} />
 							</FormField>
-							<Button size="sm" disabled={!draft.label.trim() || savingValueSetId === set.id} onClick={() => void addValue(set)}>{savingValueSetId === set.id ? "Adding…" : "Add size"}</Button>
+							<Button disabled={!draft.label.trim() || savingValueSetId === set.id} onClick={() => void addValue(set)}>{savingValueSetId === set.id ? "Adding…" : "Add size"}</Button>
 						</div>
 					</div>
 				</section>;
@@ -441,7 +441,7 @@ export function SizeSetsSection() {
 						</Select>
 					</FormField>
 				</div>}
-				<Button style={{ marginTop: 12 }} disabled={assigning || !assignSetId || !assignReady} onClick={() => void assign()}>{assigning ? "Assigning…" : "Turn on for these products"}</Button>
+				<Button disabled={assigning || !assignSetId || !assignReady} onClick={() => void assign()}>{assigning ? "Assigning…" : "Turn on for these products"}</Button>
 				{assignResult && <p className="notice" style={{ marginTop: 12 }}>{assignResult}</p>}
 			</div>
 		</section>

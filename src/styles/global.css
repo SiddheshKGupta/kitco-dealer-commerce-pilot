@@ -63,7 +63,7 @@ h1 { max-width: 680px; margin: 0; font-size: 32px; font-weight: 500; line-height
 .auth-shell { display: grid; flex: 1; place-items: center; padding: clamp(40px, 8vw, 112px) var(--space-4); background: var(--soft-cloud); }
 .auth-shell .route-transition { display: flex; justify-content: center; }
 .route-transition { width: 100%; animation: route-enter var(--motion-standard) var(--ease-standard) both; }
-.auth-page { width: min(100%, 520px); padding: clamp(28px, 5vw, 48px); border: 1px solid var(--border); background: var(--canvas); box-shadow: none; }
+.auth-page { width: min(100%, 520px); padding: clamp(28px, 5vw, 48px); border: 1px solid var(--border); border-radius: var(--radius); background: var(--canvas); box-shadow: var(--shadow-resting); }
 .auth-page h1 { max-width: 470px; font-size: 32px; font-weight: 700; letter-spacing: -0.04em; }
 .auth-page h2 { margin: var(--space-6) 0 var(--space-2); font-size: 24px; letter-spacing: -0.04em; }
 .auth-kicker { display: flex; justify-content: space-between; margin: 0 0 var(--space-4); color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
@@ -121,7 +121,9 @@ footer p:last-child { margin-bottom: 0; }
   .mobile-pilot { display: inline-block; }
   .dealer-nav { justify-content: space-between; gap: var(--space-4); }
   .auth-shell { padding: var(--space-5) var(--space-3) var(--space-7); background: var(--canvas); }
-  .auth-page { padding: var(--space-5); }
+  /* The shell and the card share one background here (full-bleed on a small screen),
+     so there is nothing left for a card shadow to lift off of -- keep the border only. */
+  .auth-page { padding: var(--space-5); border-radius: 0; box-shadow: none; }
 }
 
 /* ============================================================
@@ -141,7 +143,7 @@ footer p:last-child { margin-bottom: 0; }
 .chip { border: 1px solid var(--line); border-radius: var(--radius-pill); padding: 10px 14px; background: var(--canvas); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .chip.active { background: var(--ink); color: var(--canvas); border-color: var(--ink); }
 
-.panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas); overflow: hidden; }
+.panel { border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas); box-shadow: var(--shadow-resting); overflow: hidden; }
 .panel-head { display: flex; justify-content: space-between; gap: var(--space-3); padding: 20px 22px; border-bottom: 1px solid var(--line); align-items: center; }
 .panel-head h3 { margin: 0; font-size: 17px; }
 .panel-body { padding: 20px 22px; }

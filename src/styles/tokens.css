@@ -29,8 +29,12 @@
      accent, not a status colour. Contrast on --canvas: ~12:1. */
   --brand-plum: #4b1942;
 
-  /* Depth: one shadow level only. Cards are flat; this is for lifted surfaces
-     (sticky order bar, modals, toast). */
+  /* Depth: two shadow levels, each a distinct concept. --shadow-resting is the everyday
+     "this is a card sitting on the page" lift every panel/card gets -- close, soft,
+     barely-there, doing its work through shade rather than a visible blur ring.
+     --shadow is for the rarer case of a surface genuinely floating above the page
+     content (sticky order bar, modals, toast) and stays the stronger of the two. */
+  --shadow-resting: 0 1px 2px rgba(17, 17, 17, .04), 0 4px 14px rgba(17, 17, 17, .06);
   --shadow: 0 18px 45px rgba(0, 0, 0, .10);
 
   /* Radius */
